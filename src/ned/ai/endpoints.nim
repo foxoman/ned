@@ -209,6 +209,20 @@ proc jHasErr(j: JsonNode): bool =
 
 proc aiContentParts(c: JsonNode, think, text: var string)
 
+
+proc aiTakeUsage(u, top: JsonNode, inKey, outKey, detailsKey: string) =
+  ## a reply's token counts where the input count takes in what came from the cache — OpenAI's Chat Completions and
+  ## Responses, and the many services built like them: the cached part counted once, as read from the cache (added to
+  ## the input as well, the chat's total and its cost counted it twice: issue #5). DeepSeek says it as
+  ## prompt_cache_hit_tokens, llama.cpp in its timings (cache_n, beside the usage)
+  let all = u{inKey}.getInt
+  aiReqOut = u{outKey}.getInt
+  var cached = u{detailsKey, "cached_tokens"}.getInt
+  if cached == 0: cached = u{"prompt_cache_hit_tokens"}.getInt
+  if cached == 0 and top != nil: cached = top{"timings", "cache_n"}.getInt
+  cached = max(0, min(cached, all))
+  aiReqCacheRead = cached
+  aiReqIn = all - cached
 proc aiApplyWhole(raw: string): bool =
   ## a non-streamed reply (stream=false): one JSON document in chat-completions or Responses format
   var r: JsonNode
@@ -231,10 +245,7 @@ proc aiApplyWhole(raw: string): bool =
           calls.add AiCall(id: c{"id"}.getStr("call_" & $calls.len), name: c{"function", "name"}.getStr,
                            args: c{"function", "arguments"}.getStr)
     let u = r{"usage"}
-    if u != nil and u.kind == JObject:
-      aiReqIn = u{"prompt_tokens"}.getInt
-      aiReqOut = u{"completion_tokens"}.getInt
-      aiReqCacheRead = u{"prompt_tokens_details", "cached_tokens"}.getInt
+    if u != nil and u.kind == JObject: aiTakeUsage(u, r, "prompt_tokens", "completion_tokens", "prompt_tokens_details")
   elif r{"output"} != nil and r["output"].kind == JArray:
     if r{"status"}.getStr == "incomplete": aiFinish = r{"incomplete_details", "reason"}.getStr("length")
     for item in r["output"]:
@@ -250,10 +261,7 @@ proc aiApplyWhole(raw: string): bool =
         calls.add AiCall(id: item{"call_id"}.getStr, name: item{"name"}.getStr, args: item{"arguments"}.getStr)
       else: discard
     let u = r{"usage"}
-    if u != nil and u.kind == JObject:
-      aiReqIn = u{"input_tokens"}.getInt
-      aiReqOut = u{"output_tokens"}.getInt
-      aiReqCacheRead = u{"input_tokens_details", "cached_tokens"}.getInt
+    if u != nil and u.kind == JObject: aiTakeUsage(u, r, "input_tokens", "output_tokens", "input_tokens_details")
   elif r{"content"} != nil and r["content"].kind == JArray:      # Anthropic Messages
     aiFinish = r{"stop_reason"}.getStr
     for blk in r["content"]:
@@ -435,6 +443,10 @@ proc aiRequest() =
     aiUsageOut += aiReqOut
     aiUsageCacheRead += aiReqCacheRead
     aiUsageCacheWrite += aiReqCacheWrite
+    let sentNow = aiReqIn + aiReqCacheRead + aiReqCacheWrite
+    if sentNow > 0:
+      inc aiUsageReqs
+      aiUsageLast = sentNow
     var failed = code >= 400 or (code == 0 and j.code != 0)
     if not failed and aiNoStream and not aiApplyWhole(aiRaw):
       failed = true                       # 200 but not the JSON reply we asked for
@@ -451,7 +463,8 @@ proc aiRequest() =
       aiLogWrite("━━ " & now().format("yyyy-MM-dd HH:mm:ss") & "  came back after " & formatFloat(secs, ffDecimal, 1) &
                  " s: " & (if code > 0: "HTTP " & $code else: "no answer (curl " & $j.code & ")") &
                  (if aiFinish.len > 0: ", finish reason " & aiFinish else: "") &
-                 (if aiReqIn + aiReqOut > 0: ", " & $aiReqIn & " tokens in, " & $aiReqOut & " out" else: "") & "\n" &
+                 (if aiReqIn + aiReqOut > 0: ", " & $(aiReqIn + aiReqCacheRead + aiReqCacheWrite) & " tokens in (" &
+                                              $aiReqCacheRead & " from the cache), " & $aiReqOut & " out" else: "") & "\n" &
                  (if failed: "[error]\n" & m & "\n" else: "") & logged)
     # the endpoint refused a parameter this model does not take: learn it and ask again
     let retry = failed and code in [400, 404, 422] and aiRetries < 3 and aiLearnQuirk(m)
@@ -689,9 +702,7 @@ proc aiLine(line: string) =
         aiFinish = j{"response", "incomplete_details", "reason"}.getStr("length")
       let u = j{"response", "usage"}
       if u != nil and u.kind == JObject:
-        aiReqIn = u{"input_tokens"}.getInt
-        aiReqOut = u{"output_tokens"}.getInt
-        aiReqCacheRead = u{"input_tokens_details", "cached_tokens"}.getInt
+        aiTakeUsage(u, j{"response"}, "input_tokens", "output_tokens", "input_tokens_details")
     of "response.failed", "error":
       let em = j{"response", "error", "message"}.getStr
       aiRaw.add (if em.len > 0: em else: j{"error", "message"}.getStr & j{"message"}.getStr) & "\n"
@@ -743,10 +754,7 @@ proc aiLine(line: string) =
     else: discard
   else:
     let u = j{"usage"}
-    if u != nil and u.kind == JObject:
-      aiReqIn = u{"prompt_tokens"}.getInt
-      aiReqOut = u{"completion_tokens"}.getInt
-      aiReqCacheRead = u{"prompt_tokens_details", "cached_tokens"}.getInt
+    if u != nil and u.kind == JObject: aiTakeUsage(u, j, "prompt_tokens", "completion_tokens", "prompt_tokens_details")
     let ch = j{"choices"}
     if ch == nil or ch.kind != JArray or ch.len == 0:
       if jHasErr(j):
@@ -918,5 +926,7 @@ proc aiNewChat() =
   aiUsageOut = 0
   aiUsageCacheRead = 0
   aiUsageCacheWrite = 0
+  aiUsageReqs = 0
+  aiUsageLast = 0
   inc aiVersion
   showSide(svAssistant)

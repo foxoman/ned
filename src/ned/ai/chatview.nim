@@ -693,7 +693,9 @@ proc drawAssistant(x0, y0, w, h: int) =
     let u = fmtTokens(aiUsageIn + aiUsageCacheRead + aiUsageCacheWrite) & "↑ " & fmtTokens(aiUsageOut) & "↓" &
             (if cost.len > 0: " " & cost else: "")
     let tip = "Tokens this chat: " & $(aiUsageIn + aiUsageCacheRead + aiUsageCacheWrite) & " sent (" &
-              $aiUsageCacheRead & " from cache), " & $aiUsageOut & " received" &
+              $aiUsageCacheRead & " from cache)" &
+              (if aiUsageReqs > 1: " in " & $aiUsageReqs & " requests — each sends the conversation so far, the last " &
+                                   $aiUsageLast else: "") & ", " & $aiUsageOut & " received" &
               (if cost.len > 0: " — about " & cost & " (ai.price)" else: " — set ai.price to see the cost")
     if x + strWidth(u) + 2 < x0 + w:
       discard putStr(x0 + w - strWidth(u) - 1, y0, u, theme.dim, bg)

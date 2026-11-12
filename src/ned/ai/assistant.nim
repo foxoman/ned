@@ -118,6 +118,7 @@ var
   aiRenderedKey = ""
   aiChatId = ""           # saved chats: <state>/chats/<id>.json
   aiUsageIn, aiUsageOut, aiUsageCacheRead, aiUsageCacheWrite: int
+  aiUsageReqs, aiUsageLast: int   # this chat's requests, and how much the last one sent (the conversation so far)
   aiWarnOk = false          # this run's big request was allowed
   aiReqIn, aiReqOut, aiReqCacheRead, aiReqCacheWrite: int
   aiSplit: ThinkSplit       # the reply being read: the <think> … </think> a model writes into its answer, taken out

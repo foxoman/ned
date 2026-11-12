@@ -79,8 +79,11 @@ NED_UI_FULL=1 python3 tests/ui/run.py ./ned t_vim       # a failure prints the w
 
 `t_65_vim_oracle` checks ned's vim mode against vim itself: the same file, the same place, the same keys — the
 movements by where the cursor and the mode end up, the edits by the text they left. Both sides run headless. vim is
-`tests/ui/vimoracle.py` (`nvim -es` with `feedkeys`), so a case answers the same thing every run and the whole set takes
-seconds; its answers are cached for as long as `vim --version` and the cases are the same. ned is `ned -es`
+`tests/ui/vimoracle.py` (`nvim -es`, or `vim -N -es`, with `feedkeys`), so a case answers the same thing every run and
+the whole set takes seconds; its answers are cached for as long as `vim --version`, its script and the cases are the
+same. nvim's defaults are the ones ned follows: the script gives vim the few where it differs (`nostartofline`,
+`nojoinspaces`, `nrformats`, `smarttab`), and `-N`, since vim with `-u NONE` starts vi-compatible and would not read
+the script's `\` line continuations. ned is `ned -es`
 (`src/ned/app/headless.nim`): the editor's own vim keys with no terminal and no screen, one long-running process that a
 case per line of JSON goes into and an answer per line comes out of (`tests/ui/nedheadless.py`) — a case in a
 millisecond, not the two seconds a tmux editor and a screen read cost. The cases are made from lists

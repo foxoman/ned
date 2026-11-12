@@ -25,7 +25,8 @@ when not defined(windows):
 
   proc onCrash(sig: cint) {.noconv.} =
     ## the handler of a fatal signal (on its own stack): the terminal given back, the note written, then the signal
-    ## again with the system's own handling (the program ends as it would have). Only calls safe in a signal handler
+    ## again, now with the system's own handling (SA_RESETHAND): the program ends as it would have. Only calls safe in
+    ## a signal handler
     let name: cstring = (if sig == SIGSEGV: "SIGSEGV (memory out of bounds)" elif sig == SIGBUS: "SIGBUS (memory)"
                          elif sig == SIGFPE: "SIGFPE (arithmetic)" elif sig == SIGILL: "SIGILL (bad instruction)"
                          elif sig == SIGABRT: "SIGABRT (aborted)" else: "a fatal signal")
@@ -47,8 +48,7 @@ when not defined(windows):
       crashPut(2, ", while: ")
       crashPutWork(2)
     crashPut(2, ".\r\nYour unsaved changes are kept: ned offers them when it starts again.\r\n")
-    discard posix.signal(sig, SIG_DFL)
-    discard posix.kill(getpid(), sig)
+    discard posix.kill(getpid(), sig)       # (SA_RESETHAND gave the signal its usual handling back already)
 
   proc crashGuard() =
     ## (at start) the fatal signals handled by onCrash, on a stack of its own, its note's path made ahead

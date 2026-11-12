@@ -39,7 +39,8 @@ proc saveChat() =
     msgs.add %*{"role": m.role, "text": m.text, "shown": m.shown, "calls": calls, "pics": m.pics, "think": m.think}
   let j = %*{"id": aiChatId, "title": chatTitle(), "root": rootDir, "provider": cfgAiProvider, "model": aiModel(),
              "updated": (epochTime() * 1000).int64, "usage": {"in": aiUsageIn, "out": aiUsageOut,
-             "cacheRead": aiUsageCacheRead}, "msgs": msgs}
+             "cacheRead": aiUsageCacheRead, "cacheWrite": aiUsageCacheWrite, "requests": aiUsageReqs,
+             "last": aiUsageLast}, "msgs": msgs}
   try:
     privateDir(chatsDir())
     writeFileSafe(chatsDir() / aiChatId & ".json", $j, 0o600)
@@ -79,6 +80,9 @@ proc loadChat(path: string) =
     aiUsageIn = j{"usage", "in"}.getInt
     aiUsageOut = j{"usage", "out"}.getInt
     aiUsageCacheRead = j{"usage", "cacheRead"}.getInt
+    aiUsageCacheWrite = j{"usage", "cacheWrite"}.getInt
+    aiUsageReqs = j{"usage", "requests"}.getInt
+    aiUsageLast = j{"usage", "last"}.getInt
     aiAlwaysAllow.clear()
     aiScrollOff = 0
     inc aiVersion

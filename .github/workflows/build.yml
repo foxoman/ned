@@ -27,7 +27,7 @@ jobs:
           - { name: linux-nim-2.2.4,    os: ubuntu-latest,    nim: "2.2.4", cc: gcc,  out: ned-linux-nim-2.2.4, lto: "" }
           - { name: macos-arm64,        os: macos-latest,     nim: stable, cc: clang, out: ned-macos-arm64, lto: -d:lto }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jiro4989/setup-nim-action@v2
         with:
           nim-version: ${{ matrix.nim }}
@@ -84,7 +84,7 @@ jobs:
             setup: "true"
             flags: --cpu:amd64 --passC:"-arch x86_64" --passL:"-arch x86_64"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jiro4989/setup-nim-action@v2
         with:
           nim-version: stable
@@ -105,7 +105,7 @@ jobs:
     name: termux-aarch64
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jiro4989/setup-nim-action@v2
         with:
           nim-version: stable
@@ -128,8 +128,8 @@ jobs:
       - name: Keep Unix line endings
         shell: pwsh
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
-      - uses: Vampire/setup-wsl@v3
+      - uses: actions/checkout@v5
+      - uses: Vampire/setup-wsl@v7
         with:
           distribution: Ubuntu-24.04
           additional-packages: build-essential curl xz-utils python3 file
@@ -159,7 +159,7 @@ jobs:
       - name: Keep Unix line endings
         shell: pwsh
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: jiro4989/setup-nim-action@v2
         with:
           nim-version: stable
@@ -189,7 +189,7 @@ jobs:
     name: VS Code extension
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Package it
         run: bash tests/build/vscode.sh dist-vscode
       - name: Check it

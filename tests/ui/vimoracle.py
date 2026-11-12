@@ -36,7 +36,12 @@ let v:errmsg = ''
 " wide, autoindent (ned's Enter keeps the line's indentation). A bare `-u NONE` vim shifts by a tab, draws a tab eight
 " columns wide and has no autoindent, which is not the vim ned is checked against)
 set expandtab shiftwidth=4 softtabstop=0 tabstop=4 autoindent nosmartindent nocindent
+" (vim's own defaults where they differ from nvim's, whose are the ones ned follows: G, gg, >> and dd keep the column,
+" J joins with one space, Ctrl+A leaves a leading 0 alone)
+set nostartofline nojoinspaces nrformats=bin,hex smarttab
 call cursor(%(line)d, %(col)d)
+" (back in Ex mode once the keys are done: nvim -es says 'cv', vim -es 'ce' — anything else, the keys left a mode
+" or an operator waiting)
 " (one string, one go: in ex mode vim's own key reading never echoes a pending operator between two feedkeys calls, so
 " a text object's `i` and `(` would be read as motions — one string is the case as it is typed)
 silent! call feedkeys(%(keys)s, 'xt')
@@ -46,7 +51,7 @@ let g:out = {
       \ 'col': col('.'),
       \ 'text': getline(1, '$'),
       \ 'visual': visualmode(),
-      \ 'pending': mode(1) !=# 'cv',
+      \ 'pending': index(['cv', 'ce'], mode(1)) < 0,
       \ 'err': v:errmsg,
       \ }
 try
@@ -119,8 +124,11 @@ class Oracle:
             script = os.path.join(d, 'case.vim')
             with open(script, 'w', encoding='utf-8') as fh:
                 fh.write(SCRIPT % {'line': line, 'col': col, 'keys': vim_str(keys), 'out': vim_str(out)})
-            r = subprocess.run([self.editor, '--clean', '-u', 'NONE', '-i', 'NONE', '-n', '-es', '-S', script, f],
-                               capture_output=True, text=True, timeout=120, cwd=d)
+            # (-N: vim with `-u NONE` starts vi-compatible, where the script's `\` line continuations are not read —
+            # it stopped there and answered nothing; nvim ignores -N. stdin closed: a script that stops early must not
+            # leave vim waiting for Ex commands)
+            r = subprocess.run([self.editor, '--clean', '-N', '-u', 'NONE', '-i', 'NONE', '-n', '-es', '-S', script, f],
+                               capture_output=True, text=True, timeout=120, cwd=d, stdin=subprocess.DEVNULL)
             if not os.path.exists(out):
                 raise RuntimeError('%s gave no answer to %r:\n%s%s' % (self.editor, keys, r.stdout[-300:],
                                                                        r.stderr[-300:]))
@@ -133,12 +141,13 @@ class Oracle:
 
     def answers(self, cases, path, cache=None):
         """the answers to many cases — each `(keys, line, col)` — in the order asked. With `cache` (a JSON file) they are
-        kept there and given back while vim's version and the cases are the same: vim answers the same thing every time,
-        so a test run need not ask it 300 times again"""
+        kept there and given back while vim's version, the script that asks it and the cases are the same: vim answers
+        the same thing every time, so a test run need not ask it 300 times again"""
         if cache and os.path.exists(cache):
             try:
                 old = json.load(open(cache, encoding='utf-8'))
-                if old.get('vim') == vim_version(self.editor) and old.get('cases') == cases:
+                if old.get('vim') == vim_version(self.editor) and old.get('script') == SCRIPT and \
+                   old.get('cases') == cases:
                     return old['answers']
             except (ValueError, KeyError, OSError):
                 pass
@@ -146,7 +155,7 @@ class Oracle:
         if cache:
             try:
                 with open(cache, 'w', encoding='utf-8') as f:
-                    json.dump({'vim': vim_version(self.editor), 'cases': cases, 'answers': answers}, f)
+                    json.dump({'vim': vim_version(self.editor), 'script': SCRIPT, 'cases': cases, 'answers': answers}, f)
             except OSError:
                 pass
         return answers

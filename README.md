@@ -62,6 +62,14 @@ column (with `$` they go to the end, as vim).
 **`ned -es`** runs vim mode with no terminal: a file and a case of keys per line on stdin, the cursor, the mode and the
 text back per line — how the tests ask ned, and scripts can too.
 
+**The tokens a chat sent.** With OpenAI's APIs, and the many services built like them, the tokens that came from the
+cache are already in the input's count: ned added them again, so a chat's total and its cost counted them twice.
+DeepSeek's and llama.cpp's cache are read too now. The total still grows fast while the agent works, because each step
+sends the conversation so far again: the figure's tooltip says how many requests there were and how much the last one
+sent.
+
+**Nim 2.2.4.** 6.45 did not build with Nim 2.2.4 or an older 2.2 (`ned --update`, `install.sh`); 6.46 does.
+
 ## Features
 
 **Desktop-style UI in the terminal** — title bar with menus (F10), command palette (Ctrl+E, over 500 commands,

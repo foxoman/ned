@@ -89,7 +89,10 @@ know your code and not only its name.
   `.github/copilot-instructions.md` in the project are added to what the model is told (`ai.projectInstructions`);
   `ai.systemPrompt` adds your own.
 - **What it costs**: a token counter under the chat — in dollars with `ai.price` — and prompt caching for Anthropic
-  (`ai.promptCaching`: repeated context costs about a tenth). A request bigger than `ai.warnTokens` asks first.
+  (`ai.promptCaching`: repeated context costs about a tenth; OpenAI and many others cache by themselves). What came
+  from a cache is counted once, at its own price. The count is of everything sent: each step of the agent sends the
+  conversation so far again, so it grows faster than the conversation — its tooltip says how many requests there were
+  and how big the last one was. A request bigger than `ai.warnTokens` asks first.
   `ai.fastModel` adds a ⚡ switch between a quick, cheap model and the smart one (*AI: fast / smart model*).
 
 ## The agent
