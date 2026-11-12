@@ -1,6 +1,47 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-646). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-647). Older releases:
+
+## What's new in 6.46
+
+**Vim mode is measured against vim itself.** The suite asks a real vim — headless, the same file, the same place, the
+same keys — where the cursor, the mode and the text end up, and compares ned's answer. 427 cases; every one agrees.
+What got there is what you feel:
+
+**Text objects.** `cw` changes to the end of the word under the cursor (`2cw`: two words, the space after kept), `iw`
+and `aw` work on the blanks (`aw` at the end of a line takes the blanks before it, as the quote objects do), the quote
+objects search forward to the next string when the cursor is before it, and `<…>` (`i<`, `a<`) and `it`/`at` (a tag)
+are there.
+
+**`.` with a count** gives the count to the change, as typing it would: after `>>` it is `3>>` — three lines — not one
+line three times, and after `cw` it is `3cw`, the change's own count replaced. A count on an insert repeats the text.
+
+**`gv`** takes the last visual selection again, after `Esc` or after an operator on it. `Esc` leaves insert mode in one
+press even with the completion list open, and a key typed right after `Esc` is that key: `Esc` `u` is undo, not Alt+U,
+which turns the mouse off.
+
+**Characters above ASCII.** `l`, `h`, `x`, `X`, `s`, `r` and the end-of-line motions step characters, not bytes; `~`,
+`gu`, `gU` and the new `g~` map case rune by rune (`ü` ↔ `Ü`, `ß` ↔ `ẞ`); `r€` replaces with a multi-byte character and
+`f•` finds one.
+
+**And the rest.** `dw` on a line's last word keeps the line break, a linewise delete keeps the cursor's column, `J`
+joins the lines its count says, `d}` takes the last character at the end of the file, and `>`/`<` keep the cursor's
+column (with `$` they go to the end, as vim).
+
+**`ned -es`** runs vim mode with no terminal: a file and a case of keys per line on stdin, the cursor, the mode and the
+text back per line — how the tests ask ned, and scripts can too.
+
+**The tokens a chat sent.** With OpenAI's APIs, and the many services built like them, the tokens that came from the
+cache are already in the input's count: ned added them again, so a chat's total and its cost counted them twice.
+DeepSeek's and llama.cpp's cache are read too now. The total still grows fast while the agent works, because each step
+sends the conversation so far again: the figure's tooltip says how many requests there were and how much the last one
+sent.
+
+**A blank screen.** A file with bytes that are not UTF-8 because they would stand for a character past the last one
+there is (`F4 90 80 80` and up) left the screen blank: every frame failed to draw. Each such byte is now a `�`, as any
+broken byte is.
+
+**Nim 2.2.4.** 6.45 did not build with Nim 2.2.4 or an older 2.2 (`ned --update`, `install.sh`); 6.46 does.
 
 ## What's new in 6.45
 

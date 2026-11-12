@@ -105,10 +105,18 @@ bindings that have modes:
 | `helix.keys` | Helix's normal and select modes | `{"<space>n": "Next tab", "<space>x": "Close tab", "<space>w": ":w"}` |
 
 Write the keys as vim does: `<leader>` (or `<space>`) is the space bar, and in vim mode `<CR>` is Enter, `<Tab>` Tab
-and `<C-a>` … `<C-z>` Ctrl and a letter. Yours come before ned's own use of the keys and before a plugin's; while
-their first keys are typed, ned waits for the rest (the **which-key** plugin shows what can follow), and a count
-before them runs the command that many times (`3<leader>n`: three tabs on). A key with Ctrl or Alt that should work
-in every mode goes in the `keys` setting instead (`{"alt+w": "Close tab"}`).
+and `<C-a>` … `<C-z>` Ctrl and a letter — or with ned's names: `shift+j` is `J`, `ctrl+a` `<C-a>`, `enter`, `tab`,
+`space`. Yours come before ned's own use of the keys and before a plugin's; while their first keys are typed, ned
+waits for the rest (the **which-key** plugin shows what can follow), and a count before them runs the command that
+many times (`3<leader>n`: three tabs on). A key with Ctrl or Alt that should work in every mode goes in the `keys`
+setting instead (`{"alt+w": "Close tab"}`); an Alt key in `vim.keys` is said when ned starts.
+
+**Esc, then a key at once.** A terminal sends Alt and a key as Esc followed by the key, so Esc and a key typed right
+after it can arrive as Alt and that key — under tmux they always do. In insert, replace and visual modes, where Esc
+does something, an Alt key that is not one of yours (the `keys` setting, a plugin's) is therefore Esc and then the
+key, as in Neovim: `Esc` `u` leaves insert mode and undoes. In normal mode ned's Alt keys are what they say (Alt+U
+turns the mouse off and on). A terminal with the kitty keyboard protocol tells the two apart by itself
+(`ui.kittyKeyboard`).
 
 **Suspending.** With the vim, Helix and emacs keys, Ctrl+Z stops ned and gives you the shell you started it from, as
 those editors do; `fg` brings it back as it was, its terminals still running. With ned's own keys Ctrl+Z is undo — to

@@ -526,11 +526,27 @@ proc keysSettingProblems(): seq[string] =
     seen[kn] = name
   unknown & unsent & twice
 
+proc vimKeysSettingProblems(): seq[string] =
+  ## your own vim and Helix keys (vim.keys, vim.visualKeys, helix.keys) that those key maps cannot be given: an Alt
+  ## key (it goes in "keys", for every mode), Shift with a key that is not a letter (write the character it types)
+  for s in ["vim.keys", "vim.visualKeys", "helix.keys"]:
+    let cur = sval(s)
+    if cur == nil or cur.kind != JObject: continue
+    for k, v in cur.pairs:
+      let w = vimKeyWritten(k)
+      if w != k or '+' notin k or '<' in k: continue
+      let mods = k.toLowerAscii.split('+')
+      if mods.len < 2 or mods[^1].len == 0: continue          # (vim's own + — `g+` — is a key there)
+      if mods[0] in ["alt", "meta", "option", "opt", "cmd", "super", "m", "a"]:
+        result.add s & " \"" & k & "\": an Alt key works in every mode — put it in the \"keys\" setting"
+      elif mods[0] in ["shift", "ctrl", "control", "s", "c"]:
+        result.add s & " \"" & k & "\": write the character it types (vim's own way: `$` for Shift+4)"
+
 var keysToldAbout = ""
 
 proc keysCheckAtStart() =
-  ## a note (once per change of the setting) when the "keys" setting has a problem
-  let ps = keysSettingProblems()
+  ## a note (once per change of the setting) when the "keys" setting, or your own vim or Helix keys, has a problem
+  let ps = keysSettingProblems() & vimKeysSettingProblems()
   let sig = ps.join("|")
   if ps.len == 0 or sig == keysToldAbout: return
   keysToldAbout = sig
@@ -542,7 +558,7 @@ proc cmdKeyboardShortcuts() =
   var items: seq[(string, string, Action)]
   var search: seq[string]
   # (the setting's problems first: a command that does not exist, a key no terminal sends, one bound twice)
-  for p in keysSettingProblems():
+  for p in keysSettingProblems() & vimKeysSettingProblems():
     items.add act("⚠ " & p, "open the settings", proc() = runCmd("Open settings file"))
     search.add p.toLowerAscii
   # a key that two commands claim: who wins (yours over a plugin's over the built-in one)
@@ -723,6 +739,18 @@ proc handleKey(k: Key) =
     hoverOpen = false               # Esc always closes a hover popup first, wherever the focus is
     return
   if customKey(k): return
+  if focus == fEditor and cfgVim and vimMode != vmNormal and k.kind == kChar and k.mods == {mAlt} and
+     k.ch > 32 and k.ch < 127:
+    # (6.47) vim: Esc and a key typed right after it came as Alt+key — a terminal sends Alt+key as Esc and the key, and
+    # under tmux the two arrive together — so Esc u in insert mode turned the mouse off instead of undoing. In insert,
+    # replace and visual modes, where Esc does something, an Alt key that is not yours (the "keys" setting, a plugin's:
+    # above) is Esc and then the key, as nvim does; in normal mode ned's Alt keys are what they say
+    let rec = macroRecording
+    macroRecording = false                  # (the Alt key is what is recorded: played back, it does this again)
+    handleKey(Key(kind: kEsc))
+    handleKey(Key(kind: kChar, ch: k.ch))
+    macroRecording = rec
+    return
   if cfgKeymap == "emacs" and focus == fEditor and emacsKey(k): return
   if focus == fTree and sideView == svSearch and treeOpen and k.kind == kChar and mAlt in k.mods and
      mCtrl notin k.mods and char(min(k.ch, 127)) in {'c', 'w', 'r', 'x', 'h'}:

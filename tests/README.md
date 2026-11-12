@@ -55,7 +55,8 @@ Some tests use optional tools; when one is missing, the test is skipped and says
 
 | tool | tests |
 |---|---|
-| nimlangserver | the language-server mode of the Nim features |
+| nimlangserver (built from its release with its lock file — `git clone -b v1.16.0 https://github.com/nim-lang/langserver`, then `nimble install -y --useSystemNim` in it — as [the CI](../.github/workflows/tests.yml) does: `nimble install nimlangserver` takes the newest of what it needs, and that does not build) | the language-server mode of the Nim features |
+| nvim (or vim) | vim mode against a real vim (`t_65_vim_oracle`; the CI pins Neovim 0.12.4) |
 | clangd | C in `{.emit.}`, C interop, clangd's fixes |
 | node, vscode-langservers-extracted, sql-language-server | HTML, CSS, SQL and JSON inside Nim strings (sql-language-server: installed with `vscode-languageserver-protocol` held at 3.17, as [the CI](../.github/workflows/tests.yml) does — what npm gives it today does not start) |
 | vscode-js-debug (in `~/.local/share/js-debug`, where the install ned offers when you debug JavaScript puts it) | debugging JavaScript and TypeScript |

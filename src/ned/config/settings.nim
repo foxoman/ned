@@ -990,6 +990,41 @@ var
   projectSettingKeys: seq[string]   # keys the project file set (settings UI marks them)
   projectSettingsBlocked: seq[string]
 
+func vimKeyWritten(k: string): string =
+  ## one of your own vim or Helix keys (vim.keys, vim.visualKeys, helix.keys) as those key maps read it: vim's own
+  ## writing as it is (`J`, `<leader>n`, `<C-a>`), ned's names turned into it — `shift+j` is `J`, `ctrl+a` `<C-a>`,
+  ## `enter` `<CR>`, `tab` `<Tab>`, `space` `<space>`, several with spaces between (`ctrl+w j`). `"shift+j"` was read
+  ## as the letters themselves and never matched (issue #8). What cannot be turned (an Alt key; Shift with a key that
+  ## is not a letter) stays as written, and keysCheckAtStart says so
+  let named = k.toLowerAscii in ["enter", "return", "tab", "space"]
+  if '<' in k or not ('+' in k or named): return k
+  var res = ""
+  for tok in k.splitWhitespace:
+    if '+' notin tok and tok.toLowerAscii notin ["enter", "return", "tab", "space"]:
+      res.add tok                          # (vim's own writing beside ned's names: `ctrl+w gg`)
+      continue
+    let ps = tok.toLowerAscii.split('+')
+    let key = ps[^1]
+    var ctrl, shift = false
+    for m in ps[0 ..< ps.high]:
+      case m
+      of "ctrl", "control", "c": ctrl = true
+      of "shift", "s": shift = true
+      else: return k                       # (alt, meta, cmd …: not a key the vim keys can be given)
+    case key
+    of "enter", "return", "cr": res.add "<CR>"
+    of "tab": res.add "<Tab>"
+    of "space": res.add "<space>"
+    else:
+      if key.len != 1: return k
+      let c = key[0]
+      if ctrl and c in {'a'..'z'}: res.add "<C-" & $c & ">"
+      elif ctrl: return k
+      elif shift and c in {'a'..'z'}: res.add c.toUpperAscii
+      elif shift: return k                 # (Shift+4 is $ on one keyboard and not on another: write what it types)
+      else: res.add tok[^1]
+  res
+
 proc applySettings() =
   ## settingsJ → the cfg* globals the rest of the editor reads
   cfgThemeName = sStr("theme")
@@ -1312,7 +1347,7 @@ proc applySettings() =
   cfgVimKeys.setLen(0)
   for (s, mode) in [("vim.keys", "n"), ("vim.visualKeys", "v"), ("helix.keys", "h")]:
     for k, v in sval(s):
-      if k.len > 0 and v.kind == JString and v.getStr.len > 0: cfgVimKeys.add (mode, k, v.getStr)
+      if k.len > 0 and v.kind == JString and v.getStr.len > 0: cfgVimKeys.add (mode, vimKeyWritten(k), v.getStr)
 
 # the folder's own settings file, .ned/settings.json in the project folder
 proc projectSettingsFile(): string = rootDir / ".ned" / "settings.json"

@@ -106,14 +106,23 @@ class Oracle:
         self.editor = editor or which_editor()
 
     def need(self):
-        """raise the UI suite's Skip when there is no vim to ask (a test that needs the oracle says so)"""
+        """raise the UI suite's Skip when there is no vim to ask (a test that needs the oracle says so), or when the one
+        there does not answer a first case right — no answer at all is not ned's fault (#7)"""
         if not self.editor:
             raise _skip('nvim or vim on PATH (the vim oracle)')
+        if getattr(self, '_probed', False): return
+        try:
+            a = self.ask('h', 1, 2, text='one two\n', probe=True)
+        except RuntimeError as e:
+            raise _skip('a %s that answers (the vim oracle: %s)' % (self.editor, str(e).splitlines()[0]))
+        if a['err'] or a['pending'] or (a['line'], a['col']) != (1, 1):
+            raise _skip('a %s that answers (the vim oracle: %r)' % (self.editor, a))
+        self._probed = True
 
-    def ask(self, keys, line=1, col=1, text=None, path=None):
+    def ask(self, keys, line=1, col=1, text=None, path=None, probe=False):
         """one case in one vim: the file's `text` (or a copy of `path`), the cursor at `line`/`col` from 1, the case's
         `keys` as vim writes them ('d j', 'x', 'yi('), and what vim's state was after them"""
-        self.need()
+        if not probe: self.need()
         d = tempfile.mkdtemp(prefix='ned-vimoracle-')
         try:
             f = os.path.join(d, 'file.txt')

@@ -83,7 +83,8 @@ movements by where the cursor and the mode end up, the edits by the text they le
 the whole set takes seconds; its answers are cached for as long as `vim --version`, its script and the cases are the
 same. nvim's defaults are the ones ned follows: the script gives vim the few where it differs (`nostartofline`,
 `nojoinspaces`, `nrformats`, `smarttab`), and `-N`, since vim with `-u NONE` starts vi-compatible and would not read
-the script's `\` line continuations. ned is `ned -es`
+the script's `\` line continuations. GitHub's UI job installs a pinned Neovim (0.12.4), so CI asks nvim; a vim
+that gives no answer to a first probe case skips the test rather than failing every case. ned is `ned -es`
 (`src/ned/app/headless.nim`): the editor's own vim keys with no terminal and no screen, one long-running process that a
 case per line of JSON goes into and an answer per line comes out of (`tests/ui/nedheadless.py`) — a case in a
 millisecond, not the two seconds a tmux editor and a screen read cost. The cases are made from lists

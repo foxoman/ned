@@ -136,13 +136,17 @@ jobs:
             grep -o 'https://[^"]*js-debug-dap-v[^"]*tar.gz' | head -1)" | tar xz -C ~/.local/share ||
             echo "vscode-js-debug did not download: its tests are skipped"
           pip install --break-system-packages debugpy pytest coverage || pip install debugpy pytest coverage
-          nimble install -y nimlangserver || echo "nimlangserver did not build: its tests are skipped"
+          # (nimlangserver from its own release with its lock file: `nimble install nimlangserver` takes the newest of
+          # what it needs, and faststreams 0.6 does not build in it)
+          (git clone -q --depth 1 -b v1.16.0 https://github.com/nim-lang/langserver /tmp/langserver &&
+           cd /tmp/langserver && nimble install -y --useSystemNim) ||
+            echo "nimlangserver did not build: its tests are skipped"
           tests/ui/ssh-setup.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Neovim for the vim oracle
-        # (the cases are Neovim's: a plain Vim goes to the first non-blank on gg/G where nvim keeps the column, and
-        # leaves the cursor elsewhere after >/< — pinned so the oracle answers the same thing every run)
+        # (the cases are Neovim's — a plain Vim answers too, given nvim's defaults by the oracle's script — pinned so
+        # the oracle answers the same thing every run)
         run: |
           curl -fsSL -o /tmp/nvim.tar.gz \
             https://github.com/neovim/neovim/releases/download/v0.12.4/nvim-linux-x86_64.tar.gz
@@ -239,7 +243,10 @@ jobs:
           git clone -q --depth 1 https://github.com/leethomason/tinyxml2 /tmp/tinyxml2
       - name: The others, head to head (nimlangserver, nph)
         continue-on-error: true
-        run: nimble install -y nimlangserver nph
+        run: |
+          nimble install -y nph
+          git clone -q --depth 1 -b v1.16.0 https://github.com/nim-lang/langserver /tmp/langserver
+          cd /tmp/langserver && nimble install -y --useSystemNim     # (its lock file: see the UI job)
       - name: The scores
         run: |
           set +e
