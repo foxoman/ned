@@ -19,7 +19,8 @@ On Linux and macOS `src/ned.nims` builds on the system's memory allocator (`-d:u
 gives back what is no longer used; on Android and Windows, Nim's (`-d:nedNimAlloc`: Nim's everywhere). Measure memory
 with each before and after a change that holds much: [Memory](docs/dev/architecture.md#memory).
 
-Nim 2.2 or newer — test with the oldest and the newest: GitHub's checks (and Termux) use the newest Nim, 2.4,
+Nim 2.2.4 or newer — test with the oldest and the newest: GitHub builds with 2.2.4 too (Linux and Windows' WSL; its
+standard library differs in places — `posix.signal` returns nothing there), and its checks (and Termux) use the newest, 2.4,
 whose C names (`shout_u0__app`), `#line`s, coverage lines, NIF and nimsuggest differ from 2.2's (the engine scoreboard
 keeps 2.2's nimsuggest as its yardstick; what else differs: [pitfalls](docs/dev/pitfalls.md#nim-24-is-not-nim-22)).
 For the UI suite with 2.4, build ned with it and put it first on PATH. A build whose debug information ned reads goes

@@ -15,7 +15,8 @@ func runeLen*(c: char): int {.inline.} =
   else: 1
 
 func runeAt*(s: string, i: int): (int, int) =
-  ## (codepoint, byte length) of the rune starting at byte i
+  ## (codepoint, byte length) of the rune starting at byte i; a broken sequence, or one past U+10FFFF (F4 90 … to F7 …:
+  ## not UTF-8 — a cell took it for a joined character's number in the pool, and drawing it failed), is U+FFFD, 1 byte
   let b0 = s[i].uint8.int
   if b0 < 0x80: return (b0, 1)
   let n = runeLen(s[i])
@@ -26,8 +27,10 @@ func runeAt*(s: string, i: int): (int, int) =
   of 2: (((b0 and 0x1F) shl 6) or (s[i+1].uint8.int and 0x3F), 2)
   of 3: (((b0 and 0x0F) shl 12) or ((s[i+1].uint8.int and 0x3F) shl 6) or
          (s[i+2].uint8.int and 0x3F), 3)
-  else: (((b0 and 0x07) shl 18) or ((s[i+1].uint8.int and 0x3F) shl 12) or
-         ((s[i+2].uint8.int and 0x3F) shl 6) or (s[i+3].uint8.int and 0x3F), 4)
+  else:
+    let cp = ((b0 and 0x07) shl 18) or ((s[i+1].uint8.int and 0x3F) shl 12) or
+             ((s[i+2].uint8.int and 0x3F) shl 6) or (s[i+3].uint8.int and 0x3F)
+    if cp > 0x10FFFF: (0xFFFD, 1) else: (cp, 4)
 
 func nextRune*(s: string, i: int): int {.inline.} =
   ## where the character after the one at byte i starts (the end of the string at the end)

@@ -68,6 +68,10 @@ DeepSeek's and llama.cpp's cache are read too now. The total still grows fast wh
 sends the conversation so far again: the figure's tooltip says how many requests there were and how much the last one
 sent.
 
+**A blank screen.** A file with bytes that are not UTF-8 because they would stand for a character past the last one
+there is (`F4 90 80 80` and up) left the screen blank: every frame failed to draw. Each such byte is now a `�`, as any
+broken byte is.
+
 **Nim 2.2.4.** 6.45 did not build with Nim 2.2.4 or an older 2.2 (`ned --update`, `install.sh`); 6.46 does.
 
 ## Features

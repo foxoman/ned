@@ -203,6 +203,9 @@ GitHub's checks and Termux use the newest Nim; test a change that reads what Nim
 - **nimsuggest**: `result` is declared on the body's first line, `use` leaves some uses out, types print as
   `Option[%.T]`; the engine scoreboard keeps 2.2's as its yardstick.
 - **coverage**: gcov counts a `while` line once, where 2.2 counted each check.
+- **2.2.4**, the oldest Nim GitHub builds ned with: its standard library is not 2.2.12's — `posix.signal` returns
+  nothing (6.45 did not build), and `{.effects.}` says `Exception` for an exception raised again in an `except`. Build
+  with 2.2.4 too before a release, not only with the newest 2.2.
 - **NIF**: an array type is `array[0..1, T]` (ned shows `array[2, T]`), a name a template made is declared on the
   template's line.
 

@@ -532,7 +532,9 @@ proc flushScreen() =
       if ch < 0xA0: ch = visibleCh(ch)            # (a control character: its picture, never the control itself)
       if cfgAccessible and ch >= 128 and ch < 0x3000: ch = asciiGlyph(ch)
       if ch < 128: o.add char(ch)
-      elif ch >= PoolBase.int: o.add cellPool[ch - PoolBase.int]          # (several code points: one character)
+      elif ch >= PoolBase.int:
+        # (several code points: one character — one the pool does not have is drawn as U+FFFD, never a failed frame)
+        if ch - PoolBase.int < cellPool.len: o.add cellPool[ch - PoolBase.int] else: o.addUtf8(0xFFFD)
       else: o.addUtf8(ch)
       prevWide = ch >= 0x1100 and cellWidth(ch.uint32) == 2
       inc x

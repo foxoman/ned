@@ -127,3 +127,13 @@ suite "control characters never reach the terminal (6.32.2)":
     check "\xC2\x9B" notin cellPool[int(c2 - PoolBase)]
     check "\xEF\xBF\xBD" in cellPool[int(c2 - PoolBase)]
     graphemes = false
+
+suite "bytes that are not UTF-8 (6.46)":
+  test "a sequence past U+10FFFF is U+FFFD of one byte, never a pool number (the fuzzer: a frame failed to draw)":
+    for s in ["\xF4\x90\x80\x80", "\xF5\x80\x80\x80", "\xF7\xBF\xBF\xBF"]:
+      check runeAt(s, 0) == (0xFFFD, 1)
+      check cellOf(s, 0, runeAt(s, 0)[1]) == 0xFFFD'u32
+      let c4 = cellOf(s, 0, 4)                                    # (taken as one cluster: then a real pool number)
+      check c4 < PoolBase or int(c4 - PoolBase) < cellPool.len
+    check runeAt("\xF4\x8F\xBF\xBF", 0) == (0x10FFFF, 4)       # (the last code point there is: as it was)
+    check runeAt("😀", 0) == (0x1F600, 4)

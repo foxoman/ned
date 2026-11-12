@@ -536,6 +536,10 @@ suite "exception hints (against the compiler's {.effects.})":
         if what.startsWith("ref "): what = what[4 .. ^1]
         if not what.endsWith("Effect") and what notin cur: cur.add what
       for (name, l) in want:
+        when (NimMajor, NimMinor, NimPatch) < (2, 2, 12):
+          # (an older compiler — 2.2.4 here — says Exception for an exception raised again as it is, `raise` in an
+          # `except`: the engine follows the newer ones, which say the one caught)
+          if name.startsWith("rethrow") and got.getOrDefault(name) == "Exception": continue
         if got.getOrDefault(name, "(not printed)") != l:
           checkpoint name & ": the compiler says " & got.getOrDefault(name, "(not printed)") & ", the engine " & l
           check false
