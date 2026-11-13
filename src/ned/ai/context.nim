@@ -7,6 +7,7 @@ proc diffForCall(c: AiCall): string =
   ## the disk's): the diff saved with the call when it has run, else worked out and kept in a cache. An old_text that is
   ## missing or not unique gives a note saying so, an edit that changes nothing "(no change)"; any other tool gives an
   ## empty text
+  if c.name.startsWith("acp:"): return c.diff          # (an agent's: the diff it showed)
   if c.name notin ["edit_file", "write_file"]: return ""
   if c.diff.len > 0: return c.diff
   let key = c.id & "/" & $c.args.len
@@ -48,8 +49,10 @@ proc showCallDiff(mi, ci: int) =
     info("No diff for this action")
     return
   var title = "AI change"
-  try: title = "AI change: " & parseJson(c.args){"path"}.getStr
-  except CatchableError: discard
+  if c.loc.len > 0: title = "AI change: " & relPath(c.loc.split(':')[0])
+  else:
+    try: title = "AI change: " & parseJson(c.args){"path"}.getStr
+    except CatchableError: discard
   discard openScratch(title, d, langByName("Diff"))
 
 # ── @mentions ──

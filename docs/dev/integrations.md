@@ -104,12 +104,15 @@ For a [remote folder](#remote-folders-over-ssh) git runs on the server, where th
 | `ai/requests.nim`, `ai/assistant.nim` | building the request for the provider (Anthropic, OpenAI-compatible, OpenRouter, Ollama …): the system prompt, the context, the conversation |
 | `ai/agenttools.nim` | the agent's tools (read, search, edit or write a file, run a command): what runs without asking is set by `ai.autoApprove`; a path outside the project always asks; edits are shown as diffs to approve — and nothing is approved while the request still streams (`aiJob` set): a call may be half written |
 | `ai/mcp.nim` | MCP servers (`ai.mcpServers`): JSON-RPC over their stdio, their tools offered to the agent |
+| [`ai/acp.nim`](../../src/ned/ai/acp.nim) | an agent of its own (ACP, `ai.agentServer` of `ai.agentServers`): JSON-RPC over its stdio, version 1 or the draft 2 (a version 2 agent answers a version 1 `initialize` with -32022, or with `protocolVersion: 2`: it is started again in that). `aiRequest`, `aiStop`, `aiNewChat` hand the chat to it; its updates become the chat's messages and calls (`AiCall.name` `acp:<kind>`, `loc`, `raw`), its permission requests the approval card (`needsApproval` → `acpWaiting`, `approveCall` → `acpAnswer`); it reads the tabs (`fs/read_text_file`), writes through `toolWriteFile` (so AI: undo has it), and runs commands as `jkTool` jobs (`terminal/*`) |
 | `ai/chats.nim`, `ai/chatview.nim` | saved chats, slash commands, @mentions; the chat drawn in the right dock |
 | `ai/inlineedit.nim`, `ai/suggestions.nim`, `editor/nextedit.nim` | a selection rewritten; grey suggestions after the cursor (`ai.inlineCompletion`); next-edit suggestions |
 | `ai/plan.nim`, `ai/review.nim`, `ai/comments.nim`, `ai/oneshot.nim`, `ai/offline.nim` | plan first then do it; the run's changes reviewed; code from comments (`AI!`, `AI?`); one-off requests (commit messages); a model on the device (Ollama or llama.cpp) |
 
 The UI tests talk to a mock server ([`tests/ui/mocks/mockai.py`](../../tests/ui/mocks/mockai.py)) that answers
-like the real APIs, refusals included, so the assistant is tested without a key.
+like the real APIs, refusals included, so the assistant is tested without a key; a scripted ACP agent
+([`tests/ui/mocks/mockacp.py`](../../tests/ui/mocks/mockacp.py), version 1 or 2, with or without signing in) stands
+in for Claude Agent and the others (`t_648_acp_*`).
 
 ## Remote folders over SSH
 

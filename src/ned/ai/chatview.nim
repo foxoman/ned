@@ -368,6 +368,9 @@ proc markdownLines(text: string, width: int, bg: Rgb, compact = false): seq[Chat
 proc callSummary(c: AiCall): string =
   ## a tool call in a few words for the chat: read src/a.nim:1-40, a command with a $, the server and tool of an MCP or
   ## plugin call with its arguments cut short — while its arguments are still being written, what of them is there
+  if c.name.startsWith("acp:"):          # (an agent's: the title it gave)
+    return (if c.args.len > 0: c.args else: c.name[4 .. ^1]) &
+           (if c.loc.len > 0 and relPath(c.loc.split(':')[0]) notin c.args: " · " & relPath(c.loc.split(':')[0]) else: "")
   var j: JsonNode
   try: j = parseJson(if c.args.strip.len == 0: "{}" else: c.args)
   except CatchableError: return aiCallTarget(c)
@@ -384,6 +387,16 @@ proc callSummary(c: AiCall): string =
       let parts = c.name[(if c.name.startsWith("mcp__"): 5 else: 8) .. ^1].split("__", 1)
       (if parts.len == 2: parts[0] & " · " & parts[1] else: c.name) & " " & truncTo($j, 60)
     else: c.name
+
+const ChatShownMax = 60_000       # the most of one reply or thought the chat draws (Copy reply has all of it)
+
+proc chatShown(t: string): string =
+  ## a very long text as the chat draws it: its start and its end, with how much is left out between — a reply of a
+  ## million characters (an agent that sends without end) would take seconds to lay out at every change
+  if t.len <= ChatShownMax: return t
+  let a = utf8Cut(t, 40_000)
+  let b = utf8Cut(t, t.len - 20_000)
+  t[0 ..< a] & "\n\n… " & $(b - a) & " characters left out here (Copy reply has them) …\n\n" & t[b .. ^1]
 
 proc thinkLines(mi, width: int, bg: Rgb): seq[ChatLine] =
   ## a thinking model's thoughts in the chat: a line to tap — ▾ Thinking while it thinks, ▸ Thought once it answered,
@@ -407,7 +420,7 @@ proc thinkLines(mi, width: int, bg: Rgb): seq[ChatLine] =
   let all = aiMsgs[mi].thinkShown == 1
   let t = aiMsgs[mi].think
   # (while it thinks: only its end is wrapped, its last eight lines shown — a long thinking costs nothing per piece)
-  let src = if all or t.len <= 3000: t else: t[utf8Cut(t, t.len - 3000) .. ^1]
+  let src = if all: chatShown(t) elif t.len <= 3000: t else: t[utf8Cut(t, t.len - 3000) .. ^1]
   var ls: seq[ChatLine]
   for line in src.splitLines:
     if line.strip.len == 0: continue
@@ -444,12 +457,22 @@ proc buildChat(width: int): seq[ChatLine] =
   let bg = theme.dockBg
   if aiMsgs.len == 0:
     result.add ChatLine(bg: bg)
-    result.add wrapSpans(@[span(ic("ai") & " Assistant", theme.accent, bg, {aBold})], width, bg, 2)
-    result.add wrapSpans(@[span(cfgAiProvider & " · " & (if aiModel().len > 0: aiModel() else: "no model"), theme.dim, bg)], width, bg, 2)
-    result.add ChatLine(bg: bg)
-    result.add wrapSpans(@[span("Ask about your code. The current file (or selection) is sent along. " &
-      (if cfgAiAgent: "In agent mode the assistant can read and edit files and run commands — you approve each change." else: ""),
-      theme.dim, bg)], width, bg, 2)
+    if acpOn():
+      # (an agent of its own: its name and state, and what it does)
+      result.add wrapSpans(@[span(ic("ai") & " " & acpSpeaker(), theme.accent, bg, {aBold})], width, bg, 2)
+      result.add wrapSpans(@[span("agent (ACP) · " & (if acp == nil: "starts with your first message" else: acp.state),
+                                  theme.dim, bg)], width, bg, 2)
+      result.add ChatLine(bg: bg)
+      result.add wrapSpans(@[span("Ask the agent. It reads, edits and runs what it needs itself; ned asks you " &
+        "before what it wants to do, unless ai.autoApprove allows it. The file you are in (or the selection) goes along.",
+        theme.dim, bg)], width, bg, 2)
+    else:
+      result.add wrapSpans(@[span(ic("ai") & " Assistant", theme.accent, bg, {aBold})], width, bg, 2)
+      result.add wrapSpans(@[span(cfgAiProvider & " · " & (if aiModel().len > 0: aiModel() else: "no model"), theme.dim, bg)], width, bg, 2)
+      result.add ChatLine(bg: bg)
+      result.add wrapSpans(@[span("Ask about your code. The current file (or selection) is sent along. " &
+        (if cfgAiAgent: "In agent mode the assistant can read and edit files and run commands — you approve each change." else: ""),
+        theme.dim, bg)], width, bg, 2)
     result.add ChatLine(bg: bg)
     for (label, prompt) in [("Explain this file", "Explain what this file does, briefly."),
                             ("Find bugs", "Review this code and list likely bugs or risky spots, most important first."),
@@ -468,7 +491,7 @@ proc buildChat(width: int): seq[ChatLine] =
           else: aiSend(p)
       l.tip = prompt
       result.add l
-    if aiKey().len == 0 and cfgAiProvider notin ["ollama", "custom"]:
+    if aiKey().len == 0 and cfgAiProvider notin ["ollama", "custom"] and not acpOn():
       result.add ChatLine(bg: bg)
       result.add wrapSpans(@[span(ic("warn") & " No API key: export " & aiKeyEnvName() &
         "=… in ~/.bashrc, or set ai.apiKey in settings.", theme.warn, bg)], width, bg, 2)
@@ -500,10 +523,11 @@ proc buildChat(width: int): seq[ChatLine] =
       if m.text.len > 0 or m.think.len > 0 or mi == 0 or aiMsgs[mi - 1].role notin {1, 2}: result.add ChatLine(bg: bg)
       if m.text.len > 0 or m.think.len > 0 or (m.calls.len == 0 and aiBusy and mi == aiMsgs.high):
         var head = ChatLine(bg: bg)
-        head.spans.add span(" " & ic("ai") & " " & (if aiModel().len > 0: aiModel() else: "assistant"), theme.syn[tkKeyword], bg, {aBold})
+        head.spans.add span(" " & ic("ai") & " " & (if acpOn(): acpSpeaker() elif aiModel().len > 0: aiModel() else: "assistant"),
+                            theme.syn[tkKeyword], bg, {aBold})
         result.add head
       if m.think.len > 0: result.add thinkLines(mi, width, bg)
-      if m.text.len > 0: result.add markdownLines(m.text, width, bg)
+      if m.text.len > 0: result.add markdownLines(chatShown(m.text), width, bg)
       elif aiBusy and mi == aiMsgs.high and m.calls.len == 0 and m.think.len == 0:
         result.add wrapSpans(@[span(aiPhase & aiWaitedText(), theme.dim, bg, {aItalic})], width, bg, 2)
       # (a call whose arguments are still coming: what it writes so far, and no approval yet)
@@ -531,20 +555,22 @@ proc buildChat(width: int): seq[ChatLine] =
         result.add l
         if streaming and c.state == 0:
           if ci == m.calls.high: result.add writingLines(c, width)
-        elif c.state == 0 and needsApproval(c) and mi == aiMsgs.high:
+        elif c.state == 0 and needsApproval(c) and (mi == aiMsgs.high or c.name.startsWith("acp:")):
           # approval card: commands verbatim, file changes as a real diff
           var info = c.args
           var isDiff = false
-          try:
-            let j = parseJson(c.args)
-            info = case c.name
-              of "run_command": "$ " & j{"command"}.getStr & (if j{"cwd"}.getStr.len > 0: "\n  in " & j{"cwd"}.getStr else: "")
-              of "edit_file", "write_file":
-                isDiff = true
-                diffForCall(c)
-              of "read_file": "read " & j{"path"}.getStr
-              else: c.args
-          except CatchableError: discard
+          if c.name.startsWith("acp:"): (info, isDiff) = acpCallInfo(c)
+          else:
+            try:
+              let j = parseJson(c.args)
+              info = case c.name
+                of "run_command": "$ " & j{"command"}.getStr & (if j{"cwd"}.getStr.len > 0: "\n  in " & j{"cwd"}.getStr else: "")
+                of "edit_file", "write_file":
+                  isDiff = true
+                  diffForCall(c)
+                of "read_file": "read " & j{"path"}.getStr
+                else: c.args
+            except CatchableError: discard
           if outsideProject(c):
             result.add wrapSpans(@[span(ic("warn") & " outside the project folder", theme.warn, theme.codeBg, {aBold})],
                                  width, theme.codeBg, 3)
@@ -679,12 +705,26 @@ proc drawAssistant(x0, y0, w, h: int) =
   # model line
   aiUsageShownBelow = ""
   var x = x0 + 1
-  x = button(x, y0, " " & truncTo((if aiModel().len > 0: aiModel() else: "choose model"), max(8, w div 2)) & " " & ic("chevD") & " ",
-             proc() = aiChooseModel(), "Model (" & cfgAiProvider & ")", theme.dim, bg)
-  x = button(x + 1, y0, (if cfgAiAgent: " agent " & ic("ok") & " " else: " chat "), proc() =
-    setSetting("ai.agent", %(not cfgAiAgent)), "Agent mode: the assistant may use tools",
-    (if cfgAiAgent: theme.accent else: theme.dim), bg)
+  if acpOn():
+    # (an agent of its own: its name — a tap chooses another —, its mode, the history)
+    x = button(x, y0, " " & truncTo(acpSpeaker(), max(8, w div 3)) & " " & ic("chevD") & " ", proc() = cmdAcpAgent(),
+               "The agent (ACP): its state, mode and options, another agent", theme.dim, bg)
+    let md = acpModeText()
+    if md.len > 0:
+      x = button(x + 1, y0, " " & truncTo(md, 14) & " ", proc() = acpChooseOption("mode"), "The agent's mode",
+                 theme.accent, bg)
+  else:
+    x = button(x, y0, " " & truncTo((if aiModel().len > 0: aiModel() else: "choose model"), max(8, w div 2)) & " " & ic("chevD") & " ",
+               proc() = aiChooseModel(), "Model (" & cfgAiProvider & ")", theme.dim, bg)
+    x = button(x + 1, y0, (if cfgAiAgent: " agent " & ic("ok") & " " else: " chat "), proc() =
+      setSetting("ai.agent", %(not cfgAiAgent)), "Agent mode: the assistant may use tools",
+      (if cfgAiAgent: theme.accent else: theme.dim), bg)
   x = button(x + 1, y0, " " & ic("history") & " ", proc() = cmdChatHistory(), "Chat history", theme.dim, bg)
+  let au = if acpOn(): acpHeader() else: ""
+  if au.len > 0 and x + strWidth(au) + 2 < x0 + w:
+    discard putStr(x0 + w - strWidth(au) - 1, y0, au, theme.dim, bg)
+    region(x0 + w - strWidth(au) - 1, y0, strWidth(au), 1, proc() = discard,
+           "The conversation's size: used of the most the agent's model takes" & (if acp != nil and acp.cost.len > 0: ", and what it cost" else: ""))
   if cfgAiFastModel.len > 0:
     x = button(x + 1, y0, (if aiFastOn: " ⚡ fast " else: " smart "), proc() = toggleAiFast(),
                "Switch between ai.model and ai.fastModel", (if aiFastOn: theme.warn else: theme.dim), bg)
@@ -712,8 +752,11 @@ proc drawAssistant(x0, y0, w, h: int) =
   aiChatRows = chatH
   # chat
   let key = $aiVersion & "/" & $w & "/" & cfgThemeName & "/" & aiPhase & "/" & $aiBusy & "/" & cfgAiProvider & "/" &
-            aiModel() & "/" & $aiKey().len
-  if key != aiRenderedKey or aiBusy:
+            aiModel() & "/" & $aiKey().len & "/" & cfgAiAgentServer & "/" & (if acp != nil: acp.state else: "") &
+            # (while it works: built again ten times a second at most, for the spinner and the seconds — not at every
+            # frame: an agent's answer can take minutes, and a long chat costs a phone to build)
+            (if aiBusy: "/" & $(getMonoTime().ticks div 100_000_000) else: "")
+  if key != aiRenderedKey:
     aiRendered = buildChat(w - 1)
     aiRenderedKey = key
   let total = aiRendered.len
@@ -898,8 +941,14 @@ func mentionInsertAct(m: string): Action =
 
 proc pendingApproval(): (int, int) =
   ## the message and call number of the first call of the last message that waits for the user's approval; (-1, -1) when
-  ## none does, or while the model is still writing them
+  ## none does, or while the model is still writing them. An agent's (ACP) may be in an earlier message of its answer
   if aiMsgs.len == 0 or aiJob != nil: return (-1, -1)
+  if acpOn():
+    for mi in countdown(aiMsgs.high, max(0, aiMsgs.len - 30)):
+      if aiMsgs[mi].role == 0: break
+      for ci, c in aiMsgs[mi].calls:
+        if c.state == 0 and needsApproval(c): return (mi, ci)
+    return (-1, -1)
   let mi = aiMsgs.high
   if aiMsgs[mi].role != 1: return (-1, -1)
   for ci, c in aiMsgs[mi].calls:

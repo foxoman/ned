@@ -171,6 +171,7 @@ proc mainLoop() =
     for s in nimSugs:
       if not s.dead and s.pr.outFd >= 0: fds.add TPollfd(fd: s.pr.outFd, events: POLLIN)
     mcpFds(fds)
+    acpFds(fds)
     ctlFds(fds)
     plugFds(fds)
     nbFds(fds)
@@ -318,6 +319,7 @@ proc mainLoop() =
       timedWork("terminals"): pumpTerms(ready)
       if reapPids.len > 0: timedWork("ended programs"): reapPending()
       if mcpServers.len > 0: timedWork("MCP servers"): mcpPump(ready)
+      if acp != nil: timedWork("the AI agent (ACP)"): acpPump(ready)
       timedWork("plugins"): plugPump(ready)
       timedWork("notebook"): nbPump(ready)
       timedWork("Nim tour"): tourPump()
@@ -1099,6 +1101,7 @@ proc main() =
   killTerminals()
   lspShutdown()
   mcpStopAll()
+  acpStopAgent()
   plugQuitEvents()
   syncAtQuit()                       # (sync.auto: this device's changes saved there, a few seconds at most)
   plugStopAll()

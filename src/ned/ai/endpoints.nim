@@ -337,7 +337,11 @@ proc aiRequest() =
   ## temporary files. When curl ends it adds up the tokens, turns a refusal of a parameter into a retry (up to three
   ## times), reports a failure with a hint, and otherwise runs the tool calls it was sent, or finishes the answer (an
   ## empty one is explained) with a toast about changed files or the reply. Inline edits and one-shot requests are
-  ## handed to their own callback
+  ## handed to their own callback. With an agent of its own (ACP: ai.agentServer) the chat's message goes to the agent
+  if acpOn() and not aiInlineMode and aiOneShotCb == nil:
+    acpTurn()
+    return
+  acpForget()
   if not haveExe("curl"):
     aiFail("The assistant needs curl:  pkg install curl")
     return
@@ -851,7 +855,7 @@ proc aiSend(text: string, withContext = true, shownAs = "") =
   if mcpResWaiting > 0:
     info("Still reading the MCP resources of the last message…")
     return
-  if t.len > 1 and t[0] == '/' and isSlashCommand(t):
+  if t.len > 1 and t[0] == '/' and isSlashCommand(t) and not (acpOn() and acpIsCommand(t)):
     let (handled, prompt) = slashCommand(t)
     if handled and prompt.len == 0:
       showSide(svAssistant)
@@ -860,10 +864,17 @@ proc aiSend(text: string, withContext = true, shownAs = "") =
   if mcpFetchMentions(t, withContext, shownAs): return
   var full = expandMentions(t)
   mcpResCache.clear()
-  if withContext and cfgAiIncludeFile:
-    let ctx = fileContext()
-    if ctx.len > 0: full = ctx & "\n\n" & full        # (the @mentions' attachments too, not only the text)
-  aiMsgs.add AiMsg(role: 0, text: full, shown: (if shownAs.len > 0: shownAs else: t), pics: aiMentionedPics(t))
+  var fromFile = ""
+  if withContext and cfgAiIncludeFile and not (acpOn() and acpIsCommand(t)):   # (an agent's /command: as it is)
+    if acpOn():
+      # (an agent reads the file itself: it gets the selection, or where you are, and a link to the file)
+      full = acpContext() & full
+      if buf().path.len > 0 and not buf().isWelcome(): fromFile = buf().path
+    else:
+      let ctx = fileContext()
+      if ctx.len > 0: full = ctx & "\n\n" & full        # (the @mentions' attachments too, not only the text)
+  aiMsgs.add AiMsg(role: 0, text: full, shown: (if shownAs.len > 0: shownAs else: t), pics: aiMentionedPics(t),
+                   file: fromFile)
   aiRunCp = -1
   aiWarnOk = false
   aiSteps = 0
@@ -877,7 +888,12 @@ proc aiSend(text: string, withContext = true, shownAs = "") =
 
 proc aiStop() =
   ## stops the assistant: kills the request and any command it is running, drops the checks of its edits still running,
-  ## adds "Stopped." and answers its open tool calls with "Cancelled by the user." so that the next request is valid
+  ## adds "Stopped." and answers its open tool calls with "Cancelled by the user." so that the next request is valid.
+  ## An agent of its own (ACP) is asked to stop (session/cancel)
+  if acpOn() and not aiInlineMode and aiOneShotCb == nil:
+    acpStop()
+    inc aiVersion
+    return
   aiPlanInterrupted()
   mcpWaitReq = false
   inc aiCheckGen
@@ -919,6 +935,7 @@ proc aiNewChat() =
   aiStop()
   saveChat()
   aiMsgs.setLen(0)
+  acpNewChat()
   aiAlwaysAllow.clear()
   aiScrollOff = 0
   aiChatId = ""

@@ -15,7 +15,12 @@ proc toolKind(name: string): int =
   else: 0
 
 proc outsideProject(c: AiCall): bool =
-  ## a path argument that leaves the project folder (~/.ssh, /etc …)
+  ## a path argument that leaves the project folder (~/.ssh, /etc …) — for an agent's call (ACP), where it works
+  if c.name.startsWith("acp:"):
+    let p = c.loc.split(':')[0]
+    if p.len == 0: return false
+    let q = absolutePath(expandTilde(p)).normalizedPath
+    return q != rootDir and not q.startsWith(rootDir & "/")
   try:
     let j = parseJson(if c.args.strip.len == 0: "{}" else: c.args)
     for k in ["path", "cwd"]:
@@ -30,7 +35,9 @@ proc outsideProject(c: AiCall): bool =
 proc needsApproval(c: AiCall): bool =
   ## whether the call must wait for the user's yes: never in the planning step (a call that changes anything is refused
   ## at once), always for a path outside the project, never for a tool allowed for the session, else by the kind of tool
-  ## and ai.autoApprove (a read asks only for "none", an edit unless "edits" or "all", a command unless "all")
+  ## and ai.autoApprove (a read asks only for "none", an edit unless "edits" or "all", a command unless "all"). An
+  ## agent's call (ACP) waits when the agent asked about it
+  if c.name.startsWith("acp:"): return acpWaiting(c.id)
   if aiPlanState == apPlanning and toolKind(c.name) != 0: return false   # (refused at once: see runCall)
   if outsideProject(c): return true            # never silently, whatever ai.autoApprove says
   if c.name in aiAlwaysAllow: return false
@@ -627,6 +634,9 @@ proc approveCall(mi, ci: int, allow: bool, always = false) =
   ## run, denied it is finished with an error saying so; then the agent goes on
   if mi >= aiMsgs.len or ci >= aiMsgs[mi].calls.len: return
   if aiMsgs[mi].calls[ci].state != 0: return
+  if aiMsgs[mi].calls[ci].name.startsWith("acp:"):      # (an agent's: the answer goes to the agent)
+    acpAnswer(mi, ci, allow, always)
+    return
   if aiJob != nil: return               # (the model is still writing it: half a command or half an edit is never run)
   if allow:
     if always: aiAlwaysAllow.incl aiMsgs[mi].calls[ci].name

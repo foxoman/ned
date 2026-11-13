@@ -357,6 +357,8 @@ Every setting ned has, its default and what it does — made by `ned --doc-setti
 | `ai.checkSuggestions` | `true` | Nim: an inline suggestion that uses a name that does not exist here (a proc, a field the type does not have) is not shown — ned's engine checks it first |
 | `ai.inlineCompletionModel` | `""` | Model for inline suggestions (empty = a fast default for the provider) |
 | `ai.mcpServers` | `{}` | MCP servers whose tools the agent may use (each call asks first, unless ai.autoApprove is all): {"github": {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"], "env": {"GITHUB_TOKEN": "…"}}} — palette › AI: MCP servers |
+| `ai.agentServer` | `""` | The agent the AI dock talks to instead of ned's own assistant: one of ai.agentServers (empty = ned's own) — palette › AI: choose agent… |
+| `ai.agentServers` | `{}` | Agents that are programs of their own, spoken to with the Agent Client Protocol (ACP): {"claude": {"command": "npx", "args": ["-y", "@agentclientprotocol/claude-agent-acp"]}} — "env" for their variables, "protocol": 2 for ACP's draft version 2, "mcpServers": false to keep ai.mcpServers to ned |
 | `ai.fastModel` | `""` | A quicker, cheaper model to switch to (the ⚡ button in the assistant, or palette › AI: fast / smart model) — e.g. claude-haiku-5-5 or gpt-5-mini |
 | `ai.price` | `{}` | Dollars per million tokens, to show what a chat costs: {"input": 3, "output": 15, "cacheRead": 0.3} — empty shows tokens only |
 | `ai.warnTokens` | `60000` | Ask before sending a request bigger than this many tokens (0 = never ask) |

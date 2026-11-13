@@ -344,6 +344,7 @@ proc menuItems(i: int): seq[MenuItem] =
       mc("AI: fast / smart model", (if aiFastOn: "Use the smart model" else: "Use the fast model")),
       mc("Git: generate commit message with AI", "Write commit message"), msep(),
       mc("AI: toggle inline suggestions", "Inline suggestions (Tab)", chk(cfgGhostOn)),
+      mc("AI: choose agent…", "Agent: " & (if cfgAiAgentServer.len > 0: cfgAiAgentServer else: "ned's own")),
       mc("AI: choose provider…", "Provider: " & cfgAiProvider), mc("AI: choose model…", "Model…"),
       mc("AI: toggle agent mode", "Agent mode (tools)", chk(cfgAiAgent)), mc("AI: settings…", "AI settings…")]
   of "Plugins":

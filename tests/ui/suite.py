@@ -11740,6 +11740,211 @@ def t_647_vim_esc_alt():
     check('647 … visual mode too: Esc leaves it, x deletes a character', 'NORMAL' in sc and
           ('ne two' in sc or 'oe two' in sc), sc)
 
+def acp_setup(env=None, more=None):
+    # (6.48) the mock agent (mocks/mockacp.py) as ai.agentServer, what ned sends it logged in TMP/acp.log
+    log = TMP + '/acp.log'
+    if os.path.exists(log): os.remove(log)
+    e = {"MOCK_ACP_LOG": log}
+    e.update(env or {})
+    c = {"nim.nimsuggest": False, "ai.agentServer": "mock",
+         "ai.agentServers": {"mock": {"command": "python3", "args": [MOCKS + "/mockacp.py"], "env": e}}}
+    c.update(more or {})
+    setup(c)
+    return log
+
+def dock_text(sc):
+    # the right dock's text as one line: each row's part after its last │, joined (a reply wraps there)
+    return ' '.join(l.split('│')[-1].strip() for l in sc.split('\n') if '│' in l)
+
+def acp_sent(log, meth):
+    # what ned sent the mock agent with that method: their params
+    if not os.path.exists(log): return []
+    out = []
+    for l in open(log):
+        m = json.loads(l)
+        if m.get('method') == meth: out.append(m.get('params') or {})
+    return out
+
+def t_648_acp_chat():
+    # 6.48: an agent of its own (ACP) in the AI dock — ned starts it, says it lends the files and the terminal, sends
+    # your message with a link to the file you are in; its words, thoughts and plan shown; the files it reads come from
+    # the tabs (your unsaved edits too); its mode and model chosen from ned; its own /commands go to it
+    log = acp_setup()
+    start('src/demo.nim', w=170, h=40); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5)
+    check('648 acp: the dock says which agent it talks to', 'mock' in screen() and 'agent (ACP)' in screen(), screen())
+    text('hello'); keys('Enter')
+    ok = wait_for(r'Hello from the mock agent\.', 15)
+    sc = screen()
+    check('648 acp: the agent answers in the dock, under its own name', ok and 'Mock Agent' in sc, sc)
+    check('648 acp: … with a link to the file you are in', 'I see the link to src/demo.nim' in dock_text(sc), sc)
+    init = acp_sent(log, 'initialize')
+    check('648 acp: initialize speaks version 1 and lends the files and the terminal',
+          init and init[0].get('protocolVersion') == 1 and init[0]['clientCapabilities']['fs']['readTextFile'] and
+          init[0]['clientCapabilities']['fs']['writeTextFile'] and init[0]['clientCapabilities']['terminal'] and
+          init[0]['clientInfo']['name'] == 'ned', str(init))
+    new = acp_sent(log, 'session/new')
+    check('648 acp: the conversation opens in the project', new and new[0].get('cwd') == W, str(new))
+    pr = acp_sent(log, 'session/prompt')
+    check('648 acp: your message goes with where you are in the editor',
+          pr and 'src/demo.nim' in pr[0]['prompt'][0]['text'] and pr[0]['prompt'][-1].get('type') == 'resource_link',
+          str(pr)[:600])
+    text('think'); keys('Enter')
+    ok = wait_for(r'Thought it through', 10)
+    check('648 acp: its thoughts folded above its answer', ok and re.search(r'▸ Thought · \d+ words', screen()), screen())
+    # (an unsaved edit: the agent reads the tab, not the disk)
+    keys('Escape'); time.sleep(0.3); keys('C-Home'); text('UNSAVED-LINE '); time.sleep(0.3)
+    keys('M-c'); time.sleep(0.4); text('read src/demo.nim'); keys('Enter')
+    ok = wait_for(r'The file says: UNSAVED-LINE', 10)
+    check('648 acp: fs/read_text_file gives the tab\'s text, unsaved edits and all', ok, screen())
+    text('plan'); keys('Enter')
+    ok = wait_for(r'✓ Test it', 10)
+    sc = screen()
+    check('648 acp: its plan shown, and put right as it goes', ok and '✓ Read the code' in sc and '✓ Change it' in sc and
+          'Planned.' in sc, sc)
+    text('usage'); keys('Enter')
+    ok = wait_for(r'Counted\.', 10); time.sleep(0.4)
+    check('648 acp: the conversation\'s size and cost in the dock\'s top row', ok and re.search(r'12k/200k \$0\.05', screen()),
+          screen())
+    text('mode'); keys('Enter')
+    check('648 acp: its mode and model, as it says', wait_for(r'Mode is ask, model small', 10), screen())
+    check('648 acp: its mode in the dock\'s top row', 'Ask first' in screen(), screen())
+    palette("AI: agent's mode…"); time.sleep(0.5)
+    ok = 'Code freely' in screen()
+    text('Code freely'); time.sleep(0.3); keys('Enter'); time.sleep(0.6)
+    palette("AI: agent's options…"); time.sleep(0.5)
+    ok2 = 'Big' in screen()
+    text('Big'); time.sleep(0.3); keys('Enter'); time.sleep(0.6)
+    keys('M-c'); time.sleep(0.4); text('mode'); keys('Enter')
+    check('648 acp: its mode and model chosen from ned (session/set_mode, set_config_option)',
+          ok and ok2 and wait_for(r'Mode is code, model big', 10), screen())
+    text('/compact'); keys('Enter')
+    check('648 acp: its own /commands go to it, as they are', wait_for(r'Compacted\.', 10) and
+          acp_sent(log, 'session/prompt')[-1]['prompt'][0]['text'] == '/compact', screen())
+    r = subprocess.run([BIN, '--check'], capture_output=True, text=True, cwd=W,
+                       env=dict(os.environ, XDG_CONFIG_HOME=CFG, XDG_STATE_HOME=STATE))
+    check('648 acp: the setup check names the agent', 'mock (ACP)' in r.stdout, r.stdout[-800:])
+
+def t_648_acp_permissions():
+    # 6.48: what the agent wants to do waits for you — an edit as its diff, a command as its line — Allow, Always or
+    # Deny (y, a, n); a file it writes goes through ned (AI: undo puts it back); the commands it runs through ned get
+    # its variables and give it their output and exit code; ai.autoApprove "all" allows them by itself
+    log = acp_setup()
+    open(W + '/x.txt', 'w').write('hello world\n')
+    start('src/demo.nim', w=130, h=44); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('edit x.txt'); keys('Enter')
+    ok = wait_for(r'Allow \(y\)', 15)
+    sc = screen()
+    check('648 acp: an edit waits for you, with its diff', ok and '-hello world' in sc and '+goodbye world' in sc and
+          'Deny (n)' in sc, sc)
+    keys('n')
+    ok = wait_for(r'Not edited: no\.', 10)
+    check('648 acp: Deny is the agent\'s "reject", and the file is left alone', ok and ftext('x.txt') == 'hello world\n',
+          screen())
+    text('edit x.txt'); keys('Enter'); wait_for(r'Allow \(y\)', 15); keys('y')
+    ok = wait_for(r'Edited \(yes\)\.', 10); time.sleep(0.3)
+    check('648 acp: Allow, and the file is written through ned', ok and ftext('x.txt') == 'goodbye world\n', ftext('x.txt'))
+    palette("AI: undo the assistant's changes…"); time.sleep(0.5); keys('Enter'); time.sleep(0.6)
+    if 'Put back' in screen() or '(y/n)' in screen(): keys('y'); time.sleep(0.5)
+    check('648 acp: AI: undo puts back what the agent wrote', ftext('x.txt') == 'hello world\n', ftext('x.txt') + screen())
+    keys('M-c'); time.sleep(0.4); text('run echo hi $MOCK_VAR'); keys('Enter')
+    ok = wait_for(r'Allow \(y\)', 15)
+    check('648 acp: a command waits for you, shown as its line', ok and '$ echo hi $MOCK_VAR' in screen(), screen())
+    keys('y')
+    ok = wait_for(r'Exit 0: hi from-agent', 15)
+    check('648 acp: the command runs through ned with the agent\'s variables; its output and exit code go back', ok, screen())
+    log = acp_setup(more={"ai.autoApprove": "all"})
+    start('src/demo.nim', w=130, h=44); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('run echo auto'); keys('Enter')
+    ok = wait_for(r'Exit 0: auto', 15)
+    check('648 acp: ai.autoApprove "all": allowed without asking', ok and 'Allow (y)' not in screen(), screen())
+
+def t_648_acp_stop_and_crash():
+    # 6.48: Esc while the agent works asks it to stop (session/cancel) and it says so; an agent that dies says why in
+    # the chat, and the next message starts it again
+    log = acp_setup()
+    start('src/demo.nim', w=130, h=40); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('slow'); keys('Enter')
+    wait_for(r'tick', 15); time.sleep(0.5)
+    keys('Escape')
+    ok = wait_for(r'Stopped\.', 10)
+    check('648 acp: Esc stops the agent (session/cancel), and the chat says so', ok and acp_sent(log, 'session/cancel'),
+          screen())
+    text('hello'); keys('Enter')
+    check('648 acp: … and it answers the next message', wait_for(r'Hello from the mock agent\.', 10), screen())
+    text('crash'); keys('Enter')
+    ok = wait_for(r'it stopped', 10)
+    check('648 acp: an agent that dies: the chat says so, with its last words', ok and 'boom' in screen(), screen())
+    text('hello'); keys('Enter')
+    check('648 acp: … and the next message starts it again', wait_for(r'Hello from the mock agent\.', 15), screen())
+
+def t_648_acp_hostile():
+    # 6.48: an agent that sends nonsense — lines that are not JSON, wrong types everywhere, a 2 MB line, requests ned
+    # does not know or cannot do — and ned goes on: the chat still works, nothing in errors.log
+    acp_setup()
+    start('src/demo.nim', w=130, h=40); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('hostile'); keys('Enter')
+    ok = wait_for(r'Still here\.', 40)
+    if not ok and 'Allow (y)' in screen(): keys('n'); ok = wait_for(r'Still here\.', 20)
+    text('hello'); keys('Enter')
+    ok2 = wait_for(r'Hello from the mock agent\.', 15)
+    log = open(STATE + '/ned/errors.log').read() if os.path.exists(STATE + '/ned/errors.log') else ''
+    check('648 acp: an agent that sends nonsense: ned goes on, its chat works', ok and ok2, screen())
+    check('648 acp: … with nothing in errors.log', 'Error' not in log and 'Defect' not in log, log[-600:])
+
+def t_648_acp_v2_and_signin():
+    # 6.48: an agent that speaks only ACP's version 2 (the draft) is started again in it: its whole messages, its idle
+    # state that ends the answer, its permission requests and diffs; an agent that wants you to sign in says so, and
+    # AI: agent… › Sign in does it
+    log = acp_setup({"MOCK_ACP_V2": "1"})
+    open(W + '/x.txt', 'w').write('hello world\n')
+    start('src/demo.nim', w=130, h=44); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('hello'); keys('Enter')
+    ok = wait_until(lambda: 'Hello from the mock agent (v2), whole.' in dock_text(screen()), 15)
+    init = acp_sent(log, 'initialize')
+    check('648 acp v2: a version 2 agent is started again in version 2; a whole message replaces its pieces',
+          ok and len(init) == 2 and init[1].get('protocolVersion') == 2 and 'Hello from the mock agent (v2).' not in dock_text(screen()),
+          str(init) + screen())
+    check('648 acp v2: the answer ends when the agent says it is idle', not re.search(r'thinking|writing…', screen()), screen())
+    text('edit x.txt'); keys('Enter')
+    ok = wait_for(r'Allow \(y\)', 15)
+    check('648 acp v2: its permission request, with its patch', ok and '+goodbye world' in screen(), screen())
+    keys('y')
+    check('648 acp v2: allowed, it edits', wait_for(r'Edited \(yes\)\.', 10) and ftext('x.txt') == 'goodbye world\n', screen())
+    text('plan'); keys('Enter')
+    check('648 acp v2: its plan', wait_for(r'✓ Test it', 10), screen())
+    log = acp_setup({"MOCK_ACP_AUTH": "1"})
+    start('src/demo.nim', w=130, h=40); time.sleep(0.8)
+    keys('M-c'); time.sleep(0.5); text('hello'); keys('Enter')
+    ok = wait_for(r'needs you to sign in', 15)
+    check('648 acp: an agent that wants you to sign in says so, with its ways', ok and 'Mock sign-in' in screen(), screen())
+    palette('AI: agent…'); time.sleep(0.5)
+    text('Sign in'); time.sleep(0.3); keys('Enter'); time.sleep(0.5)
+    text('Mock sign-in'); time.sleep(0.3); keys('Enter')
+    ok = wait_for(r'Signed in to Mock Agent', 10)
+    keys('M-c'); time.sleep(0.4); text('hello'); keys('Enter')
+    check('648 acp: AI: agent… › Sign in (authenticate), then it answers', ok and
+          wait_for(r'Hello from the mock agent\.', 15) and acp_sent(log, 'authenticate'), screen())
+
+def t_648_acp_choose():
+    # 6.48: AI: choose agent… — ned's own assistant, the agents of ai.agentServers, and Claude Agent, Codex, Gemini CLI
+    # to add with a tap (their commands written into the settings); going back to ned's own assistant
+    acp_setup()
+    start('src/demo.nim', w=130, h=40); time.sleep(0.8)
+    palette('AI: choose agent…'); time.sleep(0.5)
+    sc = screen()
+    check('648 acp: the agents to choose', "ned's own assistant" in sc and 'mock' in sc and '+ Claude Agent' in sc and
+          '+ Codex' in sc and '+ Gemini CLI' in sc, sc)
+    text('Claude Agent'); time.sleep(0.3); keys('Enter'); time.sleep(0.6)
+    cfg = json.load(open(CFG + '/ned/config.json'))
+    check('648 acp: + Claude Agent adds it (npx … claude-agent-acp) and uses it',
+          cfg.get('ai.agentServer') == 'claude' and
+          '@agentclientprotocol/claude-agent-acp' in json.dumps(cfg.get('ai.agentServers', {})), json.dumps(cfg)[:600])
+    palette('AI: choose agent…'); time.sleep(0.5); text("ned's own"); time.sleep(0.3); keys('Enter'); time.sleep(0.6)
+    cfg = json.load(open(CFG + '/ned/config.json'))
+    if 'gpt-6' not in screen(): keys('M-c'); time.sleep(0.5)
+    check("648 acp: back to ned's own assistant", cfg.get('ai.agentServer', '') == '' and 'gpt-6' in screen(), screen())
+
 tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_terminal, t_run_file, t_lsp, t_lsp_diag, t_ai_chat, t_split_zen_theme, t_vim, t_recovery, t_quit_dirty, t_mixed_folder, t_builtin_nimsuggest, t_server_crash_restart, t_engine_member_completion, t_engine_hover_def_sig, t_engine_refs_rename, t_engine_imports, t_engine_without_nimsuggest, t_engine_outline_symbols, t_format_keeps_cursor, t_zen_vim, t_ai_insert, t_format_builtin, t_format_choice, t_reset_settings, t_52_refactors, t_52_format_selection, t_52_conflict, t_52_settings_search, t_52_mouse, t_521_debugger, t_521_touchbar, t_521_bp_follow_edits, t_522_navigation, t_522_peek_hierarchy_stage, t_522_rename_imports, t_522_shortcuts_markdown, t_522_multibuffer, t_522_nim_codegen, t_522_nim_tools, t_53_alerts_and_formatter, t_53_diff_view, t_53_rename_preview, t_53_debugger_watch_test, t_53_user_commands, t_531_help_menus, t_532_polish, t_54_git, t_55_publish, t_56_todos, t_561_review_fixes, t_562_format_cursor, t_563_open_folder, t_564_tiny_screens, t_564_save_safety, t_57_themes, t_57_ai, t_57_nim, t_57_git, t_571_rulers, t_572_editorconfig, t_572_tasks, t_572_errors, t_572_swatches, t_572_examples, t_59_small, t_59_html, t_59_problems_mb, t_59_lsp_more, t_59_langs_tests, t_59_ai_more, t_59_dap, t_510_large, t_510_debug_tools, t_510_testament, t_510_repl, t_510_nimble_outdated, t_510_merge_editor, t_510_spell, t_510_coverage, t_510_langs, t_510_mcp_more, t_510_emmet_css, t_510_sync, t_510_keymaps, t_510_accessible, t_510_workspace, t_510_remote, t_511_stale_errors, t_511_embedded, t_512_c_interop, t_512_refs_big, t_512_comp_stale, t_513_emit_edit, t_513_emit_errors, t_513_emit_c, t_514_emit_clangd, t_515_emit_more, t_515_strings, t_516_quickfixes, t_516_ai_fix, t_517_remote_git, t_517_workspace_git, t_518_macros, t_518_terminal, t_519_refactor, t_519_lists, t_520_agent_check, t_520_ai_tests, t_521_remote, t_521_git, t_521_format_self, t_522_perf, t_523_include, t_523_typehints, t_523_charlit, t_524_debug, t_524_format, t_524_deps, t_525_hints, t_525_engine, t_525_csv, t_525_profile, t_525_macro_nested, t_526_typing_errors, t_527_expand, t_527_complete, t_527_hover, t_528_hierarchy, t_528_refs, t_528_actions, t_529_clangd_fixes, t_529_examples, t_60_includes, t_60_protect, t_61_semantic, t_63_marks, t_63_git, t_63_format, t_63_paste, t_63_cdocs, t_64_engine, t_65_cengine, t_65_ligatures, t_66_cwrap, t_66_zen_menu, t_66_align_hints, t_66_trust, t_66_postfix, t_66_copies, t_66_test_on_save, t_66_ctvalues, t_66_include_check, t_67_github_signin, t_67_git_undo, t_67_commit_checks, t_67_review_comments, t_67_ai_grounded, t_67_ai_fix_test, t_67_format_changed, t_67_format_preview, t_67_yaml_toml, t_67_termux_clock, t_67_rich_colors, t_67_theme_editor, t_67_two_servers, t_67_lsp_links, t_67_ai_plan, t_67_ai_offline, t_68_nedfmt, t_68_engine_checks, t_68_compiler_answers, t_68_macro_names, t_68_settings_panel, t_69_locked_versions, t_69_expected_type, t_69_memory_layout, t_69_raises_hints, t_69_engine_hints, t_69_shared_settings, t_69_toolchain, t_69_lint_and_ci, t_610_expected_multiline, t_610_can_be_func, t_610_concepts, t_610_nim_coverage, t_610_lint_rules, t_610_imports_required, t_610_dep_tree_locked, t_610_project_checks, t_610_fmt_uses, t_611_terminal_scroll, t_611_frames_vt, t_611_perf_report, t_612_hints_ahead, t_612_reflow_comments, t_6112_examples_after_format, t_6112_long_line, t_6112_terminal_flood, t_612_nim3, t_612_nim3_port, t_612_hex, t_612_hex_exe, t_612_big_text, t_613_remote, t_613_terminal_answers, t_613_edit_tools, t_613_vim_filter, t_614_web_css, t_614_web_html, t_614_web_sql, t_614_picker_preview, t_614_jump_labels, t_614_git_new_folder, t_614_format_pieces, t_6141_quick_fix_keys, t_6141_ref_counts, t_6141_showcase, t_615_select_structure, t_615_surround, t_615_vim_surround, t_615_undo_tree, t_615_git_changes, t_615_next_edit, t_615_web_js, t_615_cpp, t_616_engine_worker, t_618_nedls_in_ned, t_619_nimble_resolve, t_619_plugins, t_619_plugins_vim, t_619_plugins_lsp_lang, t_619_hot_exit, t_619_encodings, t_619_key_conflicts, t_620_plugin_language, t_620_plugin_full_nim, t_6241_plugin_check, t_620_ast_docs, t_620_nimble_edit, t_620_emit_names, t_620_viewer, t_620_plugin_list, t_621_emit_format, t_621_reset, t_621_settings_form, t_621_fields, t_621_context_menus, t_621_drag_drop, t_621_atlas, t_621_decompile, t_621_new_project, t_622_settings_controls, t_622_nimscript, t_622_plugin_api, t_622_doc_comments, t_623_decompile_menu, t_623_align_comments, t_623_c_engine, t_623_emit_builtin_c, t_623_nim_rewrites, t_623_call_args, t_624_compiler_explorer, t_624_ce_toolbar, t_6241_dock_view_menu, t_6241_ce_all_procs, t_625_indent, t_625_plugins_menu, t_625_which_key, t_625_oil, t_625_engine_checks,
          t_625_chain_hints, t_625_rename_reach, t_625_completion_recent, t_625_oracle, t_625_c_if, t_625_c_checks,
          t_625_cpp_overloads, t_624_compiler_explorer_c,
@@ -11756,4 +11961,5 @@ tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_te
          t_640_no_panels_at_start, t_640_undo_kept_bounded, t_641_vim_ex, t_641_update_check, t_641_from_zed,
          t_6411_emit_members, t_6411_picker_exact, t_642_your_keys, t_6421_ai_utf8, t_643_ai_thinking, t_6431_server_edits, t_6431_touch_copy, t_644_vim_indent_suspend, t_644_engine_and_server,
          t_645_server_changes, t_645_crash, t_645_memory_back, t_65_vim_oracle,
-         t_646_ai_tokens, t_646_bad_bytes, t_647_vim_keys_names, t_647_vim_esc_alt]
+         t_646_ai_tokens, t_646_bad_bytes, t_647_vim_keys_names, t_647_vim_esc_alt,
+         t_648_acp_chat, t_648_acp_permissions, t_648_acp_stop_and_crash, t_648_acp_hostile, t_648_acp_v2_and_signin, t_648_acp_choose]

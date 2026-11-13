@@ -142,6 +142,8 @@ proc mcpPromptFind(cmd: string): (McpServer, int) =
 proc slashNames(): seq[string] =
   ## every /command, the MCP servers' prompts included
   for (c, _) in SlashCmds: result.add c
+  for c in acpCommandNames():
+    if c notin result: result.add c          # (the agent's own, when one is in use: ACP)
   for s in mcpServers:
     if not s.dead:
       for p in s.prompts: result.add "/" & s.name & ":" & p.name

@@ -660,6 +660,12 @@ proc initSettingDefs() =
   defS("AI", "ai.mcpServers", newJObject(), "MCP servers whose tools the agent may use (each call asks first, " &
        "unless ai.autoApprove is all): {\"github\": {\"command\": \"npx\", \"args\": [\"-y\", " &
        "\"@modelcontextprotocol/server-github\"], \"env\": {\"GITHUB_TOKEN\": \"…\"}}} — palette › AI: MCP servers")
+  defS("AI", "ai.agentServer", %"", "The agent the AI dock talks to instead of ned's own assistant: one of " &
+       "ai.agentServers (empty = ned's own) — palette › AI: choose agent…")
+  defS("AI", "ai.agentServers", newJObject(), "Agents that are programs of their own, spoken to with the Agent " &
+       "Client Protocol (ACP): {\"claude\": {\"command\": \"npx\", \"args\": [\"-y\", " &
+       "\"@agentclientprotocol/claude-agent-acp\"]}} — \"env\" for their variables, \"protocol\": 2 for ACP's " &
+       "draft version 2, \"mcpServers\": false to keep ai.mcpServers to ned")
   defS("AI", "ai.fastModel", %"", "A quicker, cheaper model to switch to (the ⚡ button in the assistant, or " &
        "palette › AI: fast / smart model) — e.g. claude-haiku-5-5 or gpt-5-mini")
   defS("AI", "ai.price", newJObject(), "Dollars per million tokens, to show what a chat costs: " &
@@ -1278,6 +1284,7 @@ proc applySettings() =
   cfgNimTestFlags = sStr("nim.testFlags")
   cfgCovTestFiles = sBool("nim.coverageTestFiles")
   cfgAiProvider = sStr("ai.provider")
+  cfgAiAgentServer = sStr("ai.agentServer")
   cfgAiModel = sStr("ai.model")
   cfgAiKey = sStr("ai.apiKey")
   cfgAiKeyEnv = sStr("ai.apiKeyEnv")

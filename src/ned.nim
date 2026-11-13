@@ -209,6 +209,7 @@ include ned/ai/oneshot
 include ned/ai/plan
 include ned/ai/offline
 include ned/ai/suggestions
+include ned/ai/acp
 include ned/editor/nextedit
 include ned/ai/chatview
 include ned/ui/mdpreview

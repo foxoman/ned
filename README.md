@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.47.1](#whats-new-in-6471) · [6.47](#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.48](#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -33,29 +33,17 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ---
 
-## What's new in 6.47.1
+## What's new in 6.48
 
-**Check setup says so at once.** Help › Check setup and Copy info for bug report ask each tool its version, which
-can take seconds the first time on a phone or a machine just started; until then the screen stayed as it was, the
-palette still open. *Checking the setup…* shows straight away now.
-
-**The setup check lines up.** A long name (*terminal answers*) ran into what it says, and the report's columns and
-the notes under them were drawn with indentation guides through them. ned's own reports in a tab (the setup check,
-the recent messages) no longer have guides, and the names' column is as wide as the longest one.
-
-## What's new in 6.47
-
-**Your own vim keys with ned's names.** `vim.keys`, `vim.visualKeys` and `helix.keys` read keys as vim writes them,
-so `"shift+j": "Next tab"` was taken as the letters themselves, never matched, and `J` went on joining lines. ned's
-names work there now — `shift+j` is `J`, `ctrl+a` is `<C-a>`, `enter`, `tab`, `space` — and a key those settings
-cannot be given (an Alt key: it goes in `keys`) is said when ned starts
-([#8](https://github.com/foxoman/ned/issues/8)).
-
-**Esc, then a key, at once.** A terminal sends Alt and a key as Esc followed by the key, so Esc and a key typed right
-after it can arrive as Alt and that key; under tmux they always do. In vim's insert, replace and visual modes, where
-Esc does something, such an Alt key is now Esc and then the key, as in Neovim: `Esc` `u` leaves insert mode and
-undoes, where it turned the mouse off. Your own Alt keys and a plugin's still win, and in normal mode ned's Alt keys
-are what they say ([#7](https://github.com/foxoman/ned/pull/7)).
+**Agents of their own, in the AI dock.** An agent that is a program of its own — Claude Agent, Codex, Gemini CLI, or
+any other that speaks the Agent Client Protocol (ACP) — now works in the AI dock in place of ned's own assistant.
+*AI: choose agent…* adds one with a tap (`ai.agentServers`, `ai.agentServer`). ned shows what it writes, thinks and
+plans, and each thing it does; asks you before what it wants to do (an edit as its diff, a command as its line:
+Allow, Always, Deny, or `ai.autoApprove`); lends it the open files with your unsaved edits and runs its commands in
+the project; and writes the files it changes through their tabs, so *AI: undo the assistant's changes…* puts them
+back. Its mode, model and options are chosen from the dock's top row, its own /commands go to it, Esc stops it, and
+an agent that wants you to sign in says how. Version 1 of the protocol, and the draft version 2 with an agent that
+asks for it ([The AI assistant](docs/guide/ai.md#agents-of-their-own-acp)).
 
 ## Features
 
@@ -214,7 +202,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.47.1_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.48.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

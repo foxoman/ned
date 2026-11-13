@@ -174,6 +174,15 @@ proc setupRows(inEditor: bool): seq[SetupRow] =
   # AI: never shows the key itself
   let model = aiModel()
   let prov = cfgAiProvider & " · " & (if model.len > 0: model else: "model not chosen")
+  if acpOn():
+    # (an agent of its own, ACP: its program found or not)
+    let cmd = acpCmdOf(acpSpecOf(acpName()))
+    if cmd.len == 0:
+      rows.add ("AI", "agent", 2, "", acpName() & ": not in ai.agentServers", "palette › AI: choose agent…")
+    elif findExe(cmd[0]).len == 0:
+      rows.add ("AI", "agent", 2, "", acpName() & ": " & cmd[0] & " not found",
+                (if cmd[0] in ["npx", "node"]: installHint("nodejs", "nodejs") else: "install " & cmd[0]))
+    else: rows.add ("AI", "agent", 0, "", acpName() & " (ACP) · " & cmd.join(" "), "")
   if cfgAiProvider == "ollama": rows.add ("AI", "assistant", 0, "", prov & " · local, no key needed", "")
   elif aiKey().len > 0:
     rows.add ("AI", "assistant", 0, "", prov & " · key " &

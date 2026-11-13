@@ -1,6 +1,30 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-647). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-648). Older releases:
+
+## What's new in 6.47.1
+
+**Check setup says so at once.** Help › Check setup and Copy info for bug report ask each tool its version, which
+can take seconds the first time on a phone or a machine just started; until then the screen stayed as it was, the
+palette still open. *Checking the setup…* shows straight away now.
+
+**The setup check lines up.** A long name (*terminal answers*) ran into what it says, and the report's columns and
+the notes under them were drawn with indentation guides through them. ned's own reports in a tab (the setup check,
+the recent messages) no longer have guides, and the names' column is as wide as the longest one.
+
+## What's new in 6.47
+
+**Your own vim keys with ned's names.** `vim.keys`, `vim.visualKeys` and `helix.keys` read keys as vim writes them,
+so `"shift+j": "Next tab"` was taken as the letters themselves, never matched, and `J` went on joining lines. ned's
+names work there now — `shift+j` is `J`, `ctrl+a` is `<C-a>`, `enter`, `tab`, `space` — and a key those settings
+cannot be given (an Alt key: it goes in `keys`) is said when ned starts
+([#8](https://github.com/foxoman/ned/issues/8)).
+
+**Esc, then a key, at once.** A terminal sends Alt and a key as Esc followed by the key, so Esc and a key typed right
+after it can arrive as Alt and that key; under tmux they always do. In vim's insert, replace and visual modes, where
+Esc does something, such an Alt key is now Esc and then the key, as in Neovim: `Esc` `u` leaves insert mode and
+undoes, where it turned the mouse off. Your own Alt keys and a plugin's still win, and in normal mode ned's Alt keys
+are what they say ([#7](https://github.com/foxoman/ned/pull/7)).
 
 ## What's new in 6.46
 

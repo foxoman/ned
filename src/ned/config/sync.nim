@@ -65,9 +65,9 @@ proc syncApply(bundle: JsonNode): string =
     for k, v0 in bundle["settings"]:
       if secretName(k): continue
       var v = v0
-      if k == "ai.mcpServers" and v.kind == JObject:
+      if k in ["ai.mcpServers", "ai.agentServers"] and v.kind == JObject:
         # empty env values from the other device: this device's own values stay
-        let mine = settingsUser{"ai.mcpServers"}
+        let mine = settingsUser{k}
         v = v.copy
         for srv, spec in v:
           if spec.kind == JObject and spec{"env"} != nil and spec["env"].kind == JObject:

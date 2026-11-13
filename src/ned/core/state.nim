@@ -218,6 +218,7 @@ var
   cfgNimTestFlags = "--hints:off"
   cfgCovTestFiles = false              # nim.coverageTestFiles: Nim test coverage counts the test files too
   cfgAiProvider = "anthropic"
+  cfgAiAgentServer = ""               # ai.agentServer: the agent (ACP) the AI dock talks to; "" ned's own assistant
   cfgAiModel = ""
   cfgAiKey = ""
   cfgAiKeyEnv = ""

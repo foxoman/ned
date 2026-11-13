@@ -123,6 +123,7 @@ enables the remote-folder tests (after `tests/ui/ssh-setup.sh` on a throwaway ma
 | `vt.py` | a small terminal model: every byte ned sent must give the screen a full redraw gives |
 | `fixtures/demo` | the project each test works in: copied to `W` and made a git repository with one commit |
 | `mocks/mockai.py` | a mock AI server that answers like the real APIs, refusals included |
+| `mocks/mockacp.py` | a scripted ACP agent (version 1, or 2 with `MOCK_ACP_V2=1`): words in the prompt choose what it does |
 | `tmux.conf` | the tmux settings the tests use |
 
 `setup(cfg)` prepares a test: it stops the previous tmux server, copies the demo project to `W` (`TMP/work`),

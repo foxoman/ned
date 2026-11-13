@@ -10,9 +10,13 @@ Every command of the palette (Ctrl+E, or Ctrl+P and `>`), with its key or what i
 | Add cursor below | Alt+J |
 | AI assistant | Alt+C |
 | AI: add doc comments |  |
+| AI: agent's mode… |  |
+| AI: agent's options… | model, effort … as the agent offers them |
+| AI: agent… | the agent in use: its state, mode and options, signing in, restarting it |
 | AI: ask about selection |  |
 | AI: attach a picture… | a screenshot or a photo, for a model that reads pictures |
 | AI: chat history… |  |
+| AI: choose agent… | Claude Agent, Codex, Gemini CLI … (ACP) in the AI dock, or ned's own assistant |
 | AI: choose model… |  |
 | AI: choose provider… |  |
 | AI: clear review findings |  |

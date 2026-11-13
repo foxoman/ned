@@ -105,7 +105,10 @@ proc typeModelAction(): (string, string, Action) =
 proc aiChooseModel() =
   ## AI: choose model — a menu of the models: Anthropic's known ones, or for other providers the list the endpoint's
   ## /models gives (for OpenAI only the chat models), asked with curl with the key in a private file; each entry sets
-  ## ai.model, and typing an id is always offered
+  ## ai.model, and typing an id is always offered. With an agent of its own (ACP), the models it offers
+  if acpOn():
+    acpChooseOption("model")
+    return
   if cfgAiProvider == "anthropic":
     var items: seq[(string, string, Action)]
     items.add typeModelAction()

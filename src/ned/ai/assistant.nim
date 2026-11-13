@@ -12,6 +12,8 @@ type
     diff: string          # edit_file / write_file: the change as a unified diff
     check: string         # edits: what checking the file found ("" not checked, "ok", or "2 errors")
     checkOut: string      #   the errors
+    loc: string           # an agent's call (ACP): the file it works on (path, or path:line)
+    raw: string           # … what it was given, as JSON (a command's line: shown before you allow it)
   AiMsg = object
     role: int             # 0 user, 1 assistant, 2 tool results, 3 notice
     text: string
@@ -21,6 +23,7 @@ type
     pics: seq[string]     # pictures sent with it (@shot.png): for models that read them
     think: string         # the assistant's: what a thinking model thought before it answered (never sent back)
     thinkShown: int       # … 0 as ai.showThinking says, 1 opened, 2 folded (a tap on its line)
+    file: string          # yours, to an agent (ACP): the file it was sent from — a link to it goes along
 
   AiPlanState = enum apNone, apPlanning, apReady, apDoing
 

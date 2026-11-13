@@ -134,6 +134,49 @@ A server's **prompts** are chat commands, `/server:name`, and its **resources** 
 restarts them. Tokens go to the server's environment, never onto
 a command line, and a project's settings cannot add servers until you trust its folder.
 
+## Agents of their own (ACP)
+
+An agent that is a program of its own — Claude Agent, Codex, Gemini CLI, or any other that speaks the [Agent
+Client Protocol](https://agentclientprotocol.com) — can work in the AI dock in place of ned's own assistant.
+*AI: choose agent…* lists ned's own assistant, your agents, and Claude Agent, Codex and Gemini CLI to add with a
+tap. Those three run with `npx`, so they need Node.js 22 or newer (`pkg install nodejs` in Termux); what else an
+agent needs to run on your device is the agent's own affair. In the settings:
+
+```json
+{"ai.agentServer": "claude",
+ "ai.agentServers": {"claude": {"command": "npx", "args": ["-y", "@agentclientprotocol/claude-agent-acp"],
+                                "env": {"ANTHROPIC_API_KEY": "…"}}}}
+```
+
+ned starts the agent with your first message and keeps it running. The agent does its own work — it reads, edits
+and runs what it needs — and ned:
+
+- shows what it writes and thinks, its plan as it goes (✓ done, ▸ under way, ○ to do), and each thing it does on a
+  line of its own that a tap opens (a command's output as it comes);
+- asks you before what it wants to do — an edit as its diff, a command as its line — with Allow (y), Always (a) and
+  Deny (n). `ai.autoApprove` lets reads (the default), edits or everything go ahead without asking, never anything
+  outside the project folder. How often the agent asks is up to the agent, and its mode;
+- lends it the open files with your unsaved edits, and writes the files it changes through their tabs, so that
+  *AI: undo the assistant's changes…* and *AI: review the assistant's changes…* work as for ned's own assistant;
+- runs the commands it asks ned to run in the project, where your folder trust applies ([Safety](safety.md));
+- sends the file you are in, or the selection, with your message (`ai.includeFile`), the files and context you
+  `@mention`, and your pictures when the agent takes them;
+- gives it your MCP servers (`ai.mcpServers`) to use itself; `"mcpServers": false` in its entry keeps them to ned.
+
+The dock's top row shows the agent — a tap is *AI: agent…*: its state, its last words when it fails, signing in,
+restarting it —, its mode (a tap changes it), and the conversation's size and cost when the agent says them.
+*AI: choose model…* and `/model` list the agent's models, *AI: agent's options…* the rest of what it offers (effort
+…). Its own /commands (`/compact` …) go to it as they are, and Tab completes them; Esc stops it; a new chat (Ctrl+L)
+is a new conversation with it. Inline edits, suggestions, commit messages and reviews still use ned's own provider.
+
+An agent that wants you to sign in says so in the chat, and *AI: agent…* › *Sign in…* offers its ways — one that
+runs in a terminal opens one of ned's. Claude Agent signs in as Claude Code does, or takes `ANTHROPIC_API_KEY` in its
+`"env"`. Tokens go to the agent's environment only, never onto a command line; settings sync leaves them out; a
+project's settings cannot choose or add an agent until you trust its folder.
+
+ned speaks version 1 of the protocol, and its draft version 2 with an agent that asks for it (`"protocol": 2` in
+its entry starts it so).
+
 ## In the editor
 
 - **Edit a selection** (Alt+Shift+C, *AI: edit selection…*): say what to change, and the selection — or the block

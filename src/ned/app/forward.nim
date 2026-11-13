@@ -4,6 +4,17 @@
 # ════════════════════════════════════════════════════════════════════════════
 
 proc refreshGit(b: Buffer)
+proc acpOn(): bool                       # (ai/acp: an agent of its own — ACP — in the AI dock)
+proc acpTurn()
+proc acpStop()
+proc acpNewChat()
+proc acpAnswer(mi, ci: int, allow, always: bool)
+proc acpWaiting(callId: string): bool
+proc acpIsCommand(t: string): bool
+proc acpCommandNames(): seq[string]
+proc acpForget()
+proc acpChooseOption(category: string)
+proc acpContext(): string
 proc applyNimToolchain()
 var wkWorkerMode = false            # this process is the engine worker (`ned --engine-worker`, nim/worker.nim)
 proc wkOn(): bool

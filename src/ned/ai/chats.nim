@@ -7,13 +7,13 @@ proc callJson(c: AiCall): JsonNode =
   ## a tool call as it is saved with its chat; its result is cut to 20000 characters
   %*{"id": c.id, "name": c.name, "args": c.args, "state": c.state,
      "result": (if c.result.len > 20000: c.result[0 ..< 20000] & "\n…" else: c.result),
-     "isError": c.isError, "diff": c.diff, "check": c.check, "checkOut": c.checkOut}
+     "isError": c.isError, "diff": c.diff, "check": c.check, "checkOut": c.checkOut, "loc": c.loc, "raw": c.raw}
 
 proc callFrom(j: JsonNode): AiCall =
   ## a tool call read back from a saved chat (done, unless the file says otherwise)
   AiCall(id: j{"id"}.getStr, name: j{"name"}.getStr, args: j{"args"}.getStr, state: j{"state"}.getInt(2),
          result: j{"result"}.getStr, isError: j{"isError"}.getBool, diff: j{"diff"}.getStr,
-         check: j{"check"}.getStr, checkOut: j{"checkOut"}.getStr)
+         check: j{"check"}.getStr, checkOut: j{"checkOut"}.getStr, loc: j{"loc"}.getStr, raw: j{"raw"}.getStr)
 
 proc chatTitle(): string =
   ## the chat's title: the first line of the first message the user wrote, cut to 70 characters ("chat" when there is
@@ -38,6 +38,7 @@ proc saveChat() =
     for c in m.calls: calls.add callJson(c)
     msgs.add %*{"role": m.role, "text": m.text, "shown": m.shown, "calls": calls, "pics": m.pics, "think": m.think}
   let j = %*{"id": aiChatId, "title": chatTitle(), "root": rootDir, "provider": cfgAiProvider, "model": aiModel(),
+             "agent": cfgAiAgentServer,
              "updated": (epochTime() * 1000).int64, "usage": {"in": aiUsageIn, "out": aiUsageOut,
              "cacheRead": aiUsageCacheRead, "cacheWrite": aiUsageCacheWrite, "requests": aiUsageReqs,
              "last": aiUsageLast}, "msgs": msgs}

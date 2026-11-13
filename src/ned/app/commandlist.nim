@@ -800,6 +800,11 @@ proc initCommands() =
   add("AI: write tests", "kept when they pass", aiWriteTests())
   add("AI: add doc comments", "", aiQuick("Add concise doc comments (## for Nim) to the public procs and types here, editing the file."))
   add("AI: choose provider…", "", aiChooseProvider())
+  add("AI: choose agent…", "Claude Agent, Codex, Gemini CLI … (ACP) in the AI dock, or ned's own assistant",
+      acpChooseAgent())
+  add("AI: agent…", "the agent in use: its state, mode and options, signing in, restarting it", cmdAcpAgent())
+  add("AI: agent's mode…", "", acpChooseOption("mode"))
+  add("AI: agent's options…", "model, effort … as the agent offers them", acpChooseOption(""))
   add("AI: choose model…", "", aiChooseModel())
   add("AI: toggle agent mode", "", toggleSetting("ai.agent", "Agent mode"))
   add("AI: settings…", "", openSettingsUi("ai."))
