@@ -397,8 +397,12 @@ proc doCsi(t: Term, fin: char) =
       t.sx = t.cx
       t.sy = t.cy
   of 'u':
-    t.cx = clamp(t.sx, 0, t.w - 1)
-    t.cy = clamp(t.sy, 0, t.h - 1)
+    # a plain `ESC[u` puts the cursor back where `ESC[s` saved it; with a private marker it is the kitty keyboard
+    # protocol (`ESC[=5u`, which fish prints after every prompt; `ESC[?u` asks which flags are on), and the cursor
+    # stays where it is — reading it as a restore sent fish's cursor back to the start of the line
+    if t.inter.len == 0:
+      t.cx = clamp(t.sx, 0, t.w - 1)
+      t.cy = clamp(t.sy, 0, t.h - 1)
   else: discard
 
 # the cursor's row counted from the first line the terminal ever scrolled out, the way the remembered commands count
