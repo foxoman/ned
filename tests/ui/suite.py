@@ -793,10 +793,13 @@ def t_55_publish():
     check('55 -- file', wait_for('odd file', 4), screen())
     palette('Show recent messages'); time.sleep(0.6)
     check('55 settings typo', '"editor.tabSize"?' in screen(), screen())
-    palette('Check setup'); time.sleep(1.5)
-    check('55 check setup', 'setup check' in screen(), screen())
-    palette('Copy info for bug report'); time.sleep(1.5)
-    check('55 bug info', 'Copied for a bug report' in screen(), screen())
+    # (each tool is asked its version: seconds on a machine just started — GitHub's — so the checks wait for it)
+    palette('Check setup')
+    check('55 check setup', wait_for('setup check', 15), screen())
+    s = screen()
+    check('55 setup check columns', 'terminal answers ' in s and '│ │' not in s, s)
+    palette('Copy info for bug report')
+    check('55 bug info', wait_for('Copied for a bug report', 15), screen())
 
 def t_56_todos():
     # TODO/FIXME/BUG/HACK/NOTE: colours, the TODOs dock (chips, scope, counts), Alt+V, insert, live update, done

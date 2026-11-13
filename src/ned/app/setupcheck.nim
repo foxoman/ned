@@ -190,6 +190,8 @@ proc setupReport(inEditor: bool): string =
   result = AppName & " " & Version & " — setup check\n"
   var group = ""
   var needed, optional = 0
+  var w = 14                                   # (the names' column: the longest name and a space — "terminal answers")
+  for r in rows: w = max(w, r.name.len + 1)
   for r in rows:
     if r.group != group:
       group = r.group
@@ -199,11 +201,11 @@ proc setupReport(inEditor: bool): string =
       of 2: "✗"
       of 1: "·"
       else: " "
-    var line = "  " & mark & " " & alignLeft(r.name, 14)
+    var line = "  " & mark & " " & alignLeft(r.name, w)
     case r.state
     of 0: line.add (if r.ver.len > 0: r.ver & " · " else: "") & r.purpose
     else: line.add r.purpose
-    if r.hint.len > 0: line.add "\n" & repeat(' ', 19) & "→ " & r.hint
+    if r.hint.len > 0: line.add "\n" & repeat(' ', w + 5) & "→ " & r.hint
     result.add line & "\n"
     if r.state == 2: inc needed
     elif r.state == 1: inc optional
@@ -229,13 +231,19 @@ proc bugReportInfo(): string =
            "terminal: " & termLine(true) & " · theme " & cfgThemeName & "\n" &
            "tools: " & tools.join(", ") & "\n"
 
+proc setupBusy() =
+  ## (6.47.1) says at once that the setup is being checked: asking every tool its version can take seconds the first
+  ## time (a phone, a machine just started), and the screen stayed as it was until then — the palette still open
+  if loadingHook != nil: loadingHook("Checking the setup…")
+
 proc cmdCheckSetup() =
   ## Help › Check setup: the setup report in a tab of its own
-  info("Checking setup…")
+  setupBusy()
   discard openScratch("Setup check", setupReport(true), langByName("Text"))
 
 proc cmdCopyBugInfo() =
   ## Help › Copy info for bug report: puts the summary on the clipboard
+  setupBusy()
   let s = bugReportInfo()
   clipSet(s)
   toast("Copied for a bug report: ned " & Version & ", Nim, system, terminal and tools — paste it into the issue", 3)

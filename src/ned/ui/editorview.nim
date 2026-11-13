@@ -295,8 +295,11 @@ proc drawEditor(b: Buffer, x0, y0, w, h: int, active: bool) =
       fWord = true
   let (bm, ba, bb) = b.matchBracketKept(ph)
   let vimVis = cfgVim and vimMode in {vmVisual, vmVLine}
-  # (no indentation guides in assembly: its instructions are indented, not nested)
-  let unit = if b.lang != nil and b.lang.name == "Assembly": 0 else: b.indentW()
+  # (no indentation guides in assembly: its instructions are indented, not nested; nor in a report ned wrote as text —
+  # the setup check, the recent messages —, whose spaces line up columns: 6.47.1)
+  let unit = if b.lang != nil and (b.lang.name == "Assembly" or
+                                   (b.lang.name == "Text" and b.readOnly and b.path.len == 0)): 0
+             else: b.indentW()
   var (piOn, piSt) = b.plugIndentFor()     # (a plugin's look for indentation: indent-dots, rainbow-indent)
   if b.largeOn: piOn = false
   # the active indent guide: the one of the block the cursor is in, a little brighter (like VS Code)
