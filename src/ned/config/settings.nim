@@ -1673,8 +1673,15 @@ proc reloadSettings(fromFile = true) =
   for b in bufs: b.lastChange = -1
   needRender = true
 
+var settingsSoon: seq[(string, JsonNode)]   # settings a key changed, written once the keys stop (setSettingSoon)
+
+proc setSettings(changes: seq[(string, JsonNode)])
+
 proc setSetting(key: string, val: JsonNode) =
   ## change one setting: applies it now and writes it into the settings file (comments preserved)
+  if settingsSoon.len > 0:
+    setSettings(@[(key, val)])                 # (with what waits to be written: one write)
+    return
   initSettingDefs()
   settingsJ[key] = val
   settingsUser[key] = val
@@ -1690,7 +1697,13 @@ proc setSetting(key: string, val: JsonNode) =
   reloadSettings(false)
 
 proc setSettings(changes: seq[(string, JsonNode)]) =
-  ## several settings changed at once (the Settings window's OK): one write of the file, one reload
+  ## several settings changed at once (the Settings window's OK): one write of the file, one reload — what
+  ## setSettingSoon keeps for later goes in it too, first
+  var changes = changes
+  if settingsSoon.len > 0:
+    var all = move settingsSoon
+    all.add changes
+    changes = all
   if changes.len == 0: return
   initSettingDefs()
   let p = configFile()
@@ -1707,6 +1720,34 @@ proc setSettings(changes: seq[(string, JsonNode)]) =
   except CatchableError as e:
     warn("Could not write settings: " & e.msg)
   reloadSettings(false)
+
+
+proc setSettingSoon(key: string, val: JsonNode) =
+  ## a setting a key changes while you type (Ctrl+Space: the documentation beside the completion list): in force at
+  ## once, written to the settings file a second after the last key (settingsWriteSoon) — a write waits for the disk,
+  ## and on a busy machine or Android's shared storage that held the key up by tens of milliseconds
+  initSettingDefs()
+  settingsJ[key] = val
+  settingsUser[key] = val
+  for k in countdown(settingsSoon.high, 0):
+    if settingsSoon[k][0] == key: settingsSoon.delete(k)
+  settingsSoon.add (key, val)
+
+proc settingsWriteSoon(now = false) =
+  ## writes what setSettingSoon kept, once a second has gone by without a key (now: ned is quitting — the file only,
+  ## nothing applied again)
+  if settingsSoon.len == 0 or (not now and msSince(lastInputAt) < 1000): return
+  if not now:
+    setSettings(@[])
+    return
+  let p = configFile()
+  try:
+    var text = if fileExists(p): readFile(p) else: defaultSettingsText()
+    for (key, val) in settingsSoon: text = updateSettingsText(text, key, val)
+    createDir(parentDir(p))
+    writeFileSafe(p, text)
+  except CatchableError: discard
+  settingsSoon.setLen(0)
 
 proc resetSettings() =
   ## every setting (key bindings included) back to its default; the old file stays next to it as a backup

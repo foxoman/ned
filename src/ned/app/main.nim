@@ -565,6 +565,7 @@ proc mainLoop() =
         for b in bufs:
           if b.changeId != b.swapAt and msSince(b.lspChangeAt) > 600: timedWork("recovery files"): writeSwap(b)
       timedWork("quick fixes asked"): codeActionsOverdue()
+      if settingsSoon.len > 0: timedWork("settings written"): settingsWriteSoon()
       if msSince(lastFileCheck) > 2000:
         lastFileCheck = getMonoTime()
         timedWork("files changed on disk"): checkDiskChanges()
@@ -1093,7 +1094,9 @@ proc main() =
     leaveRaw()
     ctlClose()
     cleanProjectTemps()
-  if resetPending.len == 0: saveState()     # (Reset everything: no state written back)
+  if resetPending.len == 0:
+    saveState()                      # (Reset everything: no state written back)
+    settingsWriteSoon(now = true)    # (a setting a key changed just before)
   if termSignal == 0:
     for b in bufs: removeSwap(b)     # a normal exit: unsaved edits were saved or discarded on purpose
   swapThreadStop()                   # (the recovery files it was writing or removing: done before ned leaves)

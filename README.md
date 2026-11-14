@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.48](#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.49](#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -33,17 +33,27 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ---
 
-## What's new in 6.48
+## What's new in 6.49
 
-**Agents of their own, in the AI dock.** An agent that is a program of its own — Claude Agent, Codex, Gemini CLI, or
-any other that speaks the Agent Client Protocol (ACP) — now works in the AI dock in place of ned's own assistant.
-*AI: choose agent…* adds one with a tap (`ai.agentServers`, `ai.agentServer`). ned shows what it writes, thinks and
-plans, and each thing it does; asks you before what it wants to do (an edit as its diff, a command as its line:
-Allow, Always, Deny, or `ai.autoApprove`); lends it the open files with your unsaved edits and runs its commands in
-the project; and writes the files it changes through their tabs, so *AI: undo the assistant's changes…* puts them
-back. Its mode, model and options are chosen from the dock's top row, its own /commands go to it, Esc stops it, and
-an agent that wants you to sign in says how. Version 1 of the protocol, and the draft version 2 with an agent that
-asks for it ([The AI assistant](docs/guide/ai.md#agents-of-their-own-acp)).
+**Long routines no longer slow the checks down.** After a pause in typing, the engine's checks ask each line of a
+routine for its local variables, and each time ned read the routine again from its first line. In a routine of
+1,600 lines (the Nim compiler's `vm.nim` has one) that came to most of a second every time you stopped typing, and
+more on a phone. Each routine is now read once for all its lines, for the checks and for the type hints: `vm.nim`'s
+checks take an eighth of the time they did, and find the same problems.
+
+**A file written twice in a second is read again.** ned told that a file on disk had changed by its modification
+time, to the second, and its size. Written again in the same second at the same size (an agent's or a tool's quick
+second edit that swaps two letters), the file kept the text ned had read first: the errors as you type and
+completion went on with it. The time is now taken to the nanosecond.
+
+**Ctrl+Space no longer waits for the disk.** With the completion list open, Ctrl+Space shows or hides the
+documentation beside it, and ned wrote that choice into your settings there and then, waiting until the disk had it:
+on a busy machine that held the key up for as much as a tenth of a second. It is written a second after you stop
+typing now, or when ned quits.
+
+**fish in the built-in terminal.** fish asks the terminal for its keyboard mode after every prompt (`ESC[=5u`), and
+ned took that for "put the cursor back where it was saved", so the cursor jumped. ned now leaves it alone, as it
+already did for `ESC[s`. Thanks to zivoslav ([#9](https://github.com/foxoman/ned/pull/9)).
 
 ## Features
 
@@ -202,7 +212,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.48.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.49.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

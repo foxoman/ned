@@ -150,6 +150,8 @@ when isMainModule:
         let b = newBuffer()
         b.path = path
         b.lines = (if j.hasKey("text"): j["text"].getStr.split('\n') else: ls)
+        # (a text given is the file as just written: read again at once, as a client saying it changed)
+        if j.hasKey("text"): nxStatForget(path)
         if b.lines.len > 1 and b.lines[^1].len == 0: b.lines.setLen(b.lines.len - 1)
         b.lang = detectLang(path, b.lines[0])
         var arr = newJArray()

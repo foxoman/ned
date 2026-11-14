@@ -271,7 +271,7 @@ Logs go to `/tmp/ned-fuzz-UID-logs`.
 | script | what it measures, against what |
 |---|---|
 | [`.github/ci/bench.py`](../../.github/ci/bench.py) | `ned --startup-time` in a real pseudo-terminal (an empty folder, this repository, a big file, an 80 MB log): the time to the first frame and the memory; `ned --bench`: the time and bytes per frame (scrolling, typing, a far jump); the built-in terminal flooded with output — each against `.github/ci/bench-budget.json` |
-| [`tests/perf/rounds.py`](../../tests/perf/rounds.py) | ned on its own source as a project, with `NED_PERF_TRACE` on, while it opens a file, scrolls, types, completes, adds an import and opens another program: the longest round of the main loop in each step, the completion times, and the memory of the editor and its engine worker — against `tests/perf/budget.json` |
+| [`tests/perf/rounds.py`](../../tests/perf/rounds.py) | ned on its own source as a project, with `NED_PERF_TRACE` on, while it opens a file, scrolls, types, completes, adds an import and opens another program: the longest round of the main loop in each step (with the processor time it had; the time ned waited for a processor the machine gave to other programs is left out), the completion times, and the memory of the editor and its engine worker — against `tests/perf/budget.json` |
 | [`.github/ci/pty_smoke.py`](../../.github/ci/pty_smoke.py) | ned in a real pseudo-terminal: it draws a file, the built-in terminal runs a command, piped input is shown, Ctrl+Q quits, the pointer's shape changes |
 | [`.github/ci/win_smoke.py`](../../.github/ci/win_smoke.py) | on Windows (`pip install pywinpty`): `ned.exe` in a console (ConPTY), typed into, saved and quit; `nedls.exe` answering; `nedfmt.exe` formatting |
 

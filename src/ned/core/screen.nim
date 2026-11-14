@@ -256,6 +256,7 @@ var
   perfTraceT0 = getMonoTime()
   perfTraceDepth = 0                # (work inside other work: noted with "› " — the round's own items add up)
   perfRoundCpu0 = 0                 # (the processor time the main thread had used when the round began)
+  perfRoundWait0 = 0                # (how long it had waited for a processor by then)
 
 proc threadCpuUs(): int =
   ## processor time this thread has used: a round much longer than it waited (the system ran something else,
@@ -264,10 +265,20 @@ proc threadCpuUs(): int =
   if clock_gettime(CLOCK_THREAD_CPUTIME_ID, ts) != 0: return 0
   ts.tv_sec.int * 1_000_000 + ts.tv_nsec.int div 1000
 
+proc threadWaitUs(): int =
+  ## how long this thread has waited, ready to run, while the machine gave its processors to other programs (Linux:
+  ## /proc/thread-self/schedstat; 0 where it cannot tell)
+  try:
+    let f = readFile("/proc/thread-self/schedstat").split(' ')
+    if f.len >= 2: result = parseInt(f[1].strip) div 1000
+  except CatchableError: discard
+
 proc perfRoundStart() =
-  ## when tracing performance (NED_PERF_TRACE), notes the processor time this thread has used as a round of the main
-  ## loop starts
-  if perfTraceOn: perfRoundCpu0 = threadCpuUs()
+  ## when tracing performance (NED_PERF_TRACE), notes the processor time this thread has used, and how long it has
+  ## waited for one, as a round of the main loop starts
+  if perfTraceOn:
+    perfRoundCpu0 = threadCpuUs()
+    perfRoundWait0 = threadWaitUs()
 
 var
   crashWork: array[4, array[64, char]]     # what runs now, by depth (timedWork's names: what a crash note says ned
@@ -317,7 +328,8 @@ proc noteBusy(us: int) =
   if perfTraceOn:
     if us >= 4000 and perfTrace.len < 200_000:
       var l = $((getMonoTime() - perfTraceT0).inMilliseconds) & " " & $us & " " & $(threadCpuUs() - perfRoundCpu0) &
-              " " & $(heapInUse() div 1024) & " " & $(heapHeld() div 1024)     # (the heap: in use, held, KB; -1 not known)
+              " " & $(heapInUse() div 1024) & " " & $(heapHeld() div 1024) &   # (the heap: in use, held, KB; -1 not known)
+              " " & $max(0, threadWaitUs() - perfRoundWait0)                   # (waiting for a processor, µs)
       var own = 0
       for (n, t) in perfTraceItems:
         l.add "\t" & n & "=" & $t

@@ -95,7 +95,10 @@ file's version or a line number makes a new key at every edit — give it a boun
 A round that takes long is a moment when keys are not read. So no `sleep`, no waiting for a program to finish (start
 it with `startJob` and handle the result in its `onDone`), nothing per frame that grows with the file's or the
 project's size, and anything long cut into slices ([Architecture](architecture.md#background-work-in-slices)).
-Wrap the work in `timedWork("what it is")` so *Help › Performance* can name it.
+Wrap the work in `timedWork("what it is")` so *Help › Performance* can name it. A file written safely waits for the
+disk (`writeFileSafe` syncs it), so a key that changes a setting as you type uses `setSettingSoon`, which writes it
+a second after the last key: `setSetting` in Ctrl+Space's documentation toggle held keys up by up to 100 ms on a CI
+runner (6.49; `tests/perf/rounds.py` shows a round's processor time: far less than the round is a wait like this).
 
 Two things follow:
 
@@ -112,6 +115,13 @@ between two looks at the clock — and that step must not grow with how far it g
 time past a layer the scope partly hides (an included file's). Walked that way a slice at a time, the completion
 list and the semantic colours took 20–40 ms a round on ned's own source, more the further they got (6.45). Walk them
 with `for r in sc.refs`, or, across rounds, with `nxNext(sc.refs, at, r)` and an `NxRefsAt` kept between them.
+
+The same holds for a question asked at many places: each line's locals (`nxLocals`) are read from the routine's
+first line, so a check that asks at every line of a 1,600-line routine read it a million times — the Nim compiler's
+`vm.nim` took 700 ms a check (6.49). Work that asks about many lines of one text runs as a pass, `nxWithLocals(f,
+lines)` (or `nxLocalsBegin` … `nxLocalsEnd`, with `nxLocalsAlso` for a second array, the checks' `code`): each routine
+is read once. A pass knows the lines by where they are in memory, so they must stay as they are, alive and unchanged,
+until it ends — a copy you change is another array and is read on its own, as before.
 
 ### Big texts: no copies on the way
 

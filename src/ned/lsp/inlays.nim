@@ -196,7 +196,10 @@ proc engineTypeHints(b: Buffer, f: NxFile, sc: NxScope, lo, hi: int, hints: var 
   ## nimsuggest) — false: out of time (engineInlayBudget ms from t0)
   result = true
   var got: Table[int, seq[(int, string)]]       # (a closure cannot hold on to `hints`: they go there at the end)
+  # (b.lines stays as it is meanwhile: each routine's locals are read once, not again for every hint)
+  let locWas = nxLocalsBegin(f, b.lines)
   defer:
+    nxLocalsEnd(locWas)
     for l, v in got: hints.mgetOrPut(l, @[]).add v
   proc hintFor(s: NxSym, typ: string) =
     ## adds the ": type" hint after a declared name: the type the engine worked out (from the compiler's answer when it

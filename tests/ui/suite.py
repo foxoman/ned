@@ -11945,6 +11945,41 @@ def t_648_acp_choose():
     if 'gpt-6' not in screen(): keys('M-c'); time.sleep(0.5)
     check("648 acp: back to ned's own assistant", cfg.get('ai.agentServer', '') == '' and 'gpt-6' in screen(), screen())
 
+def t_649_terminal_kitty_u():
+    # 6.49 (#9, zivoslav): fish asks for the kitty keyboard protocol after every prompt (ESC[=5u) — the cursor stays
+    # where it is; a plain ESC[u still puts it back where ESC[s saved it
+    setup({"terminal.shell": "/bin/bash"}); start('src/demo.nim')
+    keys('C-\\'); time.sleep(1.2)
+    text("printf 'ab\\033[sCD\\033[=5uX\\n'"); keys('Enter')
+    check('649 terminal: ESC[=5u leaves the cursor where it is (it was put back: abXD)', wait_for('abCDX', 5), screen())
+    text("printf 'ef\\033[sGH\\033[uY\\n'"); keys('Enter')
+    check('649 terminal: a plain ESC[u puts it back where ESC[s saved it', wait_for('efYH', 5), screen())
+    keys('C-d')
+
+def t_649_completion_docs_later():
+    # 6.49: Ctrl+Space with the completion list open shows or hides the documentation beside it at once; the choice
+    # reaches the settings file a second after the keys stop (the write waited for the disk inside the key: tens of
+    # milliseconds on a busy machine), or when ned quits
+    setup({"nim.nimsuggest": False})
+    open(W + '/d.nim', 'w').write('let s = "x"\necho s\n')
+    start('d.nim', w=110, h=30); time.sleep(1.5)
+    def saved():
+        try: return json.load(open(CFG + '/ned/config.json')).get('editor.completionDocs')
+        except (OSError, ValueError): return 'unreadable'
+    keys('C-End', 'End', 'Enter'); text('echo s.')
+    if not wait_for(r'addEscapedChar', 2): keys('C-space')   # (the dot opens the list; else Ctrl+Space does)
+    check('649 completion: the list is open', wait_for(r'addEscapedChar', 4), screen())
+    keys('C-space'); time.sleep(0.1)
+    not_yet = saved()
+    check('649 completion docs: written a second after the last key, not in the key', not_yet is None and
+          wait_until(lambda: saved() is False, 4), repr((not_yet, saved())))
+    check('649 completion docs: the list stays open when the setting is written', 'addEscapedChar' in screen(),
+          screen())
+    keys('C-space')                              # (shown again: true, kept for later)
+    keys('Escape', 'C-q'); time.sleep(0.5); keys('n')
+    check('649 completion docs: written when ned quits straight after', wait_until(lambda: saved() is True, 6),
+          repr(saved()))
+
 tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_terminal, t_run_file, t_lsp, t_lsp_diag, t_ai_chat, t_split_zen_theme, t_vim, t_recovery, t_quit_dirty, t_mixed_folder, t_builtin_nimsuggest, t_server_crash_restart, t_engine_member_completion, t_engine_hover_def_sig, t_engine_refs_rename, t_engine_imports, t_engine_without_nimsuggest, t_engine_outline_symbols, t_format_keeps_cursor, t_zen_vim, t_ai_insert, t_format_builtin, t_format_choice, t_reset_settings, t_52_refactors, t_52_format_selection, t_52_conflict, t_52_settings_search, t_52_mouse, t_521_debugger, t_521_touchbar, t_521_bp_follow_edits, t_522_navigation, t_522_peek_hierarchy_stage, t_522_rename_imports, t_522_shortcuts_markdown, t_522_multibuffer, t_522_nim_codegen, t_522_nim_tools, t_53_alerts_and_formatter, t_53_diff_view, t_53_rename_preview, t_53_debugger_watch_test, t_53_user_commands, t_531_help_menus, t_532_polish, t_54_git, t_55_publish, t_56_todos, t_561_review_fixes, t_562_format_cursor, t_563_open_folder, t_564_tiny_screens, t_564_save_safety, t_57_themes, t_57_ai, t_57_nim, t_57_git, t_571_rulers, t_572_editorconfig, t_572_tasks, t_572_errors, t_572_swatches, t_572_examples, t_59_small, t_59_html, t_59_problems_mb, t_59_lsp_more, t_59_langs_tests, t_59_ai_more, t_59_dap, t_510_large, t_510_debug_tools, t_510_testament, t_510_repl, t_510_nimble_outdated, t_510_merge_editor, t_510_spell, t_510_coverage, t_510_langs, t_510_mcp_more, t_510_emmet_css, t_510_sync, t_510_keymaps, t_510_accessible, t_510_workspace, t_510_remote, t_511_stale_errors, t_511_embedded, t_512_c_interop, t_512_refs_big, t_512_comp_stale, t_513_emit_edit, t_513_emit_errors, t_513_emit_c, t_514_emit_clangd, t_515_emit_more, t_515_strings, t_516_quickfixes, t_516_ai_fix, t_517_remote_git, t_517_workspace_git, t_518_macros, t_518_terminal, t_519_refactor, t_519_lists, t_520_agent_check, t_520_ai_tests, t_521_remote, t_521_git, t_521_format_self, t_522_perf, t_523_include, t_523_typehints, t_523_charlit, t_524_debug, t_524_format, t_524_deps, t_525_hints, t_525_engine, t_525_csv, t_525_profile, t_525_macro_nested, t_526_typing_errors, t_527_expand, t_527_complete, t_527_hover, t_528_hierarchy, t_528_refs, t_528_actions, t_529_clangd_fixes, t_529_examples, t_60_includes, t_60_protect, t_61_semantic, t_63_marks, t_63_git, t_63_format, t_63_paste, t_63_cdocs, t_64_engine, t_65_cengine, t_65_ligatures, t_66_cwrap, t_66_zen_menu, t_66_align_hints, t_66_trust, t_66_postfix, t_66_copies, t_66_test_on_save, t_66_ctvalues, t_66_include_check, t_67_github_signin, t_67_git_undo, t_67_commit_checks, t_67_review_comments, t_67_ai_grounded, t_67_ai_fix_test, t_67_format_changed, t_67_format_preview, t_67_yaml_toml, t_67_termux_clock, t_67_rich_colors, t_67_theme_editor, t_67_two_servers, t_67_lsp_links, t_67_ai_plan, t_67_ai_offline, t_68_nedfmt, t_68_engine_checks, t_68_compiler_answers, t_68_macro_names, t_68_settings_panel, t_69_locked_versions, t_69_expected_type, t_69_memory_layout, t_69_raises_hints, t_69_engine_hints, t_69_shared_settings, t_69_toolchain, t_69_lint_and_ci, t_610_expected_multiline, t_610_can_be_func, t_610_concepts, t_610_nim_coverage, t_610_lint_rules, t_610_imports_required, t_610_dep_tree_locked, t_610_project_checks, t_610_fmt_uses, t_611_terminal_scroll, t_611_frames_vt, t_611_perf_report, t_612_hints_ahead, t_612_reflow_comments, t_6112_examples_after_format, t_6112_long_line, t_6112_terminal_flood, t_612_nim3, t_612_nim3_port, t_612_hex, t_612_hex_exe, t_612_big_text, t_613_remote, t_613_terminal_answers, t_613_edit_tools, t_613_vim_filter, t_614_web_css, t_614_web_html, t_614_web_sql, t_614_picker_preview, t_614_jump_labels, t_614_git_new_folder, t_614_format_pieces, t_6141_quick_fix_keys, t_6141_ref_counts, t_6141_showcase, t_615_select_structure, t_615_surround, t_615_vim_surround, t_615_undo_tree, t_615_git_changes, t_615_next_edit, t_615_web_js, t_615_cpp, t_616_engine_worker, t_618_nedls_in_ned, t_619_nimble_resolve, t_619_plugins, t_619_plugins_vim, t_619_plugins_lsp_lang, t_619_hot_exit, t_619_encodings, t_619_key_conflicts, t_620_plugin_language, t_620_plugin_full_nim, t_6241_plugin_check, t_620_ast_docs, t_620_nimble_edit, t_620_emit_names, t_620_viewer, t_620_plugin_list, t_621_emit_format, t_621_reset, t_621_settings_form, t_621_fields, t_621_context_menus, t_621_drag_drop, t_621_atlas, t_621_decompile, t_621_new_project, t_622_settings_controls, t_622_nimscript, t_622_plugin_api, t_622_doc_comments, t_623_decompile_menu, t_623_align_comments, t_623_c_engine, t_623_emit_builtin_c, t_623_nim_rewrites, t_623_call_args, t_624_compiler_explorer, t_624_ce_toolbar, t_6241_dock_view_menu, t_6241_ce_all_procs, t_625_indent, t_625_plugins_menu, t_625_which_key, t_625_oil, t_625_engine_checks,
          t_625_chain_hints, t_625_rename_reach, t_625_completion_recent, t_625_oracle, t_625_c_if, t_625_c_checks,
          t_625_cpp_overloads, t_624_compiler_explorer_c,
@@ -11962,4 +11997,5 @@ tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_te
          t_6411_emit_members, t_6411_picker_exact, t_642_your_keys, t_6421_ai_utf8, t_643_ai_thinking, t_6431_server_edits, t_6431_touch_copy, t_644_vim_indent_suspend, t_644_engine_and_server,
          t_645_server_changes, t_645_crash, t_645_memory_back, t_65_vim_oracle,
          t_646_ai_tokens, t_646_bad_bytes, t_647_vim_keys_names, t_647_vim_esc_alt,
-         t_648_acp_chat, t_648_acp_permissions, t_648_acp_stop_and_crash, t_648_acp_hostile, t_648_acp_v2_and_signin, t_648_acp_choose]
+         t_648_acp_chat, t_648_acp_permissions, t_648_acp_stop_and_crash, t_648_acp_hostile, t_648_acp_v2_and_signin, t_648_acp_choose,
+         t_649_terminal_kitty_u, t_649_completion_docs_later]

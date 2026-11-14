@@ -2799,6 +2799,11 @@ proc engineChecksFor(b: Buffer): seq[Diag] =
   let port3 = nim3On() or b.path in nim3Asked       # (Nim 3's porting problems: in a Nim 3 project, or asked for)
   let key = $b.changeId & "/" & $nxGen & "/" & lc.dir & "/" & $lc.sev & "/" & $ecWantSev & "/" & $cfgEngineMoreChecks &
             "/" & $port3
+  # (b.lines and code stay as they are until the checks are done: each routine's locals are read once — the checks
+  # ask about most of its lines)
+  let locWas = nxLocalsBegin(f, b.lines)
+  nxLocalsAlso(code)
+  defer: nxLocalsEnd(locWas)
   if live and ecLast.getOrDefault(b.id)[0] == key:
     result = ecLast[b.id][1]                          # (the same text: only can-be-func goes on)
     try:

@@ -240,12 +240,61 @@ proc nxTemplateInjects*(r: NxRef): seq[(int, string, int)] =
   if nxInjects.len > 300: nxInjects.clear()
   nxInjects[key] = result
 
-proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything = false): seq[NxSym] =
-  ## the routine's parameters and the locals visible at line:col (everything: all declared up to that line,
-  ## whatever block they are in)
-  let ri = nxEnclosing(f, line)
-  var a = 0
-  var moduleLevel = false
+type
+  NxLocScan = ref object
+    ## a routine's locals (or a top-level statement's) read line by line from its first line, as far as asked so far:
+    ## kept while a pass lasts (nxWithLocals), a line asked about later goes on from there instead of reading the
+    ## routine again from its start (the checks ask about most of its lines, one after another)
+    a: int                           # the first line read
+    next: int                        # the next line to read
+    base: int                        # how many of syms are the parameters and result (before the first line)
+    busy: bool                       # (being read: a question asked meanwhile reads on its own)
+    syms: seq[NxSym]                 # what is declared, in order
+    scopes: seq[int]                 # each one's block: the indentation it lives in (-1: the whole routine)
+    upto: seq[int32]                 # upto[l - a]: how many of syms are declared by the end of line l
+    indents: seq[int]                # indents[l - a]: line l's indentation when a statement starts on it, else -1
+    # where the reading is, between two lines
+    st: NxLexState
+    secKind: NxKind
+    secInd, memberInd, lastS, lastFor, open, stmtInd, secScope: int
+    hdrs: seq[(int, bool)]
+    chainWhen: Table[int, bool]
+  NxLocPass* = ref object
+    ## many questions about one text (the engine's checks, the type hints): the line arrays that stay as they are
+    ## while it lasts, and the routines read in them so far
+    f: NxFile
+    arrays: seq[(pointer, int)]
+    scans: Table[(pointer, int, int, int), NxLocScan]   # (an array, its length, the routine (-1: none), first line)
+
+var nxLocPass: NxLocPass      # the pass under way (nil: none — each question reads the routine from its start)
+var nxLocLinesRead* = 0       # lines read for the locals so far (the tests: in a pass, each line once)
+
+proc nxLocalsBegin*(f: NxFile, lines: openArray[string]): NxLocPass =
+  ## starts a pass: `lines` (f's text) stays as it is, alive and unchanged, until nxLocalsEnd — the locals asked for
+  ## in its routines are read once. Returns the pass it replaces, for nxLocalsEnd
+  result = nxLocPass
+  nxLocPass = NxLocPass(f: f)
+  if lines.len > 0: nxLocPass.arrays.add (cast[pointer](unsafeAddr lines[0]), lines.len)
+
+proc nxLocalsAlso*(lines: openArray[string]) =
+  ## another line array that stays as it is while the pass lasts (the checks' copy without comments)
+  if nxLocPass != nil and lines.len > 0: nxLocPass.arrays.add (cast[pointer](unsafeAddr lines[0]), lines.len)
+
+proc nxLocalsEnd*(was: NxLocPass) =
+  ## ends the pass (what it read is let go), back to the one it replaced
+  nxLocPass = was
+
+template nxWithLocals*(f: NxFile, lines: openArray[string], body: untyped) =
+  ## body as a pass (nxLocalsBegin): `lines` is f's text and is not changed until it ends
+  let nxWas = nxLocalsBegin(f, lines)
+  try: body
+  finally: nxLocalsEnd(nxWas)
+
+proc nxLocScanNew(f: NxFile, lines: openArray[string], ri, a: int): NxLocScan =
+  ## a reading of the routine ri (-1: of the top-level statement starting on line a) before its first line: the
+  ## routine's parameters and result
+  result = NxLocScan(a: a, next: a, secKind: nxLet, secInd: -1, memberInd: -1)
+  var syms: seq[NxSym]
   if ri >= 0:
     let r = f.syms[ri]
     var at = (r.line, max(0, lines[r.line].find('(')))
@@ -259,7 +308,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
       elif r.kind == nxTemplate and pt.len == 0 and p.default.len == 0: pt = "untyped"
       elif "multisync" in r.pragmas: pt = nxMultisyncParam(pt)
       # (ret: the type as written, when it is read otherwise inside — what its own declaration shows)
-      result.add NxSym(name: nm, kind: nxParam, typ: pt, value: p.default, line: pl, col: pc,
+      syms.add NxSym(name: nm, kind: nxParam, typ: pt, value: p.default, line: pl, col: pc,
                        ret: (if pt != p.typ: p.typ else: ""))
     if r.ret.len > 0 and r.kind notin {nxTemplate, nxMacro, nxIterator}:
       var rt = r.ret
@@ -271,45 +320,44 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
         rt = if ta.len > 0: ta[0] else: "void"
         let alts = nxSplitTop(rt, {'|'})
         if alts.len > 1: rt = alts[0].strip            # Response | AsyncResponse
-      if rt != "void": result.add NxSym(name: "result", kind: nxResult, typ: rt, line: r.line)
+      if rt != "void": syms.add NxSym(name: "result", kind: nxResult, typ: rt, line: r.line)
     elif r.kind == nxMacro:
-      result.add NxSym(name: "result", kind: nxResult, typ: "NimNode", line: r.line)   # (whatever it says it returns)
-    a = r.line + 1
-  else:
-    # module level: the file's own symbols have its declarations; what a top-level statement declares in its
-    # blocks (a `for` loop's variables, the lets in its body) is found from where that statement starts
-    var s0 = min(line, lines.high)
-    while s0 > 0:
-      let t0 = lines[s0]
-      if t0.len > 0 and t0[0] notin {' ', '\t', '#', ')', ']', '}'}: break
-      dec s0
-    if s0 >= 0 and nxEnclosing(f, s0) >= 0: return    # (the blank lines after a routine: none of its locals)
-    a = max(0, s0)
-    moduleLevel = true
-  var st: NxLexState
+      syms.add NxSym(name: "result", kind: nxResult, typ: "NimNode", line: r.line)   # (whatever it says it returns)
+  for _ in syms: result.scopes.add -1
+  result.base = syms.len
+  result.syms = move syms
+
+proc nxLocScanTo(sc: NxLocScan, f: NxFile, lines: openArray[string], last: int) =
+  ## reads on, from the line it got to up to `last` (each line as if the routine were read from its start)
+  if last < sc.next: return
+  let a = sc.a
+  # the reading's state, kept in sc between two calls (moved out here, and back at the end)
+  var syms = move sc.syms
+  var scopes = move sc.scopes
+  var indents = move sc.indents
+  var upto = move sc.upto
+  var hdrs = move sc.hdrs
+  var chainWhen = move sc.chainWhen
+  var st = sc.st
+  var secKind = sc.secKind
+  var secInd = sc.secInd
+  var memberInd = sc.memberInd
+  var lastS = sc.lastS
+  var lastFor = sc.lastFor
+  var open = sc.open
+  var stmtInd = sc.stmtInd
+  var secScope = sc.secScope
   var code, doc: string
-  var secKind = nxLet
-  var secInd = -1
-  var memberInd = -1
-  # block scoping: each local remembers the indentation of the block it lives in; a later line
-  # indented less than that ends the block (an `of` / `elif` branch, a loop body …)
-  let last = min(line, lines.high)
-  var scopes: seq[int]
-  for _ in result: scopes.add -1
-  var indents = newSeq[int](max(0, last - a + 1))
-  var lastS, lastFor = 0
-  var open = 0
-  var stmtInd = 0
-  # `when` opens no scope: what its branches declare is the enclosing block's (headers: (indentation, a `when`))
-  var hdrs: seq[(int, bool)]
-  var chainWhen: Table[int, bool]
-  var secScope = 0
+  indents.setLen(last - a + 1)
   template flushScopes() =
     ## gives each local found since the last call its scope: the indentation of the block it lives in (a loop variable's
     ## body is one level further in)
-    while scopes.len < result.len:
-      scopes.add (if result[scopes.len].kind == nxForVar: lastFor + 1 else: lastS)
-  for l in a .. last:
+    while scopes.len < syms.len:
+      scopes.add (if syms[scopes.len].kind == nxForVar: lastFor + 1 else: lastS)
+  let first = sc.next
+  for l in first .. last:
+    if l > first: upto.add int32(syms.len)        # (the line before: all it declares)
+    inc nxLocLinesRead
     flushScopes()
     var dep = 0
     let wasOpen = open > 0
@@ -394,7 +442,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
               if pn.len == 0: continue
               let (pl, pc) = nxLocate(lines, pn, l, min(l + 12, lines.high), at3)
               at3 = (pl, pc + pn.len)
-              result.add NxSym(name: pn, kind: nxParam, typ: p.typ, value: p.default, line: pl, col: pc)
+              syms.add NxSym(name: pn, kind: nxParam, typ: p.typ, value: p.default, line: pl, col: pc)
               scopes.add ind + 1
         k = t.find("proc", k + 4)
     if "do" in t and (not wasOpen or t.endsWith(":")):
@@ -421,7 +469,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
               if pn.len == 0: continue
               let (pl, pc) = nxLocate(lines, pn, l, min(l + 12, lines.high), at3)
               at3 = (pl, pc + pn.len)
-              result.add NxSym(name: pn, kind: nxParam, typ: p.typ, value: p.default, line: pl, col: pc)
+              syms.add NxSym(name: pn, kind: nxParam, typ: p.typ, value: p.default, line: pl, col: pc)
               scopes.add (if wasOpen: stmtInd else: ind) + 1
         k = t.find("do", k + 2)
     if not wasOpen and ("(let " in t or "(var " in t):
@@ -439,7 +487,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
             let col = if rk >= 0: rk + kw.len + (raw[rk + kw.len .. ^1].len - raw[rk + kw.len .. ^1].strip(trailing = false).len)
                       else: nxWordCol(raw, nm)
             let eq = nxFindTop(t, '=', j)
-            result.add NxSym(name: nm, kind: (if kw == "(let ": nxLet else: nxVar), line: l, col: col,
+            syms.add NxSym(name: nm, kind: (if kw == "(let ": nxLet else: nxVar), line: l, col: col,
                              value: (if eq >= 0 and eq < semi: t[eq + 1 ..< semi].strip else: ""),
                              typ: (if t[j] == ':': t[j + 1 ..< (if eq >= 0 and eq < semi: eq else: semi)].strip else: ""),
                              endLine: ind + semi)  # (endLine: the column after which its own line sees it)
@@ -449,7 +497,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
       if memberInd < 0: memberInd = ind
       if ind == memberInd:
         lastS = secScope
-        addVars(whole(t), secKind, result, l, raw, lines, ind)
+        addVars(whole(t), secKind, syms, l, raw, lines, ind)
         continue
     if w0 in ["let", "var", "const"]:
       let kk = if w0 == "let": nxLet elif w0 == "var": nxVar else: nxConst
@@ -463,14 +511,14 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
         if ';' in wr:
           # let a = 1; let b = "x": each statement after `;` on the same line too
           let parts = nxSplitTop(wr, {';'})
-          addVars(parts[0], kk, result, l, raw, lines, ind)
+          addVars(parts[0], kk, syms, l, raw, lines, ind)
           for pk in 1 ..< parts.len:
             let p2 = parts[pk].strip
             for kw2 in ["let ", "var ", "const "]:
               if p2.startsWith(kw2):
                 addVars(p2[kw2.len .. ^1].strip, (if kw2 == "const ": nxConst elif kw2 == "let ": nxLet else: nxVar),
-                        result, l, raw, lines, ind)
-        else: addVars(wr, kk, result, l, raw, lines, ind)
+                        syms, l, raw, lines, ind)
+        else: addVars(wr, kk, syms, l, raw, lines, ind)
     elif w0 == "for":
       let t = if dep > 0: whole(t) else: t         # (for p in s.partitionRange(⏎ …): the header goes on below)
       let k = t.find(" in ")
@@ -485,7 +533,7 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
             for qi, q in nxSplitTop(p.strip(chars = {'(', ')', ' '}), {','}):
               let (qn, _) = nxName(q, 0)
               if qn.len > 0:
-                result.add NxSym(name: qn, kind: nxForVar, line: l, col: nxWordCol(raw, qn), value: iter,
+                syms.add NxSym(name: qn, kind: nxForVar, line: l, col: nxWordCol(raw, qn), value: iter,
                                  slot: vi.int16, slots: (if unpack: -vars.len.int16 else: vars.len.int16),
                                  sub: int16(qi + 1),
                                  endLine: (if colon > 0 and colon < t.high: ind + colon + 1 else: -1))
@@ -493,12 +541,12 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
           let (nm, _) = nxName(p, 0)
           if nm.len > 0:
             # endLine: where a one-line body starts (`for x in xs: echo x`), -1 when it is on the next lines
-            result.add NxSym(name: nm, kind: nxForVar, line: l, col: nxWordCol(raw, nm), value: iter,
+            syms.add NxSym(name: nm, kind: nxForVar, line: l, col: nxWordCol(raw, nm), value: iter,
                              slot: vi.int16, slots: (if unpack: -vars.len.int16 else: vars.len.int16),
                              endLine: (if colon > 0 and colon < t.high: ind + colon + 1 else: -1))
     elif w0 in NxRoutineKw and rest.len > 0:
       let (nm, _) = nxName(rest, 0)
-      if nm.len > 0: result.add NxSym(name: nm, kind: NxKind(NxRoutineKw.find(w0)), line: l, col: nxWordCol(raw, nm))
+      if nm.len > 0: syms.add NxSym(name: nm, kind: NxKind(NxRoutineKw.find(w0)), line: l, col: nxWordCol(raw, nm))
       # a routine in here (or in a `when` branch the declarations leave out): its parameters, inside its body
       flushScopes()
       var hdr: seq[string]
@@ -509,12 +557,12 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
       if hkey notin nxHeaderCache: nxHeaderPut(hkey, nxParse(hdr, "").syms)
       for s in nxHeaderCache[hkey]:
         if s.kind notin NxRoutineKinds: continue
-        if nm.len > 0 and result.len > 0 and result[^1].name == nm and result[^1].line == l:
+        if nm.len > 0 and syms.len > 0 and syms[^1].name == nm and syms[^1].line == l:
           # (the routine itself: what it takes and gives, for calls to it)
-          result[^1].params = s.params
-          result[^1].ret = s.ret
-          result[^1].generics = s.generics
-          result[^1].pragmas = s.pragmas
+          syms[^1].params = s.params
+          syms[^1].ret = s.ret
+          syms[^1].generics = s.generics
+          syms[^1].pragmas = s.pragmas
         var at2 = (l, max(0, raw.find('(')))
         for p in s.params:
           let pn = p.name.strip(chars = {'`'})
@@ -524,11 +572,11 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
           if s.kind == nxMacro: pt = nxMacroParam(pt)
           elif s.kind == nxTemplate and pt.len == 0 and p.default.len == 0: pt = "untyped"
           elif "multisync" in s.pragmas: pt = nxMultisyncParam(pt)
-          result.add NxSym(name: pn, kind: nxParam, typ: pt, value: p.default, line: pl, col: pc,
+          syms.add NxSym(name: pn, kind: nxParam, typ: pt, value: p.default, line: pl, col: pc,
                            ret: (if pt != p.typ: p.typ else: ""))
           scopes.add ind + 1
         if s.ret.len > 0 and s.kind notin {nxTemplate, nxMacro, nxIterator}:
-          result.add NxSym(name: "result", kind: nxResult, typ: s.ret, line: l)
+          syms.add NxSym(name: "result", kind: nxResult, typ: s.ret, line: l)
           scopes.add ind + 1
         break
     elif w0 == "of" and '(' in t and not wasOpen:
@@ -550,13 +598,13 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
             let (vn, _) = nxName(p.strip, 0)
             if vn.len == 0 or vn == "_": continue
             let params = rs[ctor].sym.params
-            result.add NxSym(name: vn, kind: nxForVar, typ: (if vi < params.len: params[vi].typ else: ""), line: l,
+            syms.add NxSym(name: vn, kind: nxForVar, typ: (if vi < params.len: params[vi].typ else: ""), line: l,
                              col: nxWordCol(raw, vn), slots: 1,
                              endLine: (if colon > 0 and colon < t.high: ind + colon + 1 else: -1))
     elif w0 == "except" and " as " in t:
       let k = t.find(" as ")
       let (nm, _) = nxName(t, k + 4)
-      if nm.len > 0: result.add NxSym(name: nm, kind: nxLet, typ: "ref " & t[6 ..< k].strip, line: l,
+      if nm.len > 0: syms.add NxSym(name: nm, kind: nxLet, typ: "ref " & t[6 ..< k].strip, line: l,
                                       col: nxWordCol(raw, nm))
     elif t.endsWith(":") and not wasOpen and w0.len > 0 and w0 notin NxBlockKw:
       # a template called with a block: what it declares for its arguments there — withData(s, fd, value) do: …
@@ -584,11 +632,78 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
               let nm = nxCallArg(args, ps, k)
               if nm.len == 0 or not nm.allCharsInSet(IdentChars): continue
               # (its type is worked out in the template's module, from what the call passes: owner says where)
-              result.add NxSym(name: nm, kind: nxVar, value: nxSubstIdents(v, sub), line: l, col: nxWordCol(raw, nm),
+              syms.add NxSym(name: nm, kind: nxVar, value: nxSubstIdents(v, sub), line: l, col: nxWordCol(raw, nm),
                                owner: "\x01" & r.file.path & "\x01" & $vl & "\x01" & args)
               scopes.add ind + 1
             break
   flushScopes()
+  upto.add int32(syms.len)
+  sc.syms = move syms
+  sc.scopes = move scopes
+  sc.indents = move indents
+  sc.upto = move upto
+  sc.hdrs = move hdrs
+  sc.chainWhen = move chainWhen
+  sc.st = st
+  sc.secKind = secKind
+  sc.secInd = secInd
+  sc.memberInd = memberInd
+  sc.lastS = lastS
+  sc.lastFor = lastFor
+  sc.open = open
+  sc.stmtInd = stmtInd
+  sc.secScope = secScope
+  sc.next = last + 1
+
+proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything = false): seq[NxSym] =
+  ## the routine's parameters and the locals visible at line:col (everything: all declared up to that line,
+  ## whatever block they are in). In a pass (nxWithLocals) the routine is read once, as far as asked
+  let ri = nxEnclosing(f, line)
+  var a = 0
+  var moduleLevel = false
+  if ri >= 0: a = f.syms[ri].line + 1
+  else:
+    # module level: the file's own symbols have its declarations; what a top-level statement declares in its
+    # blocks (a `for` loop's variables, the lets in its body) is found from where that statement starts
+    var s0 = min(line, lines.high)
+    while s0 > 0:
+      let t0 = lines[s0]
+      if t0.len > 0 and t0[0] notin {' ', '\t', '#', ')', ']', '}'}: break
+      dec s0
+    if s0 >= 0 and nxEnclosing(f, s0) >= 0: return    # (the blank lines after a routine: none of its locals)
+    a = max(0, s0)
+    moduleLevel = true
+  let last = min(line, lines.high)
+  # the routine's reading: the pass's when these lines are an array it holds, else a new one
+  var sc: NxLocScan
+  var key: (pointer, int, int, int)
+  var kept = false
+  let p = nxLocPass
+  if p != nil and p.f == f and lines.len > 0:
+    let id = (cast[pointer](unsafeAddr lines[0]), lines.len)
+    if id in p.arrays:
+      key = (id[0], id[1], ri, a)
+      sc = p.scans.getOrDefault(key)
+      if sc == nil:
+        sc = nxLocScanNew(f, lines, ri, a)
+        p.scans[key] = sc
+      elif sc.busy: sc = nil
+      kept = sc != nil
+  if sc == nil: sc = nxLocScanNew(f, lines, ri, a)
+  if last >= sc.next:
+    var done = false
+    sc.busy = true
+    try:
+      nxLocScanTo(sc, f, lines, last)
+      done = true
+    finally:
+      sc.busy = false
+      if not done and kept: p.scans.del key        # (a line it cannot read: asked again, it fails again)
+  let cnt = if last >= a: int(sc.upto[last - a]) else: sc.base
+  # inside `when client is AsyncHttpClient:` the parameter is that one (multisync code, unions): the type it has
+  # here (the last one of that name declared so far)
+  var ovIdx = -1
+  var ovTyp = ""
   block whenIs:
     # inside `when client is AsyncHttpClient:` the parameter is that one (multisync code, unions)
     var curMin = if line < lines.len: leadWs(lines[line]) else: 0
@@ -603,10 +718,10 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
           let pn = c[0 ..< k].strip
           let pt = c[k + 4 .. ^1].strip
           if pn.allCharsInSet(IdentChars) and pt.len > 0 and " " notin pt:
-            for i in countdown(result.high, 0):
-              if result[i].name == pn:
+            for i in countdown(cnt - 1, 0):
+              if sc.syms[i].name == pn:
                 # (a parameter, or a loop variable: `for f in x.fields: when f is string:`)
-                if result[i].kind in {nxParam, nxForVar}: result[i].typ = pt
+                if sc.syms[i].kind in {nxParam, nxForVar}: (ovIdx, ovTyp) = (i, pt)
                 break
           break
         if tl == "else:":
@@ -621,18 +736,20 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
               let k = c.find(" is ")
               let pn = c[0 ..< k].strip
               let pt = c[k + 4 .. ^1].strip
-              for i in countdown(result.high, 0):
-                if result[i].kind == nxParam and result[i].name == pn:
-                  let written = if result[i].ret.len > 0: result[i].ret else: result[i].typ
+              for i in countdown(cnt - 1, 0):
+                if sc.syms[i].kind == nxParam and sc.syms[i].name == pn:
+                  let written = if sc.syms[i].ret.len > 0: sc.syms[i].ret else: sc.syms[i].typ
                   let alts = nxSplitTop(written, {'|'})
                   if alts.len == 2:
                     let other = if alts[0].strip == pt: alts[1].strip elif alts[1].strip == pt: alts[0].strip else: ""
-                    if other.len > 0: result[i].typ = other
+                    if other.len > 0: (ovIdx, ovTyp) = (i, other)
                   break
           break
       dec l
+  # inside s.mapIt(…), filterIt(s, …) …: `it` is one item of the collection
+  var itSym: NxSym
+  var hasIt = false
   block itTemplate:
-    # inside s.mapIt(…), filterIt(s, …) …: `it` is one item of the collection
     var depthP = 0
     var k = min(col, lines[line].len) - 1
     let t = lines[line]
@@ -664,40 +781,36 @@ proc nxLocals*(f: NxFile, lines: openArray[string], line, col: int, everything =
               let ps = nxSplitTop(inner, {','})
               if ps.len > 0: recvE = ps[0].strip
             if recvE.len > 0:
-              result.add NxSym(name: "it", kind: nxLet, value: "(" & recvE & ")[0]", line: line, col: a2)
-              scopes.add -1
+              itSym = NxSym(name: "it", kind: nxLet, value: "(" & recvE & ")[0]", line: line, col: a2)
+              hasIt = true
           break
         dec depthP
       dec k
+  # (at module level, what the file's own symbols already have is not a local too)
+  var declared: HashSet[(int, string)]
   if moduleLevel:
-    # (what the file's own symbols already have is not a local too)
-    var declared: HashSet[(int, string)]
     for sy in f.syms: declared.incl (sy.line, sy.name)
-    var r2: seq[NxSym]
-    var s2: seq[int]
-    for k, sy in result:
-      if (sy.line, sy.name) notin declared:
-        r2.add sy
-        s2.add scopes[k]
-    swap(result, r2)        # (swapped, not assigned: `result = r2` here left the list it replaced unfreed — 44 KB a
-    scopes = s2             #  call, the engine's checks ask thousands of times)
   # the smallest indentation from each line down to the cursor's
-  var sufMin = newSeq[int](indents.len + 1)
-  sufMin[indents.len] = high(int)
-  for k in countdown(indents.high, 0):
-    sufMin[k] = if indents[k] >= 0: min(indents[k], sufMin[k + 1]) else: sufMin[k + 1]
-  # what the cursor's own line declares exists only from there on: `var node = node` reads the older
-  # `node`; on the new name itself it is the new one
-  if everything: return
-  var keep: seq[NxSym]
-  for k, s in result:
-    if s.line != line or s.kind in {nxParam, nxResult} or (s.col <= col and col <= s.col + s.name.len) or
-       (s.kind in {nxForVar, nxLet, nxVar} and s.endLine > 0 and col > s.endLine):
+  let n = max(0, last - a + 1)
+  var sufMin = newSeq[int](n + 1)
+  sufMin[n] = high(int)
+  for k in countdown(n - 1, 0):
+    sufMin[k] = if sc.indents[k] >= 0: min(sc.indents[k], sufMin[k + 1]) else: sufMin[k + 1]
+  for k in 0 .. cnt:
+    if k == cnt and not hasIt: break
+    let s = if k < cnt: addr sc.syms[k] else: addr itSym
+    if moduleLevel and (s.line, s.name) in declared: continue
+    if not everything:
+      # what the cursor's own line declares exists only from there on: `var node = node` reads the older
+      # `node`; on the new name itself it is the new one
+      if not (s.line != line or s.kind in {nxParam, nxResult} or (s.col <= col and col <= s.col + s.name.len) or
+              (s.kind in {nxForVar, nxLet, nxVar} and s.endLine > 0 and col > s.endLine)): continue
       # still inside its block?
-      if scopes[k] >= 0 and s.line >= a and s.line < line and s.line - a + 1 <= indents.len and
-         sufMin[s.line - a + 1] < scopes[k]: continue
-      keep.add s
-  swap(result, keep)        # (not `result = keep`: see above)
+      let scope = if k < cnt: sc.scopes[k] else: -1
+      if scope >= 0 and s.line >= a and s.line < line and s.line - a + 1 <= n and sufMin[s.line - a + 1] < scope:
+        continue
+    result.add s[]
+    if k == ovIdx: result[^1].typ = ovTyp
 
 # ── a file's face: what other code can see of it — its declarations (names, kinds, parameters, types, values,
 #    pragmas), what it imports and exports, and the bodies of its templates and macros (code that runs where they are

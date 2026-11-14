@@ -301,7 +301,7 @@ proc editorKey(k: Key) =
       if ctrl and not alt and k.ch in [ord(' '), ord('@')]:
         # Ctrl+Space with the list open: documentation beside it on / off
         cfgCompDocs = not cfgCompDocs
-        setSetting("editor.completionDocs", %cfgCompDocs)
+        setSettingSoon("editor.completionDocs", %cfgCompDocs)    # (written when the keys stop)
         return
     of kPgUp:
       compSel = max(0, compSel - 8)

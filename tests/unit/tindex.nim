@@ -2,6 +2,7 @@
 ## template expansion, operators and misspelled names. Run: nim r tests/unit/tindex.nim (nim on PATH)
 
 import std/[os, strutils, unittest, sequtils]
+from std/times import initTime
 import ../../src/ned/nim/index
 
 proc realOf(p: string): string =
@@ -935,5 +936,66 @@ suite "Nim 2.4 (6.33)":
     let (f, _) = fixture("import \".\"/[ast, msgs]\nimport \"sub\" / [ha]\nimport \"..\"/lib/x as y\n")
     check f.imports.mapIt(it.spec) == @["./ast", "./msgs", "sub/ha", "../lib/x"]
     check f.imports[^1].alias == "y"
+
+suite "locals, read once per routine (6.49)":
+  test "in a pass, every line's locals are what they are on their own, and each line is read once":
+    # a long routine with blocks that end, a section, a loop, a nested proc, and the routine after it
+    var t = "proc big(a: int, s: seq[string]): int =\n  var total = a\n"
+    for i in 0 ..< 200:
+      t.add "  if total > " & $i & ":\n    let v" & $i & " = total + " & $i & "\n    total = v" & $i & "\n"
+      if i mod 50 == 0: t.add "  for x" & $i & " in s:\n    discard x" & $i & ".len\n"
+    t.add "  var\n    p = 1\n    q = \"x\"\n  proc inner(k: int): int = k + p\n  result = total + inner(2)\n"
+    t.add "proc small(z: float) =\n  let w = z * 2\n  echo w\n"
+    let (f, ls) = fixture(t)
+    var alone: seq[string]
+    let before = nxLocLinesRead
+    for l in 0 ..< ls.len:
+      for c in [0, 4, ls[l].len]:
+        for ev in [false, true]: alone.add $nxLocals(f, ls, l, c, ev)
+    let readAlone = nxLocLinesRead - before
+    var inPass: seq[string]
+    let before2 = nxLocLinesRead
+    nxWithLocals(f, ls):
+      for l in 0 ..< ls.len:
+        for c in [0, 4, ls[l].len]:
+          for ev in [false, true]: inPass.add $nxLocals(f, ls, l, c, ev)
+      # (asked again from the end: what was read is used, nothing read again)
+      var same = true
+      for l in countdown(ls.high, 0):
+        for ci, c in [0, 4, ls[l].len]:
+          for ei, ev in [false, true]:
+            if $nxLocals(f, ls, l, c, ev) != alone[(l * 3 + ci) * 2 + ei]: same = false
+      check same
+    let readInPass = nxLocLinesRead - before2
+    check inPass == alone
+    check readInPass <= ls.len                 # (each line of each routine once)
+    check readAlone > 50 * readInPass          # (on its own, a question reads its routine from the start)
+    # what it answers: inside the last if, its own let and the routine's; not an earlier block's
+    let l = ls.len - 5                         # (result = total + inner(2))
+    check ls[l].strip.startsWith("result =")
+    let names = nxLocals(f, ls, l, 0).mapIt(it.name)
+    check "a" in names and "total" in names and "p" in names and "q" in names and "inner" in names
+    check "v3" notin names and "x50" notin names
+  test "a pass is for its own lines: another array (a changed copy) is read as it is":
+    let (f, ls) = fixture("proc r() =\n  let alpha = 1\n  let beta = 2\n  echo alpha, beta\n")
+    nxWithLocals(f, ls):
+      check nxLocals(f, ls, 3, 0).mapIt(it.name) == @["alpha", "beta"]
+      var other = ls
+      other[2] = "  let gamma = 2"
+      check nxLocals(f, other, 3, 0).mapIt(it.name) == @["alpha", "gamma"]
+      check nxLocals(f, ls, 3, 0).mapIt(it.name) == @["alpha", "beta"]
+
+suite "a file's stamp (6.49)":
+  test "written again within the same second, at the same size: read again":
+    # (a tool that writes a file twice in a second: the second time was taken for the first, the old text kept)
+    let (f1, _) = fixture("proc one() = discard\n")
+    let p = f1.path
+    setLastModificationTime(p, initTime(1_700_000_000, 100_000_000))
+    nxStatForget(p)
+    check nxLoad(p).syms.mapIt(it.name) == @["one"]
+    writeFile(p, "proc two() = discard\n")
+    setLastModificationTime(p, initTime(1_700_000_000, 300_000_000))
+    nxStatForget(p)
+    check nxLoad(p).syms.mapIt(it.name) == @["two"]
 
 removeDir(dir)

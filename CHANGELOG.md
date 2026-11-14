@@ -1,6 +1,18 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-648). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-649). Older releases:
+
+## What's new in 6.48
+
+**Agents of their own, in the AI dock.** An agent that is a program of its own — Claude Agent, Codex, Gemini CLI, or
+any other that speaks the Agent Client Protocol (ACP) — now works in the AI dock in place of ned's own assistant.
+*AI: choose agent…* adds one with a tap (`ai.agentServers`, `ai.agentServer`). ned shows what it writes, thinks and
+plans, and each thing it does; asks you before what it wants to do (an edit as its diff, a command as its line:
+Allow, Always, Deny, or `ai.autoApprove`); lends it the open files with your unsaved edits and runs its commands in
+the project; and writes the files it changes through their tabs, so *AI: undo the assistant's changes…* puts them
+back. Its mode, model and options are chosen from the dock's top row, its own /commands go to it, Esc stops it, and
+an agent that wants you to sign in says how. Version 1 of the protocol, and the draft version 2 with an agent that
+asks for it ([The AI assistant](docs/guide/ai.md#agents-of-their-own-acp)).
 
 ## What's new in 6.47.1
 

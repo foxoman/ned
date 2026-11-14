@@ -3,8 +3,10 @@
 
 ned runs in a pseudo-terminal with NED_PERF_TRACE on (every round of its main loop over 4 ms, with what it did),
 while this script opens a file, scrolls, types, asks for completions, adds an import and opens another program.
-For each step it prints the longest round (a moment ned did not read a key), and the completion times; the
-memory of the editor and its engine worker at the end. Each number is checked against tests/perf/budget.json.
+For each step it prints the longest round (a moment ned did not read a key) with the processor time it had, and
+the completion times; the memory of the editor and its engine worker at the end. Each number is checked against
+tests/perf/budget.json. The time ned's thread waited for a processor the machine gave to other programs (a busy CI
+runner) is left out of a round: it is not ned's.
 
 Usage: rounds.py path/to/ned [--runs N] [--steps K] [--keep] [--one-core]
   a first session with nothing in the index's disk cache, then N sessions (1) with what it kept: their median. A
@@ -110,9 +112,12 @@ class Ned:
             for l in open(self.trace):
                 parts = l.rstrip('\n').split('\t')
                 if not parts[0]: continue
-                at, us, cpu = (parts[0].split() + ['0'])[:3]      # (cpu: the processor time ned's thread had)
+                f = parts[0].split() + ['0'] * 6
+                at, us, cpu = f[:3]                               # (cpu: the processor time ned's thread had)
+                wait = int(f[5])                                  # (and how long it waited for one, µs)
                 items = [(x.rsplit('=', 1)[0], int(x.rsplit('=', 1)[1])) for x in parts[1:]]
-                rounds.append((int(at), int(us), items, int(cpu)))
+                # (the time the machine gave the processor to other programs is not ned's: left out)
+                rounds.append((int(at), max(0, int(us) - wait), items, int(cpu), wait, int(us)))
         except OSError: pass
         return rounds
 
@@ -166,14 +171,23 @@ def one_run(root, proj, n, env_extra):
     rounds = ned.stop()
     res = {}
     for name, a, e in marks:
-        rs = [r for r in rounds if a - 30 <= r[0] - r[1] / 1000 <= e]
-        longest = max(rs, key=lambda r: r[1]) if rs else (0, 0, [])
+        rs = [r for r in rounds if a - 30 <= r[0] - r[5] / 1000 <= e]      # (r[5]: the round as it was)
+        longest = max(rs, key=lambda r: r[1]) if rs else (0, 0, [], 0, 0, 0)
         cs = [us for r in rs for (n, us) in r[2] if n.replace('› ', '') == 'completion']
         res[name] = {'longest_ms': longest[1] / 1000, 'what': longest[2],
+                     'cpu_ms': longest[3] / 1000 if rs else 0, 'waited_ms': longest[4] / 1000 if rs else 0,
                      'over_16ms': sum(1 for r in rs if r[1] > 16000), 'completions_ms': [c / 1000 for c in cs]}
     allc = [c for v in res.values() for c in v['completions_ms']]
     res['_'] = {'editor_mb': ned_mb, 'worker_mb': worker_mb, 'completions_ms': allc}
     return res
+
+def cpu_note(st):
+    """the processor time the longest round had (a round much longer is ned waiting: on a pipe, the disk …), and the
+    waiting for a processor left out of it"""
+    if not st['longest_ms']: return ''
+    n = ' · processor %.1f' % st.get('cpu_ms', 0)
+    if st.get('waited_ms', 0) >= 1: n += ', %.1f waiting for one left out' % st['waited_ms']
+    return n
 
 def verdict(cold, runs, show):
     """what is over budget — the first time from the session with nothing cached, each step's longest round and the
@@ -184,6 +198,7 @@ def verdict(cold, runs, show):
     v = cold[first]['longest_ms']
     b = BUDGET['longest_round_ms'].get('first time', BUDGET['longest_round_ms']['default'])
     what = ', '.join('%s %.1f' % (n, us / 1000) for n, us in sorted(cold[first]['what'], key=lambda x: -x[1])[:3])
+    what += cpu_note(cold[first])
     flag = '' if v <= b else '  OVER %d' % b
     if flag: over.append('first time')
     out('%-46s %10s %8s   %s' % ('step', 'longest', '>16 ms', 'what the longest round did'))
@@ -195,6 +210,7 @@ def verdict(cold, runs, show):
         med = vals[len(vals) // 2]
         best = min(runs, key=lambda r: abs(r[s]['longest_ms'] - med))[s]
         what = ', '.join('%s %.1f' % (n, us / 1000) for n, us in sorted(best['what'], key=lambda x: -x[1])[:3])
+        what += cpu_note(best)
         b = lim.get(s, lim['default'])
         flag = '' if med <= b else '  OVER %d' % b
         if flag: over.append(s)

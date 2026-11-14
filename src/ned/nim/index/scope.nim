@@ -203,7 +203,8 @@ var
   nxStatSeen: Table[string, (string, MonoTime)]
 
 proc nxStamp*(path: string): string =
-  ## a file's modification time and size ("" not there). A question to the engine asks for the same files many times
+  ## a file's modification time (to the nanosecond: a file written again within the same second, at the same size,
+  ## is a new one) and size ("" not there). A question to the engine asks for the same files many times
   ## (each scope it looks through checks what it read): a stamp read in the last second is taken as it is —
   ## on Android's shared storage a stat is slow (a file ned writes, or a client says changed, is read again at once)
   let now = getMonoTime()
@@ -215,7 +216,7 @@ proc nxStamp*(path: string): string =
       return v[][0]
   result = try:
              let i = getFileInfo(path)
-             $i.lastWriteTime.toUnix & ":" & $i.size
+             $i.lastWriteTime.toUnix & "." & $i.lastWriteTime.nanosecond & ":" & $i.size
            except CatchableError: ""
   if nxStatSeen.len > 50_000: nxStatSeen.clear()
   nxStatSeen[path] = (result, now)

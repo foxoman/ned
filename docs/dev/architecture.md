@@ -281,7 +281,7 @@ Two environment variables record it for measuring:
 | variable | what is written |
 |---|---|
 | `NED_PERF_LOG=file` | the performance report, when ned exits |
-| `NED_PERF_TRACE=file` | every round over 4 ms: when, how long, the processor time it really had, the heap, and each named piece over 0.5 ms (work inside other work marked `›`, the time no name covers as `(not named)`) |
+| `NED_PERF_TRACE=file` | every round over 4 ms: when, how long, the processor time it really had, the heap, how long it waited for a processor (Linux), and each named piece over 0.5 ms (work inside other work marked `›`, the time no name covers as `(not named)`) |
 
 [`tests/perf/rounds.py`](../../tests/perf/rounds.py) reads the trace while it drives ned through a real session on
 its own source, and fails when a round is longer than [`tests/perf/budget.json`](../../tests/perf/budget.json)
