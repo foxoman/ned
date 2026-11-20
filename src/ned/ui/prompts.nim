@@ -127,7 +127,7 @@ proc browseFolder(dir: string) =
     if p == rootDir: cur = items.len
     capture p:
       items.add act((if marks.len > 0: "◆ " else: "▸ ") & nm & "/",
-                    (if p == rootDir: "open now · " else: "") & marks, proc() = browseFolder(p))
+                    (if p == rootDir: tr("open now") & " · " else: "") & marks, proc() = browseFolder(p))
     paths.add p
   openActions("Open folder · " & tildePath(d) & "   Enter: go in · Alt+Enter: open it · ⌫ up · type /path", items)
   pickFolderDir = d

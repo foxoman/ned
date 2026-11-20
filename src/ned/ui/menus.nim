@@ -19,14 +19,14 @@ var
   menus: seq[MenuState]
   menuBarRanges: seq[(int, int, int)]     # x0, x1, index
 
-func mi(label: string, keys = "", act: Action = nil, check = -1, disabled = false): MenuItem =
-  ## a menu item: its label, the key text shown at the right, what it does, a tick state (-1 none, 0 off, 1 on) and
-  ## whether it is disabled
+proc mi(label: string, keys = "", act: Action = nil, check = -1, disabled = false): MenuItem =
+  ## a menu item: its label (in English: openMenu shows it in the language chosen), the key text shown at the right,
+  ## what it does, a tick state (-1 none, 0 off, 1 on) and whether it is disabled
   MenuItem(label: label, keys: keys, act: act, check: check, disabled: disabled)
 # a separator line between menu items
 func msep(): MenuItem = MenuItem(sep: true)
 # a menu item that opens a submenu of `sub`
-func msub(label: string, sub: seq[MenuItem]): MenuItem = MenuItem(label: label, sub: sub, check: -1)
+proc msub(label: string, sub: seq[MenuItem]): MenuItem = MenuItem(label: label, sub: sub, check: -1)
 
 # whether a menu is showing (it then takes the keys)
 proc menuOpen(): bool {.inline.} = menus.len > 0
@@ -49,7 +49,11 @@ proc menuKeepSel(m: var MenuState) =
 proc openMenu(items: seq[MenuItem], x, y: int, bar = -1) =
   ## opens a menu (or a submenu on top of the ones open) at x, y, moved to fit on the screen; the first item that can be
   ## chosen is selected, and a menu longer than the screen scrolls. `bar` is the menu-bar entry it belongs to, -1 for a
-  ## context menu (which moves up to fit; a bar's dropdown stays under the bar)
+  ## context menu (which moves up to fit; a bar's dropdown stays under the bar). The labels are put in the language
+  ## chosen here
+  var items = items
+  if trOn:
+    for it in items.mitems: it.label = tr(it.label)
   var w = menuWidth(items)
   var mx = clamp(x, 0, max(0, scrW - w - 1))
   var my = y

@@ -64,9 +64,19 @@ proc replReady(t: Term): bool =
 
 proc replFlush(t: Term) =
   ## types the code queued for a REPL tab into it once the REPL is ready (each piece through replPrepare); does nothing
-  ## while the queue is empty, the tab ended or the prompt has not shown yet
-  if t.replQ.len == 0 or t.dead or t.fd < 0 or not t.replReady(): return
-  let q = t.replQ
-  t.replQ.setLen(0)
-  for code in q: t.termWrite(replPrepare(t.replLang, code, t.bracketed))
+  ## while the queue is empty, the tab ended or the prompt has not shown yet. The Enter after a paste waits a moment
+  ## (replEnterLater): Python's REPL (3.13, 3.14) reads what comes with the paste's end as more of the paste
+  if t.replEnter.len > 0 and getMonoTime() >= t.replEnterAt:
+    t.termWrite(t.replEnter)
+    t.replEnter = ""
+  if t.replQ.len == 0 or t.dead or t.fd < 0 or not t.replReady() or t.replEnter.len > 0: return
+  let code = t.replQ[0]
+  t.replQ.delete(0)
+  let keys = replPrepare(t.replLang, code, t.bracketed)
+  let e = keys.rfind("\e[201~")
+  if e >= 0 and e + 6 < keys.len:
+    t.termWrite(keys[0 ..< e + 6])
+    t.replEnter = keys[e + 6 .. ^1]
+    t.replEnterAt = getMonoTime() + initDuration(milliseconds = 150)
+  else: t.termWrite(keys)
   needRender = true

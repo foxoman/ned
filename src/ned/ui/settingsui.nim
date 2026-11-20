@@ -4,9 +4,9 @@ var
   settingsFilter = ""
   settingNoUi = false     # the value prompt came from outside the settings list (e.g. "Type a model id…")
 
-func settingLabel(d: SetDef): string =
+proc settingLabel(d: SetDef): string =
   ## the setting's name for the quick list: its category, then the key (without its group) split into words, e.g.
-  ## 'Editor › Tab size'
+  ## 'Editor › Tab size' (in the language chosen)
   var name = d.key
   let dot = name.find('.')
   if dot >= 0: name = name[dot + 1 .. ^1]
@@ -14,18 +14,18 @@ func settingLabel(d: SetDef): string =
   for i, c in name:
     if c in {'A'..'Z'} and i > 0: pretty.add ' '
     pretty.add (if i == 0: toUpperAscii(c) else: toLowerAscii(c))
-  d.cat & " › " & pretty
+  tr(d.cat) & " › " & tr(pretty)
 
 proc settingValueText(d: SetDef): string =
   ## the setting's current value as short text for lists and messages — ✓ on / · off for switches, '(default)' for an
   ## empty string, dots for the API key, the number of items for a list or object
   let v = sval(d.key)
   case v.kind
-  of JBool: (if v.getBool: "✓ on" else: "· off")
-  of JString: (if v.getStr.len == 0: "(default)" elif d.key == "ai.apiKey": "••••••" else: v.getStr)
+  of JBool: (if v.getBool: tr("✓ on") else: tr("· off"))
+  of JString: (if v.getStr.len == 0: tr("(default)") elif d.key == "ai.apiKey": "••••••" else: v.getStr)
   of JInt: $v.getInt
-  of JArray: (if v.len == 0: "[ ]" else: $v.len & " item(s)")
-  of JObject: (if v.len == 0: "{ }" else: $v.len & " entr" & (if v.len == 1: "y" else: "ies"))
+  of JArray: (if v.len == 0: "[ ]" else: trf("$1 item(s)", v.len))
+  of JObject: (if v.len == 0: "{ }" elif v.len == 1: tr("1 entry") else: trf("$1 entries", v.len))
   else: $v
 
 proc cmdKeyboardShortcuts()
@@ -110,7 +110,7 @@ proc openSettingsForm(filter = "") =
     if d.cat notin f.groups: f.groups.add d.cat
   var initial = initTable[string, string]()          # (each field's value when shown: what changed is written)
   for d in setDefs:
-    let label = settingPretty(d) & (if settingsUser.hasKey(d.key): "  •" else: "")
+    let label = tr(settingPretty(d)) & (if settingsUser.hasKey(d.key): "  •" else: "")
     var ff: FormField
     case d.kind
     of skBool: ff = f.addCheck(d.key, label, sBool(d.key), d.doc)
@@ -155,7 +155,7 @@ proc openSettingsForm(filter = "") =
         of ffNumber:
           try: changes.add (fld.key, %parseInt(v.strip))
           except ValueError:
-            ff.error = settingPretty(setDefs[setIndex[fld.key]]) & ": \"" & v & "\" is not a number"
+            ff.error = trf("$1: \"$2\" is not a number", tr(settingPretty(setDefs[setIndex[fld.key]])), v)
             ff.group = max(0, ff.groups.find(fld.group))
             ff.filter = ""
             ff.zone = 0
@@ -204,3 +204,45 @@ proc openSettingsList(filter = "") =
     search.add d.key & " " & d.cat & " " & d.doc        # the description is searched too
   openActions((if filter.len > 0: "Settings: " & filter else: "Settings — type a name or words from a description"),
               items, search)
+
+proc uiLanguages(): seq[(string, string)] =
+  ## the languages ned can show: English, those built in (i18n/LANGUAGES), yours (~/.config/ned/i18n/*.json) — each
+  ## (code, name in itself, from its catalogue's "@language") — and pseudo
+  result.add ("en", "English")
+  var seen = @["en"]
+  proc nameOf(text, code: string): string =
+    ## a catalogue's "@language" (its code when it has none)
+    try:
+      let j = parseJson(text)
+      if j.kind == JObject and j{"@language"}.getStr.len > 0: return j{"@language"}.getStr
+    except CatchableError: discard
+    code
+  for (c, text) in NedCatalogues:
+    if c notin seen:
+      seen.add c
+      result.add (c, nameOf(text, c))
+  if dirExists(configDir() / "i18n"):
+    for f in walkFiles(configDir() / "i18n" / "*.json"):
+      let c = f.extractFilename.changeFileExt("")
+      if c notin seen and c != "template":
+        seen.add c
+        result.add (c, nameOf((try: readFile(f) except IOError: ""), c) & tr(" (yours)"))
+  result.add ("pseudo", tr("pseudo — marks each text that can be translated"))
+
+proc cmdUiLanguage() =
+  ## Language…: the language of the menus, messages and dialogs (ui.language): auto, English, those there are
+  var items: seq[(string, string, Action)]
+  let cur = sStr("ui.language")
+  let sysL = trLangOfEnv()
+  items.add act("auto", trf("your system's: $1", (if sysL.len > 0: sysL else: "English")) &
+                (if cur == "auto": "  ✓" else: ""), proc() = setSetting("ui.language", %"auto"))
+  for l in uiLanguages():
+    let c = l[0]
+    let shown = l[1] & ""
+    let d = c & (if cur == c: "  ✓" else: "")
+    capture c:
+      items.add act(shown, d, proc() = setSetting("ui.language", %c))
+  items.add act("Translate ned into your language…", "TRANSLATING.md", proc() =
+    openLinkTarget("https://github.com/foxoman/ned/blob/main/TRANSLATING.md"))
+  openActions("Language", items)
+

@@ -113,10 +113,10 @@ proc setUserCmdField(name, field, value: string) =
 proc userCmdOutputMenu(name: string) =
   ## a menu of the places the output of the user's command can go; the one chosen is stored in the commands setting
   var items: seq[(string, string, Action)]
-  for (o, d) in [("panel", "the Output panel (the default)"), ("replace", "replaces the selection — or the whole file"),
-                 ("insert", "inserted at the cursor"), ("popup", "a popup"), ("message", "a short message"),
-                 ("problems", "its file:line: messages become Problems (a linter, a build)"),
-                 ("terminal", "runs in the terminal (interactive)")]:
+  for (o, d) in [("panel", tx("the Output panel (the default)")), ("replace", tx("replaces the selection — or the whole file")),
+                 ("insert", tx("inserted at the cursor")), ("popup", tx("a popup")), ("message", tx("a short message")),
+                 ("problems", tx("its file:line: messages become Problems (a linter, a build)")),
+                 ("terminal", tx("runs in the terminal (interactive)"))]:
     let oo = o
     let dd = d
     capture oo, dd:

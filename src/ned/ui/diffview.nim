@@ -113,8 +113,8 @@ proc drawDiffView(b: Buffer, x0, y0, w, h: int) =
   let hbg = theme.crumbBg
   fillRect(x0, y0, w, 1, theme.fg, hbg)
   discard putStr(x0 + 1, y0, truncTo(v.leftTitle, half - 2), theme.dim, hbg)
-  let help = $changes & " change" & (if changes == 1: "" else: "s") & " · F7 next · Enter opens" &
-             (if v.src != 0: " · r reverts" else: "")
+  let help = (if changes == 1: tr("1 change · F7 next · Enter opens") else: trf("$1 changes · F7 next · Enter opens", changes)) &
+             (if v.src != 0: " · " & tr("r reverts") else: "")
   let rt = truncTo(v.rightTitle, max(4, w - half - 3))
   discard putStr(x0 + half + 2, y0, rt, theme.fg, hbg, {aBold})
   # the keys: in full when there is room, shorter when not, at least the number of changes
@@ -232,7 +232,7 @@ proc drawMdPreview(b: Buffer, x0, y0, w, h: int) =
   cursorX = -1
   cursorY = -1
   if src == nil:
-    discard putStr(x0 + 2, y0 + 1, "The Markdown file was closed", theme.dim, theme.bg)
+    discard putStr(x0 + 2, y0 + 1, tr("The Markdown file was closed"), theme.dim, theme.bg)
     return
   let tw = max(20, min(w - 4, 100))
   var c = mdPreviewCache.getOrDefault(b.id, (-1, -1, @[]))

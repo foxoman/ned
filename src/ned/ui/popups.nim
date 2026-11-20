@@ -123,7 +123,7 @@ proc drawCompletion() =
   compDocRect = (docX, docY, docW, docH)
   dropShadow(docX, docY, docW, docH)
   if compDocLines > docH:
-    let more = if compDocScroll + docH < compDocLines: " Ctrl+↓ more " else: " Ctrl+↑ "
+    let more = if compDocScroll + docH < compDocLines: " " & tr("Ctrl+↓ more") & " " else: " Ctrl+↑ "
     discard putStr(docX + docW - strWidth(more), docY + docH - 1, more, theme.dim, dbg, {}, docX + docW)
 
 proc drawHover() =
@@ -150,7 +150,7 @@ proc drawHover() =
   drawBox(x, y, w, h)
   drawDocLines(lines, x + 1, y + 1, w - 2, rows, hoverScroll, theme.popupBg)
   if lines.len > rows:
-    let more = if hoverScroll + rows < lines.len: " ↓ " & $(lines.len - rows - hoverScroll) & " more · Alt+H " else: " ↑ "
+    let more = if hoverScroll + rows < lines.len: " ↓ " & trf("$1 more · Alt+H", lines.len - rows - hoverScroll) & " " else: " ↑ "
     discard putStr(x + w - 1 - strWidth(more), y + h - 1, more, theme.dim, theme.popupBg, {}, x + w - 1)
 
 # ── the picker's preview: the selected file, symbol or buffer beside the list (editor.pickerPreview) ──
@@ -246,7 +246,7 @@ proc drawPickPreview(x, y, w, h: int) =
   drawBox(x, y, w, h, (if path.len > 0: truncTo(relPath(path), max(8, w - 6))
                        elif undoPickBuf >= 0: "the text at that state" else: "untitled"))
   if b == nil:
-    discard putStr(x + 2, y + 1, "(not a text file)", theme.dim, theme.popupBg, {aItalic}, x + w - 1)
+    discard putStr(x + 2, y + 1, tr("(not a text file)"), theme.dim, theme.popupBg, {aItalic}, x + w - 1)
     return
   let rows = h - 2
   let target = clamp(line, 0, max(0, b.lines.high))
@@ -313,9 +313,9 @@ proc drawPicker() =
   if pickRowH > 1:
     n = max(1, n div 2)
     ph = n * 2 + 4
-  var title = pickTitle
-  if pickKind == pickFile and scanning: title = "Open file — indexing " & $fileCache.len & " files…"
-  elif pickKind == pickFile and scanTruncated: title = pickTitle & " — first " & $cfgScanLimit & " files"
+  var title = tr(pickTitle)
+  if pickKind == pickFile and scanning: title = trf("Open file — indexing $1 files…", fileCache.len)
+  elif pickKind == pickFile and scanTruncated: title = trf("$1 — first $2 files", tr(pickTitle), cfgScanLimit)
   # (the buttons under the list, a desktop dialog's: a row more when there is room for it)
   let btnRow = cfgFormButtons and not pickNear and py + ph + 1 < scrH - 1
   if btnRow: ph += 1
@@ -342,18 +342,18 @@ proc drawPicker() =
   if btnRow:
     let by = py + ph - 2
     fillRect(px + 1, by, pw - 2, 1, theme.fg, theme.popupBg)
-    let okLabel = case pickKind
-                  of pickFile, pickRecent, pickBuffer: "Open"
-                  of pickTheme: "Use"
-                  of pickSymbol: "Go"
-                  else: "OK"
-    var bx = px + pw - 2 - (strWidth(okLabel) + 4) - 1 - (strWidth("Cancel") + 4)
+    let okLabel = tr(case pickKind
+                     of pickFile, pickRecent, pickBuffer: tx("Open")
+                     of pickTheme: tx("Use")
+                     of pickSymbol: tx("Go")
+                     else: tx("OK"))
+    var bx = px + pw - 2 - (strWidth(okLabel) + 4) - 1 - (strWidth(tr("Cancel")) + 4)
     let hintW = bx - px - 3
     if hintW > 12:
       let places = pickKind in {pickFile, pickRecent, pickSymbol, pickBuffer} or
                    (tsActive and pickPreviewTarget()[0].len > 0)
-      let more = if places and hintW > 60: " · Alt+V right · Alt+X below · Alt+Q all in a multibuffer" else: ""
-      discard putStr(px + 2, by, truncTo("↑↓ choose · Enter " & okLabel.toLowerAscii & more & " · Esc cancel", hintW),
+      let more = if places and hintW > 60: " · " & tr("Alt+V right · Alt+X below · Alt+Q all in a multibuffer") else: ""
+      discard putStr(px + 2, by, truncTo(trf("↑↓ choose · Enter $1$2 · Esc cancel", okLabel.toLowerAscii, more), hintW),
                      theme.dim, theme.popupBg, {aItalic})
     bx = pill(bx, by, "Cancel", proc() = closePicker(), "Esc", theme.fg, theme.btnBg) + 1
     discard pill(bx, by, okLabel, proc() = acceptPicker(), "Enter", theme.badgeFg, theme.accent, {aBold},
@@ -364,8 +364,8 @@ proc drawPicker() =
   if pickSel < pickScroll: pickScroll = pickSel
   if pickSel >= pickScroll + n: pickScroll = pickSel - n + 1
   if pickShown.len == 0:
-    discard putStr(px + 3, py + 3, (if pickKind == pickFile and pickQuery.len > 0: "Enter creates " & pickQuery
-                                    else: "No matches"), theme.dim, theme.popupBg, {aItalic}, px + pw - 1)
+    discard putStr(px + 3, py + 3, (if pickKind == pickFile and pickQuery.len > 0: trf("Enter creates $1", pickQuery)
+                                    else: tr("No matches")), theme.dim, theme.popupBg, {aItalic}, px + pw - 1)
     return
   for r in 0 ..< n:
     let idx = pickScroll + r
@@ -583,7 +583,7 @@ proc helpRows(w: int): seq[(int, string, string)] =
       result.add (2, "", "")
       continue
     if l == l.toUpperAscii and l[0] in {'A'..'Z'}:
-      result.add (0, "", l)
+      result.add (0, "", tr(l))
       continue
     var key = ""
     var text = l
@@ -597,6 +597,7 @@ proc helpRows(w: int): seq[(int, string, string)] =
     else:
       text = l.strip
       keyed = true
+    text = tr(text)                       # (the description in the language chosen; the keys as they are)
     let tw = max(10, w - 4 - (if keyed: 21 else: 0))
     for i, part in wrapText(text, tw):
       result.add ((if keyed: 1 else: 2), (if i == 0: key else: ""), part)

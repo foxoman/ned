@@ -56,11 +56,17 @@ var forms: seq[Form]
 # whether a form is showing (it then takes the keys)
 proc formOpen(): bool {.inline.} = forms.len > 0
 
-# a new empty form with a title and an optional intro text; fields and buttons are added, then openForm shows it
-proc newForm(title: string, intro = ""): Form = Form(title: title, intro: intro, sbX: -1, shownFocus: -2)
+# a new empty form with a title and an optional intro text (in the language chosen); fields and buttons are added,
+# then openForm shows it
+proc newForm(title: string, intro = ""): Form = Form(title: tr(title), intro: tr(intro), sbX: -1, shownFocus: -2)
 
 proc addField(f: Form, ff: FormField): FormField {.discardable.} =
-  ## adds a field to the form's end and gives it back
+  ## adds a field to the form's end and gives it back; its label, help, placeholder and the labels of its choices in
+  ## the language chosen
+  ff.label = tr(ff.label)
+  ff.help = tr(ff.help)
+  ff.placeholder = tr(ff.placeholder)
+  for l in ff.optLabels.mitems: l = tr(l)
   f.fields.add ff
   ff
 
@@ -96,7 +102,7 @@ proc addLink(f: Form, label: string, act: Action, help = ""): FormField {.discar
 proc addButton(f: Form, label, id: string, primary = false, danger = false, left = false) =
   ## adds a button at the bottom, answering with its `id`: the primary one is the default (Enter), a danger one is drawn
   ## as a warning, `left` puts it on the left of the row
-  f.buttons.add FormButton(label: label, id: id, primary: primary, danger: danger, left: left)
+  f.buttons.add FormButton(label: tr(label), id: id, primary: primary, danger: danger, left: left)
 
 proc formField(f: Form, key: string): FormField =
   ## the field with that key; an empty label field when there is none, so a wrong key does no harm
@@ -129,7 +135,7 @@ proc formVisible(f: Form): seq[int] =
     var lastGroup = ""
     for i, ff in f.fields:
       if ff.kind in {ffHeader, ffLabel}: continue
-      let hay = (ff.label & " " & ff.help & " " & ff.key & " " & ff.search & " " & ff.group).toLowerAscii
+      let hay = (ff.label & " " & ff.help & " " & ff.key & " " & ff.search & " " & ff.group & " " & tr(ff.group)).toLowerAscii
       var ok = true
       for w in words:
         if w notin hay: ok = false
@@ -473,15 +479,15 @@ proc drawForm() =
   if f.groups.len > 0:
     discard putStr(x + 2, cy, ic("search"), (if f.zone == 2: theme.accent else: theme.dim), bg)
     let fx = drawField(x + 4, cy, w - 7, f.filter, f.filterCur, f.zone == 2, theme.fg, theme.inputBg,
-                       (if w >= 68: "Search every setting (words of its name or description)"
-                        else: "Search every setting"),
+                       tr(if w >= 68: tx("Search every setting (words of its name or description)")
+                          else: tx("Search every setting")),
                        onFocus = proc() = (f.zone = 2), hintFocused = true)
     if f.zone == 2:
       cursorX = fx
       cursorY = cy
     cy += 2
     if narrowGroups:
-      let g = if f.group < f.groups.len: f.groups[f.group] else: ""
+      let g = if f.group < f.groups.len: tr(f.groups[f.group]) else: ""
       var gx = button(x + 2, cy, " ‹ ", proc() =
         f.group = (f.group - 1 + f.groups.len) mod f.groups.len
         f.scroll = 0, "Previous group", theme.accent, bg)
@@ -506,7 +512,7 @@ proc drawForm() =
       fillRect(x + 1, yy, sideW, 1, theme.fg, rowBg)
       if selected: discard putStr(x + 1, yy, "▍", theme.accent, rowBg)
       # (a name longer than the column ends in … — "Compiler Explore" read as a word)
-      discard putStr(x + 3, yy, truncTo(g, sideW - 3), (if selected: theme.fg else: theme.dim), rowBg,
+      discard putStr(x + 3, yy, truncTo(tr(g), sideW - 3), (if selected: theme.fg else: theme.dim), rowBg,
                      (if selected: {aBold} else: {}), x + sideW)
       let k = gi
       capture k:
@@ -545,7 +551,7 @@ proc drawForm() =
     let ry = bodyTop + r0 - f.scroll
     if i < 0:
       # (a search's group name over its fields)
-      let g = f.fields[-1 - i].group
+      let g = tr(f.fields[-1 - i].group)
       if ry >= bodyTop and ry < bodyBot:
         discard putStr(ax, ry, g, theme.accent, bg, {aBold}, ax + areaW)
       continue
@@ -586,7 +592,7 @@ proc drawForm() =
     let k = " " & f.fields[f.focus].key & " "
     discard putStr(x + w - 3 - strWidth(k), hy - 1, k, theme.accent, bg, {}, x + w - 2)
   if f.error.len > 0:
-    discard putStr(x + 3, hy, ic("error") & " " & f.error, theme.err, bg, {aBold}, x + w - 2)
+    discard putStr(x + 3, hy, ic("error") & " " & tr(f.error), theme.err, bg, {aBold}, x + w - 2)
   elif helpText.len > 0:
     let hl = wrapText(helpText, w - 6)
     for k in 0 ..< min(helpRows, hl.len):

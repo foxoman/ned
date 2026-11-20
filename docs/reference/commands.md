@@ -253,6 +253,8 @@ Every command of the palette (Ctrl+E, or Ctrl+P and `>`), with its key or what i
 | Key bindings | F1 |
 | Key bindings: default · vim · emacs · helix… |  |
 | Keyboard shortcuts… |  |
+| Language: reload the translations |  |
+| Language… |  |
 | Large file mode: on/off for this file |  |
 | Lower case |  |
 | Macro: play on each selected line |  |

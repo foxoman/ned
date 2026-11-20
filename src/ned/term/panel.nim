@@ -76,7 +76,7 @@ proc termRead(t: Term) =
     let p = t.pending
     t.pending = ""
     t.termWrite(p)
-  if t.replQ.len > 0: t.replFlush()
+  if t.replQ.len > 0 or t.replEnter.len > 0: t.replFlush()
   needRender = true
 
 proc termFds(): seq[cint] =
@@ -89,7 +89,7 @@ proc pumpTerms(ready: HashSet[cint]) =
   ## flushed (after 5 s)
   for t in terms:
     if not t.dead and t.fd >= 0 and t.fd in ready: t.termRead()
-    elif t.replQ.len > 0: t.replFlush()          # a REPL that printed no prompt yet: typed in after 5 s
+    elif t.replQ.len > 0 or t.replEnter.len > 0: t.replFlush()   # a REPL with no prompt yet (after 5 s), an Enter due
 
 proc curTermObj(): Term =
   ## the terminal in use: a pane's while keys go to a pane's terminal, else the current one of the panel's (a terminal
@@ -343,7 +343,7 @@ proc drawTermPane(ti: int, x0, y0, w, h: int, focused: bool) =
         inc ran
         if i <= t.navCmd: inc nth
     # on the bottom row: the command shown is at the top
-    let tail = (if c.endRow >= 0 and c.code > 0: "  ✗ " & $c.code else: "") & "  · Alt+Enter: menu · Esc "
+    let tail = (if c.endRow >= 0 and c.code > 0: "  ✗ " & $c.code else: "") & "  · " & tr("Alt+Enter: menu") & " · Esc "
     let head = " " & $nth & "/" & $ran & "  $ "
     let room = max(6, w - 4 - strWidth(head) - strWidth(tail))
     let s = head & truncTo(c.text, room) & tail

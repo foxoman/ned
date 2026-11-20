@@ -318,3 +318,5 @@ proc ideDiffDecide(bufId: int, accept: bool)                         # ai/idelin
 proc wtTurnEnded()                                                   # ai/worktree.nim
 proc cmdWorktreeChat()                                               # ai/worktree.nim
 proc cmdWorktreeReview()                                             # ai/worktree.nim
+proc plugTranslations(fresh = false)                                 # plugins/host.nim
+proc cmdUiLanguage()                                                 # ui/settingsui.nim

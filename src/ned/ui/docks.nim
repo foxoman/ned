@@ -20,19 +20,20 @@ proc viewIcon(v: SideView): string =
   of svTodos: ic("todo")
   of svPlugins: ic("gear")
 
-func viewTitle(v: SideView): string =
-  ## a dock view's title, in capitals, as shown in the dock's header (and as the tab's tooltip)
-  case v
-  of svFiles: "EXPLORER"
-  of svSearch: "SEARCH"
-  of svGit: "SOURCE CONTROL"
-  of svProject: "NIM"
-  of svTests: "TESTS"
-  of svAssistant: "ASSISTANT"
-  of svOutline: "OUTLINE"
-  of svTimeline: "TIMELINE"
-  of svTodos: "TODOS"
-  of svPlugins: "PLUGINS"
+proc viewTitle(v: SideView): string =
+  ## a dock view's title, in capitals, as shown in the dock's header (and as the tab's tooltip), in the language chosen
+  let t = case v
+    of svFiles: tx("EXPLORER")
+    of svSearch: tx("SEARCH")
+    of svGit: tx("SOURCE CONTROL")
+    of svProject: tx("NIM")
+    of svTests: tx("TESTS")
+    of svAssistant: tx("ASSISTANT")
+    of svOutline: tx("OUTLINE")
+    of svTimeline: tx("TIMELINE")
+    of svTodos: tx("TODOS")
+    of svPlugins: tx("PLUGINS")
+  tr(t)
 
 func sideItem(text: string, role = 0, icon = "", detail = "", action: Action = nil, path = "", line = -1,
               depth = 0, data = ""): SideItem =
@@ -80,10 +81,10 @@ proc atlasItems(): seq[SideItem] =
       let dep = d
       var flags: seq[string]
       if d.linked: flags.add "linked"
-      if d.lockCommit.len > 0 and d.head.len > 0 and d.lockCommit != d.head: flags.add "≠ lock"
-      if not d.onPath and not d.linked: flags.add "not on the path"
+      if d.lockCommit.len > 0 and d.head.len > 0 and d.lockCommit != d.head: flags.add tr("≠ lock")
+      if not d.onPath and not d.linked: flags.add tr("not on the path")
       let detail = d.version & (if flags.len > 0: "  " & flags.join(" · ") else: "")
-      let role = if "≠ lock" in flags: 4 elif d.linked: 1 else: 0
+      let role = if tr("≠ lock") in flags: 4 elif d.linked: 1 else: 0
       let icon = if d.linked: "⇢" else: "·"
       var it: SideItem
       capture dep:
@@ -162,9 +163,9 @@ proc buildProjectItems(): seq[SideItem] =
     if nlsStatus != nil and nlsStatus{"nimsuggestInstances"} != nil:
       nsN = nlsStatus["nimsuggestInstances"].len
       for it in jitems(nlsStatus["nimsuggestInstances"]): nsProjects.add it{"projectFile"}.getStr
-    let st = (if nsN < 0: "" elif nsN == 1: "1 nimsuggest" else: $nsN & " nimsuggest")
+    let st = (if nsN < 0: "" elif nsN == 1: tr("1 nimsuggest") else: trf("$1 nimsuggest", nsN))
     result.add sideItem("nimlangserver", 1, "◆", st, proc() = runCmd("Nim: language server status"))
-    let mainShown = if nlsMain.len > 0: relPath(nlsMain) else: "(decided when a Nim file opens)"
+    let mainShown = if nlsMain.len > 0: relPath(nlsMain) else: tr("(decided when a Nim file opens)")
     result.add sideItem("main: " & mainShown, 0, "▣", (if sStr("nim.projectFile").len > 0: "set" else: "auto"),
                         proc() = (if nlsMain.len > 0: discard openFile(nlsMain)))
     for pf in nsProjects:

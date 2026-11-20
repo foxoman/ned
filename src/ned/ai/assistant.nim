@@ -205,8 +205,8 @@ proc aiRunning(): bool = aiBusy
 proc aiStatus(): string =
   ## what the assistant is doing, for the status bar: its phase ("thinking…" when it has none) while it works,
   ## "editing…" during an inline edit, else empty
-  if aiBusy: (if aiPhase.len > 0: aiPhase else: "thinking…")
-  elif aiInlineMode: "editing…"
+  if aiBusy: tr(if aiPhase.len > 0: aiPhase else: tx("thinking…"))
+  elif aiInlineMode: tr("editing…")
   else: ""
 
 # ── tools the agent may call ──

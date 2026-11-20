@@ -3,13 +3,13 @@
 func promptHint(kind: PromptKind): string =
   ## the hint line shown under a prompt's field for that kind of prompt
   case kind
-  of pGoto: "Type a line number, line:column or +/- offset"
-  of pSaveAs, pNewFile, pNewFolder, pRenamePath: "Tab completes paths · Enter to confirm · Esc to cancel"
-  of pRunCmd: "Runs in the output panel · $file $dir $name are expanded"
-  of pSearch: "Searches every file in the project"
-  of pLspRename: "New name for the symbol everywhere it is used"
-  of pGitCommit: "Commits the staged changes"
-  else: "Enter to confirm · Esc to cancel · ↑↓ history"
+  of pGoto: tx("Type a line number, line:column or +/- offset")
+  of pSaveAs, pNewFile, pNewFolder, pRenamePath: tx("Tab completes paths · Enter to confirm · Esc to cancel")
+  of pRunCmd: tx("Runs in the output panel · $file $dir $name are expanded")
+  of pSearch: tx("Searches every file in the project")
+  of pLspRename: tx("New name for the symbol everywhere it is used")
+  of pGitCommit: tx("Commits the staged changes")
+  else: tx("Enter to confirm · Esc to cancel · ↑↓ history")
 
 proc drawQuickInput() =
   ## draws the prompt as a framed box at the top of the screen: its label as the title, a field for the text (hiding it
@@ -32,12 +32,12 @@ proc drawQuickInput() =
   var hintEnd = x + w - 2
   if cfgFormButtons and w >= 40:
     # OK and Cancel, as a dialog has them
-    var bx = x + w - 2 - (strWidth("OK") + 4) - 1 - (strWidth("Cancel") + 4)
+    var bx = x + w - 2 - (strWidth(tr("OK")) + 4) - 1 - (strWidth(tr("Cancel")) + 4)
     hintEnd = bx - 1
     bx = pill(bx, y + 2, "Cancel", proc() = closePrompt(), "Esc", theme.fg, theme.btnBg) + 1
     discard pill(bx, y + 2, "OK", proc() = submitPrompt(), "Enter", theme.badgeFg, theme.accent, {aBold},
                  blend(theme.accent, theme.fg, 0.15))
-  discard putStr(x + 2, y + 2, truncTo(promptHint(promptKind), hintEnd - x - 2), theme.dim, theme.menuBg, {aItalic},
+  discard putStr(x + 2, y + 2, truncTo(tr(promptHint(promptKind)), hintEnd - x - 2), theme.dim, theme.menuBg, {aItalic},
                  hintEnd)
 
 proc drawFindWidget() =
@@ -56,26 +56,26 @@ proc drawFindWidget() =
   # (the bar itself: a click on it between its buttons is its own — not the text's, the minimap's under it)
   region(x, y, w, 1, proc() = discard)
   if isReplace:
-    var xx = putStr(x + 1, y, "Replace \"" & truncTo(replaceQuery, 14) & "\"?", theme.fg, bg, {aBold})
+    var xx = putStr(x + 1, y, trf("Replace \"$1\"?", truncTo(replaceQuery, 14)), theme.fg, bg, {aBold})
     xx += 1
-    for (l, c) in [("Yes", 'y'), ("No", 'n'), ("All", 'a'), ("Done", 'q')]:
+    for (l, c) in [(tx("Yes"), 'y'), (tx("No"), 'n'), (tx("All"), 'a'), (tx("Done"), 'q')]:
       let cc = c
       let lab = " " & l & " "
       capture cc:
         xx = button(xx, y, lab, proc() =
           var k = Key(kind: kChar, ch: ord(cc))
           replaceKey(k), "", (if cc == 'y': theme.badgeFg else: theme.fg), (if cc == 'y': theme.accent else: theme.btnBg)) + 1
-    discard putStr(xx + 1, y, $replaceCount & " done", theme.dim, bg, {}, x + w)
+    discard putStr(xx + 1, y, trf("$1 done", replaceCount), theme.dim, bg, {}, x + w)
     return
-  let lbl = if promptKind == pReplaceFind: "Replace " elif promptKind == pReplaceWith: "With " else: ""
+  let lbl = if promptKind == pReplaceFind: tr("Replace") & " " elif promptKind == pReplaceWith: tr("With") & " " else: ""
   var xx = putStr(x + 1, y, (if lbl.len > 0: lbl else: ic("search") & " "), theme.dim, bg)
   let rxErr = if findRegex and promptKind != pReplaceWith and promptText.len > 0:
                 cachedRegex(promptText, findCase)[].err else: ""
-  let infoS = if promptKind == pReplaceWith: (if findRegex: "$1 = group 1" else: "")
+  let infoS = if promptKind == pReplaceWith: (if findRegex: tr("$1 = group 1") else: "")
               elif rxErr.len > 0: truncTo(rxErr, 18)
               elif findQuery.len == 0 and promptText.len == 0: ""
-              elif findTotal == 0 and not findCapped: "No results"
-              else: (if findIdx > 0: $findIdx else: "?") & " of " & $findTotal & (if findCapped: "+" else: "")
+              elif findTotal == 0 and not findCapped: tr("No results")
+              else: trf("$1 of $2", (if findIdx > 0: $findIdx else: "?"), $findTotal & (if findCapped: "+" else: ""))
   let btnW = if promptKind == pReplaceWith: 4 else: 20
   let fieldW = max(6, x + w - xx - btnW - strWidth(infoS) - 2)
   cursorX = drawField(xx, y, fieldW, promptText, promptCur, true)

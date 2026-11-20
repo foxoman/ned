@@ -19,6 +19,7 @@ Every setting ned has, its default and what it does — made by `ned --doc-setti
 | `theme.colors` | `{}` | Change colours of any theme: {"comment": "#8a8a8a", "bg": "#101010"} for all, {"nim-crown": {…}} for one. Names: bg, fg, accent, selection, comment, keyword, type, string, number, function, operator, macro, property, error, warning, ok, titleBar, dock, statusBar, ruler |
 | `ui.themeBeforeAccessible` | `""` | (the theme to go back to when accessibility mode is turned off) |
 | `ui.accessible` | `false` | Accessibility mode: plain ASCII for every frame, bar and symbol (screen readers read it sensibly), letters beside colours (E/W in the gutter, + ~ _ for git, B for breakpoints), ASCII icons, no minimap. Palette › Accessibility mode also picks a high-contrast theme |
+| `ui.language` | `"auto"` | The language of ned's menus, messages and dialogs: auto (your system's, LANG), en, a translation ned has (Palette › Language…) or one of yours in ~/.config/ned/i18n. pseudo marks each text that can be translated: see TRANSLATING.md |
 | `ui.icons` | `"unicode"` | Icon set. 'nerd' needs a Nerd Font (Termux: ~/.termux/font.ttf) — one of: unicode, nerd, ascii |
 | `ui.titleBar` | `true` | Title bar with menus, search box and layout buttons |
 | `ui.menuBar` | `true` | Show File/Edit/View… menus in the title bar when there is room (F10 opens them) |

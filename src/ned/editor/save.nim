@@ -122,7 +122,7 @@ proc saveBuffer(b: Buffer, path = "", force = false): bool =
   (b.mtime, b.fsize) = fileStamp(b.path)
   b.diskChanged = false
   writeUndo(b)
-  info("Saved " & relPath(b.path) & "  (" & $b.lines.len & (if b.lines.len == 1: " line)" else: " lines)"))
+  info(if b.lines.len == 1: trf("Saved $1  (1 line)", relPath(b.path)) else: trf("Saved $1  ($2 lines)", relPath(b.path), b.lines.len))
   addRecent(b.path)
   if b.path == configFile() or b.path == projectSettingsFile():
     reloadSettings()
@@ -252,7 +252,8 @@ proc saveOnFocusLost() =
     if b.dirty and b.path.len > 0 and b.title.len == 0 and not b.readOnly and not b.diskChanged and
        otherSessionEditing(b.path) == 0:
       if b.saveBuffer(): inc n
-  if n > 0: info("Saved " & $n & (if n == 1: " file" else: " files") & " (you switched away: editor.saveOnFocusLost)")
+  if n > 0: info(if n == 1: tr("Saved 1 file (you switched away: editor.saveOnFocusLost)")
+                 else: trf("Saved $1 files (you switched away: editor.saveOnFocusLost)", n))
 
 proc checkDiskChanges() =
   ## run now and then: for every open file whose time or size on disk changed, reloads it when it has no unsaved changes

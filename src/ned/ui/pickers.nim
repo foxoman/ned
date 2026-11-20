@@ -64,6 +64,9 @@ proc refilterPicker(keepSel = false) =
       ## counts, after the others, when every word of the query is in the item's description; items that match are added
       ## to the candidates
       var sc = if quick: fuzzyQuick(lq, pickItems[i].label) else: fuzzyScore(lq, pickItems[i].label)
+      if pickItems[i].english.len > 0:
+        # (a name shown translated: its English matches as well — the better of the two counts)
+        sc = max(sc, if quick: fuzzyQuick(lq, pickItems[i].english) else: fuzzyScore(lq, pickItems[i].english))
       if sc == low(int) and pickItems[i].search.len > 0:
         # every word of the query in the description: listed after the name matches
         var all = true
@@ -115,6 +118,8 @@ proc openPicker(kind: PickKind, title: string, items: seq[PickItem]) =
   pickTitle = title
   pickNear = false
   pickItems = items
+  if trOn:
+    for it in pickItems.mitems: it.detail = tr(it.detail)      # (the details in the language chosen; not the names)
   pickQuery = ""
   pickCur = 0
   refilterPicker()
@@ -188,14 +193,18 @@ proc cmdPalette() =
     result = cmp(cmdUses.getOrDefault(commands[b].name), cmdUses.getOrDefault(commands[a].name))
     if result == 0: result = cmp(a, b))
   var items: seq[PickItem]
-  for i in order: items.add PickItem(label: commands[i].name, detail: commands[i].keys, idx: i, line: -1)
+  for i in order:
+    # (a command's name in the language chosen, found by its English name too)
+    let n = tr(commands[i].name)
+    items.add PickItem(label: n, detail: commands[i].keys, idx: i, line: -1,
+                       english: (if n != commands[i].name: commands[i].name else: ""))
   openPicker(pickCmd, "Command palette", items)
 
 proc cmdBuffers() =
   ## opens a picker of the open tabs (modified ones marked), starting on the next one
   var items: seq[PickItem]
   for i, b in bufs:
-    items.add PickItem(label: (if b.path.len > 0: relPath(b.path) else: "untitled"),
+    items.add PickItem(label: (if b.path.len > 0: relPath(b.path) else: tr("untitled")),
                        detail: (if b.dirty: "modified" else: ""), idx: i, icon: (if b.dirty: "●" else: " "), line: -1)
   openPicker(pickBuffer, "Switch buffer", items)
   if bufs.len > 1: pickSel = 1

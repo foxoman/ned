@@ -410,8 +410,8 @@ proc thinkLines(mi, width: int, bg: Rgb): seq[ChatLine] =
   let thinking = aiBusy and mi == aiMsgs.high and aiMsgs[mi].text.len == 0 and aiMsgs[mi].calls.len == 0
   let open = aiMsgs[mi].thinkShown == 1 or (aiMsgs[mi].thinkShown == 0 and thinking and cfgAiShowThinking)
   var l = ChatLine(bg: bg)
-  l.spans.add span("  " & (if open: "▾ " else: "▸ ") & (if thinking: "Thinking" else: "Thought") &
-                   (if thinking: "" else: " · " & $wordCount(aiMsgs[mi].think) & " words"), theme.dim, bg, {aItalic})
+  l.spans.add span("  " & (if open: "▾ " else: "▸ ") & (if thinking: tr("Thinking") else: tr("Thought")) &
+                   (if thinking: "" else: " · " & trf("$1 words", wordCount(aiMsgs[mi].think))), theme.dim, bg, {aItalic})
   let m2 = mi
   let o = open
   capture m2, o:
@@ -419,7 +419,7 @@ proc thinkLines(mi, width: int, bg: Rgb): seq[ChatLine] =
       if m2 < aiMsgs.len:
         aiMsgs[m2].thinkShown = (if o: 2 else: 1)
         inc aiVersion
-  l.tip = (if open: "Fold what the model thought" else: "Show what the model thought")
+  l.tip = (if open: tx("Fold what the model thought") else: tx("Show what the model thought"))
   result.add l
   if not open: return
   let all = aiMsgs[mi].thinkShown == 1
@@ -443,7 +443,7 @@ proc writingLines(c: AiCall, width: int): seq[ChatLine] =
     of "write_file": partialJsonString(c.args, "content")
     of "run_command": partialJsonString(c.args, "command")
     else: c.args
-  result.add wrapSpans(@[span("writing · " & aiSizeText(c.args.len), theme.dim, theme.dockBg, {aItalic})], width,
+  result.add wrapSpans(@[span(trf("writing · $1", aiSizeText(c.args.len)), theme.dim, theme.dockBg, {aItalic})], width,
                        theme.dockBg, 4)
   if body.strip.len == 0: return
   var ls = body.splitLines
@@ -465,29 +465,29 @@ proc buildChat(width: int): seq[ChatLine] =
     if acpOn():
       # (an agent of its own: its name and state, and what it does)
       result.add wrapSpans(@[span(ic("ai") & " " & acpSpeaker(), theme.accent, bg, {aBold})], width, bg, 2)
-      result.add wrapSpans(@[span("agent (ACP) · " & (if acp == nil: "starts with your first message" else: acp.state),
+      result.add wrapSpans(@[span(tr("agent (ACP)") & " · " & (if acp == nil: tr("starts with your first message") else: tr(acp.state)),
                                   theme.dim, bg)], width, bg, 2)
       result.add ChatLine(bg: bg)
-      result.add wrapSpans(@[span("Ask the agent. It reads, edits and runs what it needs itself; ned asks you " &
-        "before what it wants to do, unless ai.autoApprove allows it. The file you are in (or the selection) goes along.",
+      result.add wrapSpans(@[span(tr("Ask the agent. It reads, edits and runs what it needs itself; ned asks you " &
+        "before what it wants to do, unless ai.autoApprove allows it. The file you are in (or the selection) goes along."),
         theme.dim, bg)], width, bg, 2)
     else:
-      result.add wrapSpans(@[span(ic("ai") & " Assistant", theme.accent, bg, {aBold})], width, bg, 2)
-      result.add wrapSpans(@[span(cfgAiProvider & " · " & (if aiModel().len > 0: aiModel() else: "no model"), theme.dim, bg)], width, bg, 2)
+      result.add wrapSpans(@[span(ic("ai") & " " & tr("Assistant"), theme.accent, bg, {aBold})], width, bg, 2)
+      result.add wrapSpans(@[span(cfgAiProvider & " · " & (if aiModel().len > 0: aiModel() else: tr("no model")), theme.dim, bg)], width, bg, 2)
       result.add ChatLine(bg: bg)
-      result.add wrapSpans(@[span("Ask about your code. The current file (or selection) is sent along. " &
-        (if cfgAiAgent: "In agent mode the assistant can read and edit files and run commands — you approve each change." else: ""),
+      result.add wrapSpans(@[span(tr("Ask about your code. The current file (or selection) is sent along.") &
+        (if cfgAiAgent: " " & tr("In agent mode the assistant can read and edit files and run commands — you approve each change.") else: ""),
         theme.dim, bg)], width, bg, 2)
     result.add ChatLine(bg: bg)
-    for (label, prompt) in [("Explain this file", "Explain what this file does, briefly."),
-                            ("Find bugs", "Review this code and list likely bugs or risky spots, most important first."),
-                            ("Write tests", "Write unit tests for this code (for Nim use std/unittest) and add them to the project."),
-                            ("Fix the problems", "Fix the compiler errors and warnings in this file."),
-                            ("Make it faster", "Suggest concrete performance improvements for this code.")]:
+    for (label, prompt) in [(tx("Explain this file"), tx("Explain what this file does, briefly.")),
+                            (tx("Find bugs"), tx("Review this code and list likely bugs or risky spots, most important first.")),
+                            (tx("Write tests"), tx("Write unit tests for this code (for Nim use std/unittest) and add them to the project.")),
+                            (tx("Fix the problems"), tx("Fix the compiler errors and warnings in this file.")),
+                            (tx("Make it faster"), tx("Suggest concrete performance improvements for this code."))]:
       let p = prompt
       var l = ChatLine(bg: bg)
       l.spans.add span("  " & ic("chevR") & " ", theme.syn[tkFunc], bg)      # (the arrow coloured, the words plain)
-      l.spans.add span(label, theme.fg, bg)
+      l.spans.add span(tr(label), theme.fg, bg)
       capture p:
         l.act = proc() =
           let cb = buf()
@@ -498,8 +498,8 @@ proc buildChat(width: int): seq[ChatLine] =
       result.add l
     if aiKey().len == 0 and cfgAiProvider notin ["ollama", "custom"] and not acpOn():
       result.add ChatLine(bg: bg)
-      result.add wrapSpans(@[span(ic("warn") & " No API key: export " & aiKeyEnvName() &
-        "=… in ~/.bashrc, or set ai.apiKey in settings.", theme.warn, bg)], width, bg, 2)
+      result.add wrapSpans(@[span(ic("warn") & " " & trf("No API key: export $1=… in ~/.bashrc, or set ai.apiKey in settings.",
+        aiKeyEnvName()), theme.warn, bg)], width, bg, 2)
     return
   for mi, m in aiMsgs:
     case m.role
@@ -507,7 +507,7 @@ proc buildChat(width: int): seq[ChatLine] =
       result.add ChatLine(bg: bg)
       let ub = theme.userBg
       var head = ChatLine(bg: ub)
-      head.spans.add span(" " & ic("user") & " You", theme.accent, ub, {aBold})
+      head.spans.add span(" " & ic("user") & " " & tr("You"), theme.accent, ub, {aBold})
       result.add head
       for l in (if m.shown.len > 0: m.shown else: m.text).splitLines:
         result.add wrapSpans(@[span(l, theme.fg, ub)], width, ub, 2)
@@ -528,13 +528,13 @@ proc buildChat(width: int): seq[ChatLine] =
       if m.text.len > 0 or m.think.len > 0 or mi == 0 or aiMsgs[mi - 1].role notin {1, 2}: result.add ChatLine(bg: bg)
       if m.text.len > 0 or m.think.len > 0 or (m.calls.len == 0 and aiBusy and mi == aiMsgs.high):
         var head = ChatLine(bg: bg)
-        head.spans.add span(" " & ic("ai") & " " & (if acpOn(): acpSpeaker() elif aiModel().len > 0: aiModel() else: "assistant"),
+        head.spans.add span(" " & ic("ai") & " " & (if acpOn(): acpSpeaker() elif aiModel().len > 0: aiModel() else: tr("assistant")),
                             theme.syn[tkKeyword], bg, {aBold})
         result.add head
       if m.think.len > 0: result.add thinkLines(mi, width, bg)
       if m.text.len > 0: result.add markdownLines(chatShown(m.text), width, bg)
       elif aiBusy and mi == aiMsgs.high and m.calls.len == 0 and m.think.len == 0:
-        result.add wrapSpans(@[span(aiPhase & aiWaitedText(), theme.dim, bg, {aItalic})], width, bg, 2)
+        result.add wrapSpans(@[span(tr(aiPhase) & aiWaitedText(), theme.dim, bg, {aItalic})], width, bg, 2)
       # (a call whose arguments are still coming: what it writes so far, and no approval yet)
       let streaming = aiJob != nil and mi == aiMsgs.high
       for ci, c in m.calls:
@@ -556,7 +556,7 @@ proc buildChat(width: int): seq[ChatLine] =
             if m2 < aiMsgs.len and c2 < aiMsgs[m2].calls.len:
               aiMsgs[m2].calls[c2].expanded = not aiMsgs[m2].calls[c2].expanded
               inc aiVersion
-        l.tip = "Show / hide details"
+        l.tip = tx("Show / hide details")
         result.add l
         if streaming and c.state == 0:
           if ci == m.calls.high: result.add writingLines(c, width)
@@ -577,10 +577,10 @@ proc buildChat(width: int): seq[ChatLine] =
                 else: c.args
             except CatchableError: discard
           if outsideProject(c):
-            result.add wrapSpans(@[span(ic("warn") & " outside the project folder", theme.warn, theme.codeBg, {aBold})],
+            result.add wrapSpans(@[span(ic("warn") & " " & tr("outside the project folder"), theme.warn, theme.codeBg, {aBold})],
                                  width, theme.codeBg, 3)
           if c.name in ["run_command", "acp:execute"] and aiNoSandbox() and c.name notin aiAlwaysAllow:
-            result.add wrapSpans(@[span(ic("warn") & " " & AiNoSandboxNote, theme.warn, theme.codeBg)],
+            result.add wrapSpans(@[span(ic("warn") & " " & tr(AiNoSandboxNote), theme.warn, theme.codeBg)],
                                  width, theme.codeBg, 3)
           var shown = 0
           let dl = info.splitLines
@@ -589,12 +589,12 @@ proc buildChat(width: int): seq[ChatLine] =
             if isDiff and (il.startsWith("--- ") or il.startsWith("+++ ")): continue
             if shown >= cap:
               var more = ChatLine(bg: theme.codeBg)
-              more.spans.add span("   … " & $(dl.len - shown) & " more lines — open the diff", theme.accent, theme.codeBg)
+              more.spans.add span("   … " & trf("$1 more lines — open the diff", dl.len - shown), theme.accent, theme.codeBg)
               let m4 = mi
               let c4 = ci
               capture m4, c4:
                 more.act = proc() = showCallDiff(m4, c4)
-              more.tip = "Open the whole diff in a tab"
+              more.tip = tx("Open the whole diff in a tab")
               result.add more
               break
             let fgL = if il.startsWith("+"): theme.gitAdd elif il.startsWith("-"): theme.err
@@ -606,12 +606,12 @@ proc buildChat(width: int): seq[ChatLine] =
           if isDiff:
             var dlL = ChatLine(bg: bg)
             dlL.spans.add span("   ", theme.fg, bg)
-            dlL.spans.add span(" Open diff ", theme.fg, theme.btnBg)
+            dlL.spans.add span(" " & tr("Open diff") & " ", theme.fg, theme.btnBg)
             let m5 = mi
             let c5 = ci
             capture m5, c5:
               dlL.act = proc() = showCallDiff(m5, c5)
-            dlL.tip = "Show the full change in a tab"
+            dlL.tip = tx("Show the full change in a tab")
             result.add dlL
           for (lbl, allow, always, key) in [(" Allow (y) ", true, false, "y"), (" Always (a) ", true, true, "a"),
                                             (" Deny (n) ", false, false, "n")]:
@@ -636,7 +636,7 @@ proc buildChat(width: int): seq[ChatLine] =
           for il in c.diff.splitLines:
             if il.startsWith("--- ") or il.startsWith("+++ "): continue
             if shown >= 40:
-              result.add wrapSpans(@[span("… open the diff for the rest", theme.dim, theme.codeBg)], width, theme.codeBg, 3)
+              result.add wrapSpans(@[span("… " & tr("open the diff for the rest"), theme.dim, theme.codeBg)], width, theme.codeBg, 3)
               break
             let fgL = if il.startsWith("+"): theme.gitAdd elif il.startsWith("-"): theme.err else: theme.dim
             var cl = ChatLine(bg: theme.codeBg)
@@ -647,7 +647,7 @@ proc buildChat(width: int): seq[ChatLine] =
           var shown = 0
           for il in c.result.splitLines:
             if shown >= 40:
-              result.add wrapSpans(@[span("… (" & $c.result.splitLines.len & " lines)", theme.dim, theme.codeBg)], width, theme.codeBg, 3)
+              result.add wrapSpans(@[span("… " & trf("($1 lines)", c.result.splitLines.len), theme.dim, theme.codeBg)], width, theme.codeBg, 3)
               break
             var cl = ChatLine(bg: theme.codeBg)
             cl.spans.add span("   " & truncTo(il, width - 4), (if c.isError: theme.err else: theme.dim), theme.codeBg)
@@ -661,25 +661,25 @@ proc buildChat(width: int): seq[ChatLine] =
   if aiBusy and aiPhase.len > 0 and aiMsgs.len > 0 and (aiMsgs[^1].role != 1 or aiMsgs[^1].text.len > 0 or
                                                        aiMsgs[^1].calls.len > 0 or aiMsgs[^1].think.len > 0):
     let spin = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"][int(getMonoTime().ticks div 100_000_000) mod 10]
-    result.add wrapSpans(@[span(spin & " " & aiPhase & aiWaitedText(), theme.accent, bg, {aItalic})], width, bg, 2)
+    result.add wrapSpans(@[span(spin & " " & tr(aiPhase) & aiWaitedText(), theme.accent, bg, {aItalic})], width, bg, 2)
   elif not aiBusy and aiMsgs.len > 0 and aiMsgs[^1].role in {1, 3}:
     # after the last reply: regenerate it, copy it
     var l = ChatLine(bg: bg)
-    l.spans.add span("  ↻ " & (if aiMsgs[^1].role == 3: "Retry" else: "Regenerate"), theme.dim, bg)
+    l.spans.add span("  ↻ " & tr(if aiMsgs[^1].role == 3: tx("Retry") else: tx("Regenerate")), theme.dim, bg)
     l.act = proc() = aiRegenerate()
-    l.tip = "Ask again (/regen)"
+    l.tip = tx("Ask again (/regen)")
     result.add ChatLine(bg: bg)
     result.add l
     if aiMsgs[^1].role == 1 and aiMsgs[^1].text.len > 0:
       var c = ChatLine(bg: bg)
-      c.spans.add span("  ⧉ Copy reply", theme.dim, bg)
+      c.spans.add span("  ⧉ " & tr("Copy reply"), theme.dim, bg)
       let t = aiMsgs[^1].text
       c.act = proc() =
         clipSet(t)
         clipParts = @[t]
         clipLineMode = false
         info("Copied the reply")
-      c.tip = "Copy the whole reply as Markdown"
+      c.tip = tx("Copy the whole reply as Markdown")
       result.add c
 
 var
@@ -816,7 +816,7 @@ proc drawAssistant(x0, y0, w, h: int) =
   drawFrame(x0 + 1, iy, w - 2, ih, theme.inputBg, (if focused: theme.focusBorder else: theme.border), "", NoColor, false)
   let tx = x0 + 3
   if aiInput.len == 0:
-    let ph = if aiBusy: "Esc stops · " & aiPhase else: "Ask anything… (Enter sends · Alt+Enter new line)"
+    let ph = if aiBusy: tr("Esc stops") & " · " & tr(aiPhase) else: tr("Ask anything… (Enter sends · Alt+Enter new line)")
     discard putStr(tx, iy + 1, truncTo(ph, iw - 2), theme.dim, theme.inputBg, {aItalic})
     if focused:
       cursorX = tx
@@ -853,12 +853,12 @@ proc drawAssistant(x0, y0, w, h: int) =
       aiSend(t), (if aiBusy: "Stop (Esc)" else: "Send (Enter)"), (if aiBusy: theme.err else: theme.accent), theme.inputBg)
   region(x0 + 1, iy, w - 8, ih, proc() = (focus = fRight))
   # hint row
-  var hint = if aiBusy: "Esc stop" else: "/ commands · @ context · ↑ history · Ctrl+L new chat"
+  var hint = if aiBusy: tr("Esc stop") else: tr("/ commands · @ context · ↑ history · Ctrl+L new chat")
   if aiInput.len > 0 and aiInput[0] == '/' and ' ' notin aiInput:
     var ms: seq[string]
     for c in slashNames():
       if c.toLowerAscii.startsWith(aiInput.toLowerAscii): ms.add c
-    hint = if ms.len > 0: ms.join(" ") & "  (Tab)" else: "unknown command — /help"
+    hint = if ms.len > 0: ms.join(" ") & "  (Tab)" else: tr("unknown command — /help")
   else:
     let lastW = if aiInputCur > 0: aiInput[0 ..< aiInputCur].splitWhitespace() else: @[]
     if lastW.len > 0 and lastW[^1].startsWith("@") and aiInputCur > 0 and aiInput[aiInputCur - 1] != ' ':
@@ -1034,8 +1034,9 @@ proc assistantKey(k: Key) =
     if k.mods == {} and k.ch == ord('@') :
       # attach context: @file @selection … and the MCP servers' resources first, then the project's files
       var items: seq[(string, string, Action)]
-      const MentionHelp = ["the current file", "the selection", "uncommitted changes (git diff)", "staged changes",
-                           "errors and warnings", "the terminal's last output", "the project's file list"]
+      const MentionHelp = [tx("the current file"), tx("the selection"), tx("uncommitted changes (git diff)"),
+                           tx("staged changes"), tx("errors and warnings"), tx("the terminal's last output"),
+                           tx("the project's file list")]
       for i, m in AiMentions: items.add act(m, MentionHelp[min(i, MentionHelp.high)], mentionInsertAct(m))
       items.add act("▣ a picture…", "a screenshot or a photo, for a model that reads pictures", proc() =
         aiAttachPicture())

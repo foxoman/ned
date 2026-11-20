@@ -193,7 +193,7 @@ proc cmdProfileCompare() =
                              relPath(file) & (if line >= 0: ":" & $(line + 1) else: ""),
                              path: (if line >= 0: file else: ""), line: line,
                              sev: (if d > 1.0: 1 elif d < -1.0: 4 else: 0))
-  panelTitle = "PROFILE · BEFORE AND AFTER"
+  panelTitle = tx("PROFILE · BEFORE AND AFTER")
   panelOpen = true
   panelFollow = false
   needRender = true

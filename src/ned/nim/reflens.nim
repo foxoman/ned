@@ -360,9 +360,9 @@ proc refLensPump(b: Buffer, budgetMs = 12) =
       for k in old: refCounts.del k
       if refCounts.len > 20_000: refCounts.clear()
     refCounts[key] = (n, refVersion)
-    let label = if n == -3: "references…" elif n < 0: "5000+ references" elif n == 0: "no references"
-                elif n == 1: "1 reference"
-                else: $n & " references"
+    let label = if n == -3: tx("references…") elif n < 0: tx("5000+ references") elif n == 0: tx("no references")
+                elif n == 1: tx("1 reference")
+                else: tx($n & " references")
     let v = (label, n == 0 and s.exported)
     if lens.getOrDefault(s.line, ("", false)) != v:
       lens[s.line] = v
@@ -374,7 +374,8 @@ proc refLensAt(b: Buffer, line: int): (string, bool) =
   ## the reference-count label to show beside the declaration on that line ("3 references") and whether it is an
   ## exported one nobody uses; empty when there is none
   if not cfgRefCounts or b.id notin refLens: return ("", false)
-  refLens[b.id].getOrDefault(line, ("", false))
+  let (l, unused) = refLens[b.id].getOrDefault(line, ("", false))
+  (tr(l), unused)
 
 proc refLensClick(b: Buffer, line: int) =
   ## the references of the declaration on `line`

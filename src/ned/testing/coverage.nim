@@ -322,8 +322,8 @@ proc ncCompileC(r: NimCovRun, test, dir, name: string) =
     addPanelLine(PanelLine(text: "  the C build is the one from last time (" & $objs & " files)", sev: 3, line: -1))
     ncRunTest(r, test, dir, exe, cwd)
     return
-  addPanelLine(PanelLine(text: "  C: " & $n & " file(s) to compile, " & $max(0, objs - n) & " kept from last time" &
-                               " (" & r.cc & ", " & $par & " at a time)", sev: 3, line: -1))
+  addPanelLine(PanelLine(text: "  C: " & trf("$1 file(s) to compile, $2 kept from last time ($3, $4 at a time)", n,
+                                               max(0, objs - n), r.cc, par), sev: 3, line: -1))
   let sf = dir / "ned-build.sh"
   try: writeFile(sf, script)
   except CatchableError as e:
@@ -519,7 +519,7 @@ proc nimCovStart(files: seq[string], what: string, program = false) =
   if old != nil: killProc(old.pr)
   diagsBuild.clear()
   panelKind = pkOutput
-  panelLines = @[PanelLine(text: "▶ test coverage: " & what & " — built with gcov's counters, kept between runs",
+  panelLines = @[PanelLine(text: "▶ " & trf("test coverage: $1 — built with gcov's counters, kept between runs", what),
                            sev: 5, line: -1)]
   panelTitle = "OUTPUT"
   panelOpen = true
@@ -661,7 +661,7 @@ proc covPanel() =
                              path: f, line: 0, sev: 2)
   panelLines.add PanelLine(text: "  total " & $pct & "%: " & $ran & " of " & $total & " lines ran in " & $rows.len &
                                  " file(s)", sev: 5, line: -1)
-  panelTitle = "COVERAGE · " & $pct & "%"
+  panelTitle = tx("COVERAGE · " & $pct & "%")
   panelOpen = true
   panelFollow = false
   panelSel = 0

@@ -105,14 +105,14 @@ proc drawPaneView(b: Buffer, x0, y0, w, h: int, active: bool) =
     let i = paneTermIndex(b.paneArg)
     if i < 0:
       fillRect(x0, y0, w, h, theme.fg, theme.bg)
-      discard putStr(x0 + 2, y0 + 1, "The terminal ended — close this tab (Ctrl+W)", theme.dim, theme.bg, {aItalic},
+      discard putStr(x0 + 2, y0 + 1, tr("The terminal ended — close this tab (Ctrl+W)"), theme.dim, theme.bg, {aItalic},
                      x0 + w)
       return
     termPaneCursor = active and focus == fEditor
     drawTermPane(i, x0, y0, w, h, active)
     termPaneCursor = false
     if terms[i].dead:
-      let s = " the shell ended (exit " & $terms[i].code & ") — Ctrl+W closes the tab "
+      let s = " " & trf("the shell ended (exit $1) — Ctrl+W closes the tab", terms[i].code) & " "
       discard putStr(x0 + max(0, w - strWidth(s) - 1), y0 + h - 1, s, theme.badgeFg, theme.accent, {}, x0 + w)
     region(x0, y0, w, h, paneFocusAct(b.id), "")      # (a tap: this pane, its keys to the shell)
   of 2:

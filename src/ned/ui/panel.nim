@@ -59,7 +59,7 @@ proc rebuildProblems() =
         (if d.rule.len > 0: "(" & d.rule & ")" else: "") &
         "  [" & $(d.line + 1) & ":" & $(d.col + 1) & "]", path: p, line: d.line, col: d.col, sev: d.sev)
       inc n
-  if n == 0: lines.add PanelLine(text: "  No problems have been detected in the workspace.", sev: 4, line: -1)
+  if n == 0: lines.add PanelLine(text: "  " & tr("No problems have been detected in the workspace."), sev: 4, line: -1)
   panelStore[pkProblems] = lines
 
 # ── every problem with the code around it, in one editable buffer (like Zed's project diagnostics) ──
@@ -113,10 +113,10 @@ proc drawBottomPanel(x0, y0, w, h: int) =
   ctxRegion(x0, y0, w, 1, proc() = ctxOpen(panelHeaderMenu()))
   var x = x0 + 1
   let (ne, nw) = problemCounts()
-  var tabs = @[(pkProblems, "PROBLEMS" & (if ne + nw > 0: " " & $(ne + nw) else: "")), (pkOutput, "OUTPUT"),
-               (pkTerminal, "TERMINAL")]
-  if panelStore[pkSearch].len > 0: tabs.add (pkSearch, (if panelTitles[pkSearch].len > 0: panelTitles[pkSearch] else: "RESULTS"))
-  if dbgOn or panelStore[pkDebug].len > 0: tabs.add (pkDebug, (if dbgOn: "● DEBUG" else: "DEBUG"))
+  var tabs = @[(pkProblems, tr("PROBLEMS") & (if ne + nw > 0: " " & $(ne + nw) else: "")), (pkOutput, tr("OUTPUT")),
+               (pkTerminal, tr("TERMINAL"))]
+  if panelStore[pkSearch].len > 0: tabs.add (pkSearch, (if panelTitles[pkSearch].len > 0: panelTitles[pkSearch] else: tr("RESULTS")))
+  if dbgOn or panelStore[pkDebug].len > 0: tabs.add (pkDebug, (if dbgOn: "● " & tr("DEBUG") else: tr("DEBUG")))
   for (k, label) in tabs:
     let active = k == panelKind
     let fg = if active: theme.fg else: theme.dim
@@ -131,11 +131,11 @@ proc drawBottomPanel(x0, y0, w, h: int) =
       for xx in x1 + 1 ..< x - 1: grid[y0 * scrW + xx].at.incl aUnder
     if x >= x0 + w - 14: break
   if panelKind == pkOutput and runningJob() != nil:
-    x = putStr(x + 1, y0, "● running", theme.accent, hb, {}, x0 + w - 12)
+    x = putStr(x + 1, y0, "● " & tr("running"), theme.accent, hb, {}, x0 + w - 12)
   if panelKind == pkDebug:
     # the debugger's buttons
-    for (lab0, tip0, cmd) in [("▶", "Continue (F5)", "-exec-continue"), ("↷", "Step over (F10)", "-exec-next"),
-                              ("↓", "Step into (F11)", "-exec-step"), ("↑", "Step out (Shift+F11)", "-exec-finish")]:
+    for (lab0, tip0, cmd) in [("▶", tx("Continue (F5)"), "-exec-continue"), ("↷", tx("Step over (F10)"), "-exec-next"),
+                              ("↓", tx("Step into (F11)"), "-exec-step"), ("↑", tx("Step out (Shift+F11)"), "-exec-finish")]:
       if x + 4 >= x0 + w - 14: break
       let c = cmd
       let lab = " " & lab0 & " "

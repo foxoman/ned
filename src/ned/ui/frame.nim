@@ -74,7 +74,7 @@ proc render() =
   gfxNow = GfxReq()                 # (a picture view sets it again when it draws)
   fillRect(0, 0, scrW, scrH, theme.fg, theme.bg)
   if scrW < 16 or scrH < 5:
-    discard putStr(0, 0, "ned: window too small", theme.fg, theme.bg)
+    discard putStr(0, 0, tr("ned: window too small"), theme.fg, theme.bg)
     flushScreen()
     return
   computeLayout()

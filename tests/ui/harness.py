@@ -86,7 +86,12 @@ def keys(*k):
     for x in k:
         tm('send-keys', '-t', 'f', x); time.sleep(0.12)
 def text(s): tm('send-keys', '-t', 'f', '-l', s); time.sleep(0.15)
-def screen(): return tm('capture-pane', '-t', 'f', '-p').stdout
+def screen():
+    s = tm('capture-pane', '-t', 'f', '-p').stdout
+    if os.environ.get('NED_UI_SCREENS'):         # (each screen a test read, for tests/i18n/untranslated.py)
+        with open(os.environ['NED_UI_SCREENS'], 'a') as f: f.write(s + '\n\x0c\n')
+    if os.environ.get('NED_UI_PSEUDO'): s = s.replace('⟦', '').replace('⟧', '')   # (the tests read the English)
+    return s
 def wait_for(pat, t=8.0):
     end = time.time() + t
     while time.time() < end:
@@ -200,6 +205,8 @@ def setup(cfg=None):
     c["terminal.suggest"] = False      # (no list over the terminal's lines as a test types; t_652_terminal_help)
     c["terminal.clickToMove"] = False  # (a click focuses the terminal, as the tests were written; … and here)
     c["ai.ideLink"] = False            # (no lock files in your ~/.claude; t_653_ide_claude turns it on)
+    c["ui.language"] = "en"            # (the tests read English; NED_UI_PSEUDO=1 marks what goes through tr, t_655_*)
+    if os.environ.get('NED_UI_PSEUDO'): c["ui.language"] = "pseudo"
     c.update(cfg or {})
     c = {k: v for k, v in c.items() if v is not None}
     json.dump(c, open(CFG + '/ned/config.json', 'w'))

@@ -115,7 +115,7 @@ proc drawBreadcrumbs() =
         x = button(x, y, p, crumbFolderAct(path), "What is in it", theme.dim, cb)
         x = putStr(x, y, sep, blend(theme.dim, cb, 0.4), cb, {}, lim)
   else:
-    x = putStr(x, y, b.name, theme.fg, cb, {}, lim)
+    x = putStr(x, y, b.tabName, theme.fg, cb, {}, lim)
   if b.lang.mode == lmCsv and b.lines.len > 0:
     # a CSV table: the column the cursor is in, by its heading
     let p = b.primary.head

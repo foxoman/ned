@@ -18,21 +18,21 @@ proc gitSteps(root: string, n = 12): seq[GitStep] =
     if a >= 0 and ago.endsWith("}"): ago = ago[a + 1 ..< ^1]
     result.add GitStep(hash: p[0], subject: p[1], ago: ago)
 
-func stepWords(s: string): string =
-  ## a step as a person would say it
+proc stepWords(s: string): string =
+  ## a step as a person would say it (in the language chosen)
   let c = s.find(": ")
   let kind = if c > 0: s[0 ..< c] else: s
   let what = if c > 0: s[c + 2 .. ^1] else: ""
-  if kind == "commit" or kind == "commit (initial)": "the commit “" & what & "”"
-  elif kind == "commit (amend)": "the amend of “" & what & "”"
-  elif kind == "commit (merge)": "the merge commit “" & what & "”"
-  elif kind.startsWith("pull"): "the pull" & (if what.len > 0: " (" & what & ")" else: "")
-  elif kind.startsWith("merge"): "the " & kind & (if what.len > 0: " (" & what & ")" else: "")
-  elif kind.startsWith("rebase"): "the rebase"
-  elif kind.startsWith("reset"): "the reset (" & what & ")"
-  elif kind.startsWith("checkout"): "the switch (" & what & ")"
-  elif kind.startsWith("cherry-pick"): "the cherry-pick “" & what & "”"
-  elif kind.startsWith("revert"): "the revert “" & what & "”"
+  if kind == "commit" or kind == "commit (initial)": trf("the commit “$1”", what)
+  elif kind == "commit (amend)": trf("the amend of “$1”", what)
+  elif kind == "commit (merge)": trf("the merge commit “$1”", what)
+  elif kind.startsWith("pull"): (if what.len > 0: trf("the pull ($1)", what) else: tr("the pull"))
+  elif kind.startsWith("merge"): (if what.len > 0: trf("the $1 ($2)", kind, what) else: trf("the $1", kind))
+  elif kind.startsWith("rebase"): tr("the rebase")
+  elif kind.startsWith("reset"): trf("the reset ($1)", what)
+  elif kind.startsWith("checkout"): trf("the switch ($1)", what)
+  elif kind.startsWith("cherry-pick"): trf("the cherry-pick “$1”", what)
+  elif kind.startsWith("revert"): trf("the revert “$1”", what)
   else: s
 
 func stepGroup(s: string): string =
@@ -53,7 +53,7 @@ proc gitPushed(root, commit: string): bool =
 proc gitUndoTo(root: string, steps: seq[GitStep], k: int) =
   ## back to the state before steps[k] (and every step after it)
   if k + 1 >= steps.len:
-    info("Nothing before " & stepWords(steps[k].subject) & " to go back to")
+    info(trf("Nothing before $1 to go back to", stepWords(steps[k].subject)))
     return
   # a rebase (its steps one group): back to before it started
   var j = k
@@ -61,7 +61,7 @@ proc gitUndoTo(root: string, steps: seq[GitStep], k: int) =
   if g.len > 0:
     while j + 1 < steps.len and stepGroup(steps[j + 1].subject) == g: inc j
   if j + 1 >= steps.len:
-    info("Nothing before " & stepWords(steps[k].subject) & " to go back to")
+    info(trf("Nothing before $1 to go back to", stepWords(steps[k].subject)))
     return
   let tgt = steps[j + 1].hash
   let s0 = steps[k].subject
@@ -125,7 +125,8 @@ proc gitUndoMenu() =
     let g = stepGroup(steps[k].subject)
     if g.len > 0 and g == lastGroup: continue        # (a rebase's steps: once)
     lastGroup = g
-    items.add act((if k == 0: "Undo " else: "Go back to before ") & stepWords(steps[k].subject), steps[k].ago,
+    items.add act((if k == 0: trf("Undo $1", stepWords(steps[k].subject))
+                   else: trf("Go back to before $1", stepWords(steps[k].subject))), steps[k].ago,
                   undoAct(root, steps, kk))
   openActions("Git: undo — the branch goes back to before it; your uncommitted work stays", items)
 

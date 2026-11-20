@@ -85,6 +85,9 @@ proc initSettingDefs() =
   defS("Appearance", "ui.accessible", %false, "Accessibility mode: plain ASCII for every frame, bar and symbol (screen " &
        "readers read it sensibly), letters beside colours (E/W in the gutter, + ~ _ for git, B for breakpoints), ASCII icons, " &
        "no minimap. Palette › Accessibility mode also picks a high-contrast theme")
+  defS("Appearance", "ui.language", %"auto", "The language of ned's menus, messages and dialogs: auto (your system's, " &
+       "LANG), en, a translation ned has (Palette › Language…) or one of yours in ~/.config/ned/i18n. pseudo marks each " &
+       "text that can be translated: see TRANSLATING.md")
   defS("Appearance", "ui.icons", %"unicode", "Icon set. 'nerd' needs a Nerd Font (Termux: ~/.termux/font.ttf)",
        @["unicode", "nerd", "ascii"])
   defS("Appearance", "ui.titleBar", %true, "Title bar with menus, search box and layout buttons")
@@ -1080,8 +1083,29 @@ func vimKeyWritten(k: string): string =
       else: res.add tok[^1]
   res
 
+const NedCatalogues = block:
+  # the translations built in: i18n/LANGUAGES names them, each i18n/<code>.json (read when ned is built)
+  var r: seq[(string, string)]
+  for l in staticRead("../../../i18n/LANGUAGES").splitLines:
+    let c = l.strip
+    if c.len > 0 and not c.startsWith("#"): r.add (c, staticRead("../../../i18n/" & c & ".json"))
+  r
+
+var trApplied = "\0"                 # the ui.language last applied
+
+proc applyLanguage(force = false) =
+  ## ui.language → the catalogue `tr` reads (when it changed, or `force`: a translation of yours was edited)
+  let l = sStr("ui.language")
+  if l == trApplied and not force: return
+  trApplied = l
+  let errs = trLoad(l, NedCatalogues, configDir() / "i18n")
+  for e in errs: warn("Translation: " & e)
+  plugTranslations(fresh = true)
+  prevGrid.setLen(0)                                # (everything drawn again, in the new language)
+
 proc applySettings() =
   ## settingsJ → the cfg* globals the rest of the editor reads
+  applyLanguage()
   cfgThemeName = sStr("theme")
   cfgIcons = if sBool("ui.accessible"): "ascii" else: sStr("ui.icons")
   cfgTitleBar = sBool("ui.titleBar")

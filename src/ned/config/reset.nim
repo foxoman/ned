@@ -126,8 +126,9 @@ proc cmdResetEverything() =
               " running: quit " & (if others == 1: "it" else: "them") & " first, or they write their settings and state back")
   for p in parts:
     let (bytes, files) = resetSize(p.paths)
-    let size = if files == 0: "nothing there" else: $files & (if files == 1: " file, " else: " files, ") & resetBytes(bytes)
-    f.addCheck(p.key, p.label & "  ·  " & size, p.on and files > 0, p.what)
+    let size = if files == 0: tr("nothing there") elif files == 1: trf("1 file, $1", resetBytes(bytes))
+               else: trf("$1 files, $2", files, resetBytes(bytes))
+    f.addCheck(p.key, tr(p.label) & "  ·  " & size, p.on and files > 0, tr(p.what))
   if unsaved.len > 0:
     f.addHeader("Unsaved")
     f.addCheck("save", "Save " & unsaved.join(", ") & " first", true,
@@ -143,10 +144,10 @@ proc cmdResetEverything() =
         paths.add p.paths
         names.add p.label
     if paths.len == 0:
-      ff.error = "Nothing ticked"
+      ff.error = tx("Nothing ticked")
       return false
     if ff.formChecked("save") and not saveAll():
-      ff.error = "Could not save every file — untick \"Save … first\" to lose their edits"
+      ff.error = tx("Could not save every file — untick \"Save … first\" to lose their edits")
       return false
     for b in bufs: removeSwap(b)
     resetPending = paths

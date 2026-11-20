@@ -117,6 +117,13 @@ UI suite on a quiet machine: under load a few timing-sensitive tests can fail, a
   template, macro — local ones too) says what it does and how: a `##` first in its body, or a `#` line above a
   one-line one. `python3 tests/docs/comments.py` checks it (CI too); `--list` shows what is missing.
 - Comments say why, in the same plain style. Keep a change small and in the style of the code around it.
+- Every text shown to the person can be translated (6.55): pass it to a routine that shows text (`info`, `warn`,
+  `error`, `toast`, `mi`, `act`, `openDialog`, `askConfirm`, a form's field, `button`, `drawFrame` …: they call
+  `tr`), or write `tr("…")` where it is drawn, `trf("Saved $1 files", n)` for one with parts, `tx("…")` in a table
+  or constant (and `tr` where it is shown). Compare and store the English text, translate only where it is drawn.
+  Then `python3 tests/i18n/extract.py --ned ./ned` (CI checks the template is up to date). What is not translated:
+  files and code, AI prompts, compilers' and language servers' words, the engines' problems, reports to paste into an
+  issue, and the command line ([TRANSLATING.md](TRANSLATING.md#for-developers-keeping-ned-translatable)).
 - Screenshots (`screenshots/`): every one is drawn from its tmux capture (`screenshots/captures/NAME.ansi`) in the
   Coder Nerd Font Mono by `tests/shots/render.py` — a new one too, never a screen grab
   ([Screenshots](docs/dev/testing.md#screenshots)).

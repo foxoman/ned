@@ -348,7 +348,7 @@ proc cmdAtlasAddDependency(pkg0 = "") =
     let pkg = ff.formValue("pkg").strip
     let ver = ff.formValue("ver").strip
     if pkg.len == 0:
-      ff.error = "Which package?"
+      ff.error = tx("Which package?")
       return false
     if ver.len == 0 and ff.formChecked("install"):
       atlasRun("use " & quoteShell(pkg))              # (atlas writes the requires line itself)
@@ -368,11 +368,11 @@ proc cmdAtlasLink() =
     if id != "ok": return true
     var d = expandTilde(ff.formValue("dir").strip)
     if d.len == 0:
-      ff.error = "Which folder?"
+      ff.error = tx("Which folder?")
       return false
     if not d.isAbsolute: d = rootDir / d
     if not dirExists(d):
-      ff.error = "No such folder: " & tildePath(d)
+      ff.error = tx("No such folder: " & tildePath(d))
       return false
     atlasRun("link " & quoteShell(d))
     true
@@ -411,7 +411,7 @@ proc cmdAtlasEnv() =
     if id != "ok": return true
     let v = ff.formValue("ver").strip
     if v.len == 0:
-      ff.error = "Which version?"
+      ff.error = tx("Which version?")
       return false
     let mode = ff.formValue("mode")
     let use = ff.formChecked("use")
@@ -540,17 +540,17 @@ proc cmdNewNimProject() =
     if id != "ok": return true
     let name = ff.formValue("name").strip
     if name.len == 0:
-      ff.error = "The project needs a name"
+      ff.error = tx("The project needs a name")
       return false
     if not (name[0] in Letters) or not name.replace("-", "_").replace(" ", "_").allCharsInSet(IdentChars):
-      ff.error = "A name of letters, digits and _ (starting with a letter)"
+      ff.error = tx("A name of letters, digits and _ (starting with a letter)")
       return false
     let where = expandTilde(ff.formValue("where").strip)
     if where.len > 0 and not dirExists(where):
-      ff.error = "No such folder: " & where
+      ff.error = tx("No such folder: " & where)
       return false
     if ff.formValue("deps") == "atlas" and not canAtlas:
-      ff.error = "atlas is not installed — choose nimble, or install it (nimble install atlas)"
+      ff.error = tx("atlas is not installed — choose nimble, or install it (nimble install atlas)")
       return false
     discard createNimProject(name, where, ff.formValue("kind"), ff.formValue("desc").strip, ff.formValue("license"),
                              ff.formValue("deps"), ff.formChecked("git"), ff.formChecked("tests"))

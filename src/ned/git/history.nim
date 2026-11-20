@@ -218,7 +218,7 @@ proc gitWorktrees() =
     if main.len == 0: main = p
     let here = (ri < 0 and p == root) or (ri >= 0 and p == remotes[ri].absPath)
     let pp = p
-    items.add act((if here: "● " else: "  ") & p, (if b.len > 0: b else: "detached") & (if here: " · this one" else: ""), proc() =
+    items.add act((if here: "● " else: "  ") & p, (if b.len > 0: b else: tr("detached")) & (if here: " · " & tr("this one") else: ""), proc() =
       var acts: seq[(string, string, Action)]
       if ri >= 0:
         acts.add act("Open it", "over SSH, like this folder", proc() = remoteOpen(remotes[ri].host & ":" & pp))

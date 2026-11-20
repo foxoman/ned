@@ -156,11 +156,11 @@ proc dbgPrettyValue(v: string): seq[string] =
 proc dbgPanel() =
   ## the Debug panel: state, call stack (click to go there), variables, the program's output
   var ls: seq[PanelLine]
-  ls.add PanelLine(text: "  " & (if dbgState.len > 0: dbgState else: "not running") &
-                   (if dbgOn: "   ·   F5 continue · F10 step over · F11 step into · Shift+F11 step out · Shift+F5 stop"
-                    else: "   ·   F9 toggles a breakpoint · F5 starts debugging"), sev: 5, line: -1)
+  ls.add PanelLine(text: "  " & tr(if dbgState.len > 0: dbgState else: tx("not running")) & "   ·   " &
+                   tr(if dbgOn: tx("F5 continue · F10 step over · F11 step into · Shift+F11 step out · Shift+F5 stop")
+                      else: tx("F9 toggles a breakpoint · F5 starts debugging")), sev: 5, line: -1)
   if dbgVars.len > 0:
-    ls.add PanelLine(text: "VARIABLES   (Enter on ▸ shows the fields or items)", sev: 5, line: -1)
+    ls.add PanelLine(text: tr("VARIABLES") & "   " & tr("(Enter on ▸ shows the fields or items)"), sev: 5, line: -1)
     for (n, t, v) in dbgVars:
       let expandable = if dbgDap: dapVarRefs.getOrDefault(n) > 0 else: dbgExpandable(t)
       let open = n in dbgExpanded
@@ -172,24 +172,25 @@ proc dbgPanel() =
         for part in dbgPrettyValue(d): ls.add PanelLine(text: "      " & part, line: -1)
   # watches: one line when there are none
   if dbgWatches.len == 0:
-    ls.add PanelLine(text: "WATCH   + add a watch expression", path: "dbg:watch", line: 0, sev: 5)
+    ls.add PanelLine(text: tr("WATCH") & "   + " & tr("add a watch expression"), path: "dbg:watch", line: 0, sev: 5)
   else:
-    ls.add PanelLine(text: "WATCH", sev: 5, line: -1)
+    ls.add PanelLine(text: tr("WATCH"), sev: 5, line: -1)
     for i, w in dbgWatches:
       let v = if i < dbgWatchVals.len and dbgOn: dbgWatchVals[i] else: ""
-      ls.add PanelLine(text: "  " & w & (if v.len > 0: " = " & v else: "") & "    (Enter removes it)", path: "dbg:unwatch:" & $i, line: 0)
-    ls.add PanelLine(text: "  + add a watch expression", path: "dbg:watch", line: 0, sev: 3)
+      ls.add PanelLine(text: "  " & w & (if v.len > 0: " = " & v else: "") & "    " & tr("(Enter removes it)"),
+                       path: "dbg:unwatch:" & $i, line: 0)
+    ls.add PanelLine(text: "  + " & tr("add a watch expression"), path: "dbg:watch", line: 0, sev: 3)
   if dbgWpWanted.len > 0:
-    ls.add PanelLine(text: "STOP WHEN IT CHANGES", sev: 5, line: -1)
+    ls.add PanelLine(text: tr("STOP WHEN IT CHANGES"), sev: 5, line: -1)
     for i, w in dbgWpWanted:
       var on = false
       for (e, _) in dbgWatchpoints:
         if e == w: on = true
-      ls.add PanelLine(text: "  ● " & w & (if dbgOn and not on: "  (not set: not in scope here)" else: "") &
-                       "    (Enter removes it)", path: "dbg:unwp:" & $i, line: 0)
-    ls.add PanelLine(text: "  + stop when a value changes", path: "dbg:wp", line: 0, sev: 3)
+      ls.add PanelLine(text: "  ● " & w & (if dbgOn and not on: "  " & tr("(not set: not in scope here)") else: "") &
+                       "    " & tr("(Enter removes it)"), path: "dbg:unwp:" & $i, line: 0)
+    ls.add PanelLine(text: "  + " & tr("stop when a value changes"), path: "dbg:wp", line: 0, sev: 3)
   if dbgFrames.len > 0:
-    ls.add PanelLine(text: "CALL STACK", sev: 5, line: -1)
+    ls.add PanelLine(text: tr("CALL STACK"), sev: 5, line: -1)
     var hidden = 0
     for (fn, f, l) in dbgFrames:
       # the C runtime's frames (main, NimMain…) are not your code
@@ -197,11 +198,11 @@ proc dbgPanel() =
          not (f.endsWith(".nim") or f.endsWith(".nims"))):
         inc hidden
         continue
-      let name = if dbgDap: fn elif fn == "NimMainModule": "(top level)" else: dbgFuncName(fn)
+      let name = if dbgDap: fn elif fn == "NimMainModule": tr("(top level)") else: dbgFuncName(fn)
       ls.add PanelLine(text: "  " & name & "   " & extractFilename(f) & ":" & $(l + 1), path: f, line: l, sev: 3)
-    if hidden > 0: ls.add PanelLine(text: "  (" & $hidden & " frames of the C runtime hidden)", line: -1)
+    if hidden > 0: ls.add PanelLine(text: "  " & trf("($1 frames of the C runtime hidden)", hidden), line: -1)
   if dbgOut.len > 0:
-    ls.add PanelLine(text: "OUTPUT", sev: 5, line: -1)
+    ls.add PanelLine(text: tr("OUTPUT"), sev: 5, line: -1)
     for o in dbgOut[max(0, dbgOut.len - 300) .. ^1]: ls.add PanelLine(text: "  " & o, line: -1)
   panelStore[pkDebug] = ls
   needRender = true
@@ -405,7 +406,7 @@ proc dbgLogFinish() =
   dbgOut.add "◇ " & dbgLogAt & "  " & o
   dbgLogPending = ""
   dbgLogWait = 0
-  dbgState = "● running"
+  dbgState = tx("● running")
   dbgSend("-exec-continue")
   dbgPanel()
 
@@ -623,7 +624,7 @@ proc dbgLine(line: string) =
           let wl = (try: parseInt(want) - 1 except ValueError: -1)
           if wl >= 0: bpNums[(path, wl)] = bk{"number"}.getStr
     elif c == '*' and cls == "running":
-      dbgState = "● running"
+      dbgState = tx("● running")
       dbgAt = ("", -1)
     elif c == '*' and cls == "stopped":
       let reason = r{"reason"}.getStr
@@ -633,16 +634,20 @@ proc dbgLine(line: string) =
       let fr = r{"frame"}
       let f = if fr != nil: fr{"fullname"}.getStr else: ""
       let ln = if fr != nil: (try: parseInt(fr{"line"}.getStr) - 1 except ValueError: -1) else: -1
-      dbgState = "‖ stopped" & (if reason.len > 0: " (" & reason.replace("-", " ") & ")" else: "") &
+      # (gdb's reasons, in the translators' template: tr finds them)
+      const reasons {.used.} = [tx("breakpoint hit"), tx("end stepping range"), tx("function finished"),
+                                tx("signal received"), tx("location reached"), tx("watchpoint trigger")]
+      dbgState = "‖ " & (if reason.len > 0: trf("stopped ($1)", tr(reason.replace("-", " "))) else: tr("stopped")) &
                  (if r{"signal-name"} != nil: " " & r{"signal-name"}.getStr else: "") &
-                 (if f.len > 0: " at " & extractFilename(f) & ":" & $(ln + 1) & " in " & dbgFuncName(fr{"func"}.getStr) else: "")
+                 (if f.len > 0: " " & trf("at $1 in $2", extractFilename(f) & ":" & $(ln + 1), dbgFuncName(fr{"func"}.getStr))
+                  else: "")
       if reason == "breakpoint-hit" and f.len > 0:
         dbgCondPending = bpCond.getOrDefault(f & ":" & $ln)
         dbgLogPending = bpLog.getOrDefault(f & ":" & $ln)
         dbgLogWait = 0
         if dbgLogPending.len > 0:
           dbgLogAt = extractFilename(f) & ":" & $(ln + 1)
-          dbgState = "● running (logpoint at " & dbgLogAt & ")"
+          dbgState = tx("● running (logpoint at " & dbgLogAt & ")")
       if reason in ["watchpoint-trigger", "access-watchpoint-trigger", "read-watchpoint-trigger"]:
         let num = r{"wpt"}{"number"}.getStr
         var x = r{"wpt"}{"exp"}.getStr
@@ -794,7 +799,7 @@ proc dbgStart() =
   let cmd = nimDebugBuildCmd("c", "--debugger:native --opt:none --gcc.options.debug:-g3 --clang.options.debug:-g3 " &
                              "--hints:off " & (if cfgNimFlags.len > 0: cfgNimFlags & " " else: "") & "-o:" & quoteShell(exe),
                              main, privDir() / "debug-cache" / splitFile(main).name)
-  dbgState = "building " & extractFilename(main) & " with debug information…"
+  dbgState = tx("building " & extractFilename(main) & " with debug information…")
   dbgOut = @["$ " & cmd]
   dbgFrames.setLen(0)
   dbgVars.setLen(0)
@@ -803,7 +808,7 @@ proc dbgStart() =
   discard startJob(jkTool, cmd, parentDir(main), proc(j: Job) =
     if j.code != 0:
       for l in j.output.splitLines: dbgOut.add l
-      dbgState = "the build failed"
+      dbgState = tx("the build failed")
       dbgPanel()
       return
     # (no debuginfod: where DEBUGINFOD_URLS is set — Ubuntu 24.04 does it for every shell — gdb asks whether to
@@ -813,14 +818,14 @@ proc dbgStart() =
     try:
       dbgProc = spawnProc(@["gdb", "--interpreter=mi3", "-q", "-nx", exe], parentDir(main), siPipe, erMerge)
     except OSError as e:
-      dbgState = "could not start gdb: " & e.msg
+      dbgState = tx("could not start gdb: " & e.msg)
       dbgPanel()
       return
     finally:
       if diu.len > 0: putEnv("DEBUGINFOD_URLS", diu)
     dbgOn = true
     dbgRbuf = ""
-    dbgState = "starting…"
+    dbgState = tx("starting…")
     # Nim's own gdb pretty printers (strings as text, seqs as items) when the toolchain has them
     dbgPretty = false
     let py = nimGdbScript()

@@ -99,6 +99,8 @@ type
     replLang, replCmd: string  # a REPL tab (Send to REPL): its language and the command it runs instead of a shell
     replQ: seq[string]       # code sent before the REPL showed its prompt
     replAt: MonoTime
+    replEnter: string        # the Enter that runs a pasted block, typed a moment after the paste (replEnterAt)
+    replEnterAt: MonoTime
     sbDropped: int           # scrollback rows dropped from the top so far
     cmds: seq[TermCmd]       # commands seen through shell integration
     navCmd: int              # the command Ctrl+↑/↓ went to (-1: none)

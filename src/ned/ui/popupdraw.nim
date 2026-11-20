@@ -113,7 +113,7 @@ proc drawTooltip() =
      pickKind != pickNone: return                       # a list opened over the place: no tip from what is under it
   let i = hitRegion(mouseX, mouseY)
   if i < 0 or regions[i].tip.len == 0: return
-  let t = regions[i].tip
+  let t = tr(regions[i].tip)
   let w = strWidth(t) + 2
   let x = clamp(mouseX - w div 2, 0, max(0, scrW - w))
   var y = mouseY + 1

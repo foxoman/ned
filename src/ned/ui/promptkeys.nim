@@ -23,7 +23,7 @@ proc cmdOpenFolder() =
   let start = if projectMarks(rootDir).len > 0 and parentDir(rootDir).len > 0: parentDir(rootDir) else: rootDir
   browseFolder(start)
 
-proc movePath(src, dest: string, what = "Moved to ") =
+proc movePath(src, dest: string, what = tx("Moved to $1")) =
   ## a file or folder moved (renamed): its open buffers follow it, a Nim module's importers are fixed
   if src == dest: return
   try:
@@ -34,7 +34,7 @@ proc movePath(src, dest: string, what = "Moved to ") =
       if b.path == src: b.path = dest
       elif b.path.startsWith(src & "/"): b.path = dest & b.path[src.len .. ^1]
     refreshTree()
-    info(what & relPath(dest))
+    info(trf(what, relPath(dest)))
     if src.endsWith(".nim") and fileExists(dest): fixImportsAfterMove(src, dest)
   except CatchableError as e: error(e.msg)
 
@@ -111,7 +111,7 @@ proc submitPrompt() =
     if t.strip.len > 0 and treeTarget.len > 0:
       let p = expandTilde(t.strip)
       let dest = if p.isAbsolute: p else: rootDir / p
-      movePath(treeTarget, dest, "Renamed to ")
+      movePath(treeTarget, dest, tx("Renamed to $1"))
   of pLspRename:
     let b = buf()
     let s = lspReady(b)

@@ -15,7 +15,7 @@ proc gitRun(args: seq[string], okMsg: string) =
   for a in args: cmd.add " " & quoteShell(a)
   discard startJob(jkGit, remoteGitBefore(root) & cmd, root, proc(j: Job) =
     let o = stripAnsi(j.output).strip
-    if j.code == 0: info(okMsg & (if o.len > 0 and o.count('\n') == 0: " — " & o else: ""))
+    if j.code == 0: info(tr(okMsg) & (if o.len > 0 and o.count('\n') == 0: " — " & o else: ""))
     else: error("git: " & (if o.len > 0: o.splitLines[^1] else: "failed"))
     refreshGitStatus()
     for b in bufs: refreshGit(b)

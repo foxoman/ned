@@ -1,25 +1,25 @@
 # the welcome page shown when nothing is open — logo, start actions, recent files, toolchain status and a tip — with its
 # single-key actions; also the sticky lines (enclosing blocks) kept at the top of a scrolled file.
 const Tips = [
-  "Start a comment with TODO, FIXME, BUG, HACK or NOTE: it gets its colour, and View › TODOs lists and counts them",
-  "Something missing? Help › Check setup (or ned --check) lists what ned found and how to install the rest",
-  "Pipe into ned: git log | ned, or nim check app.nim 2>&1 | ned -",
-  "Alt+M on a macro or template call shows its expansion",
-  "Type `proc` and press Tab — snippets work for Nim, Python, C, Rust, JS, HTML",
-  "Alt+E opens the Nim dock: nimble tasks, build modes, toolchain, Atlas, Nimony",
-  "Ctrl+D selects the next occurrence — then just type to edit them all",
-  "Alt+Q lists every reference to the symbol under the cursor",
-  "Alt+C opens the AI assistant; in agent mode it can edit files and run commands after you approve",
-  "Alt+Shift+C rewrites the selection with AI — Ctrl+Z undoes it",
-  "Ctrl+\\ opens a real terminal inside ned (vim, htop, git … all work)",
-  "F10 opens the menu bar; right click anywhere for a context menu",
-  "Ctrl+P understands `:42` (line), `@name` (symbol), `#name` (project symbol) and `>cmd`",
-  "The ARC/ORC view shows where Nim inserts =copy, =sink and =destroy",
-  "Click ▶ in the gutter to run a single unittest `test` block",
-  "Alt+- folds the block under the cursor; Alt+= unfolds it",
-  "Palette › Toggle vim mode turns on Vim keys (:w, ciw, dd, . and friends)",
-  "Every option lives in one commented settings file — palette › Settings",
-  "Alt+U turns the mouse off so Termux's own text selection works",
+  tx("Start a comment with TODO, FIXME, BUG, HACK or NOTE: it gets its colour, and View › TODOs lists and counts them"),
+  tx("Something missing? Help › Check setup (or ned --check) lists what ned found and how to install the rest"),
+  tx("Pipe into ned: git log | ned, or nim check app.nim 2>&1 | ned -"),
+  tx("Alt+M on a macro or template call shows its expansion"),
+  tx("Type `proc` and press Tab — snippets work for Nim, Python, C, Rust, JS, HTML"),
+  tx("Alt+E opens the Nim dock: nimble tasks, build modes, toolchain, Atlas, Nimony"),
+  tx("Ctrl+D selects the next occurrence — then just type to edit them all"),
+  tx("Alt+Q lists every reference to the symbol under the cursor"),
+  tx("Alt+C opens the AI assistant; in agent mode it can edit files and run commands after you approve"),
+  tx("Alt+Shift+C rewrites the selection with AI — Ctrl+Z undoes it"),
+  tx("Ctrl+\\ opens a real terminal inside ned (vim, htop, git … all work)"),
+  tx("F10 opens the menu bar; right click anywhere for a context menu"),
+  tx("Ctrl+P understands `:42` (line), `@name` (symbol), `#name` (project symbol) and `>cmd`"),
+  tx("The ARC/ORC view shows where Nim inserts =copy, =sink and =destroy"),
+  tx("Click ▶ in the gutter to run a single unittest `test` block"),
+  tx("Alt+- folds the block under the cursor; Alt+= unfolds it"),
+  tx("Palette › Toggle vim mode turns on Vim keys (:w, ciw, dd, . and friends)"),
+  tx("Every option lives in one commented settings file — palette › Settings"),
+  tx("Alt+U turns the mouse off so Termux's own text selection works"),
 ]
 
 proc recentList(n: int): seq[string] =
@@ -43,19 +43,19 @@ proc drawWelcome(x0, y0, w, h: int) =
   let wide = w >= 74 and h >= 20
   let showLogo = h >= 24 and w >= 30
   let starts = @[
-    ("n", "New file", "", Action(proc() =
+    ("n", tx("New file"), "", Action(proc() =
       buf().welcome = false
       needRender = true)),
-    ("o", "Open file…", "Ctrl+P", Action(proc() = cmdFindFile())),
-    ("d", "Open folder…", "", Action(proc() = cmdOpenFolder())),
-    ("g", "Clone from a link…", "", Action(proc() = gitCloneFromLink())),
-    ("f", "Browse files", "Ctrl+B", Action(proc() = showSide(svFiles))),
-    ("r", "Recent projects…", "", Action(proc() = runCmd("File: open recent project…"))),
-    ("j", "New Nim project…", "", Action(proc() = cmdNewNimProject())),
-    ("e", "Command palette", "Ctrl+E", Action(proc() = cmdPalette())),
-    ("t", "Theme · " & cfgThemeName, "Alt+T", Action(proc() = cmdThemes())),
-    ("s", "Settings", "", Action(proc() = openSettingsUi())),
-    ("?", "Key bindings", "F1", Action(proc() =
+    ("o", tx("Open file…"), "Ctrl+P", Action(proc() = cmdFindFile())),
+    ("d", tx("Open folder…"), "", Action(proc() = cmdOpenFolder())),
+    ("g", tx("Clone from a link…"), "", Action(proc() = gitCloneFromLink())),
+    ("f", tx("Browse files"), "Ctrl+B", Action(proc() = showSide(svFiles))),
+    ("r", tx("Recent projects…"), "", Action(proc() = runCmd("File: open recent project…"))),
+    ("j", tx("New Nim project…"), "", Action(proc() = cmdNewNimProject())),
+    ("e", tx("Command palette"), "Ctrl+E", Action(proc() = cmdPalette())),
+    ("t", trf("Theme · $1", cfgThemeName), "Alt+T", Action(proc() = cmdThemes())),
+    ("s", tx("Settings"), "", Action(proc() = openSettingsUi())),
+    ("?", tx("Key bindings"), "F1", Action(proc() =
       helpOpen = true
       helpScroll = 0))]
   let recents = recentList(if wide: min(9, h - 12) else: 5)
@@ -75,13 +75,14 @@ proc drawWelcome(x0, y0, w, h: int) =
       discard putStr(lx, y, l, colors[i mod colors.len], theme.bg, {aBold}, x0 + w)
       inc y
     inc y
-  let longTag = "ned " & Version & " · the desktop-class editor for Termux, made for Nim"
-  let tag = if w >= strWidth(longTag) + 4: longTag else: "ned " & Version & " · made for Nim"
+  let longTag = trf("ned $1 · the desktop-class editor for Termux, made for Nim", Version)
+  let tag = if w >= strWidth(longTag) + 4: longTag else: trf("ned $1 · made for Nim", Version)
   discard putStr(x0 + max(0, (w - strWidth(tag)) div 2), y, truncTo(tag, w - 2), theme.dim, theme.bg, {}, x0 + w)
   y += 2
   proc row(x, yy: int, key, label, hint: string, a: Action, colW: int, rightAct: Action = nil) =
     ## draws one row of the page — its key in an accent badge, the label, a hint at the right edge of the column — and
     ## makes it clickable (a right click runs rightAct)
+    let label = tr(label)
     var xx = putStr(x, yy, " " & key & " ", theme.bg, theme.accent, {aBold}, x0 + w)
     xx = putStr(xx + 1, yy, truncTo(label, colW - 6 - (if hint.len > 0: strWidth(hint) + 1 else: 0)), theme.fg,
                 theme.bg, {}, x0 + w)
@@ -89,8 +90,8 @@ proc drawWelcome(x0, y0, w, h: int) =
     welcomeRegions.add (yy, x, x + colW, a)
     region(x, yy, colW, 1, a, "", rightAct)
   let colW = if wide: 34 else: blockW
-  discard putStr(left, y, "START", theme.dim, theme.bg, {aBold})
-  if wide: discard putStr(left + 38, y, "RECENT", theme.dim, theme.bg, {aBold})
+  discard putStr(left, y, tr("START"), theme.dim, theme.bg, {aBold})
+  if wide: discard putStr(left + 38, y, tr("RECENT"), theme.dim, theme.bg, {aBold})
   inc y
   let top = y
   for i, (k, l, hnt, a) in starts:
@@ -98,13 +99,13 @@ proc drawWelcome(x0, y0, w, h: int) =
     inc y
   if recents.len == 0 and wide:
     # (nothing opened yet: the column says how to fill it rather than staying blank)
-    discard putStr(left + 38, top, "Nothing opened yet —", theme.dim, theme.bg, {aItalic}, x0 + w)
-    discard putStr(left + 38, top + 1, "the files you open come here", theme.dim, theme.bg, {aItalic}, x0 + w)
+    discard putStr(left + 38, top, tr("Nothing opened yet —"), theme.dim, theme.bg, {aItalic}, x0 + w)
+    discard putStr(left + 38, top + 1, tr("the files you open come here"), theme.dim, theme.bg, {aItalic}, x0 + w)
   if recents.len > 0:
     var ry = if wide: top else: y + 1
     var rx = if wide: left + 38 else: left
     if not wide:
-      discard putStr(left, ry, "RECENT", theme.dim, theme.bg, {aBold})
+      discard putStr(left, ry, tr("RECENT"), theme.dim, theme.bg, {aBold})
       inc ry
     for i, r in recents:
       let path = r
@@ -140,7 +141,7 @@ proc drawWelcome(x0, y0, w, h: int) =
       tx = left
     tx = putStr(tx, y, label, (if ok: theme.gitAdd else: theme.dim), theme.bg, {}, x0 + w) + 2
   y += 2
-  let tip = "tip: " & Tips[(getTime().toUnix div 3600) mod Tips.len]
+  let tip = trf("tip: $1", tr(Tips[(getTime().toUnix div 3600) mod Tips.len]))
   var tipLines = @[tip]
   if strWidth(tip) > w - 2:
     # wrap once at a space so phones see the whole tip

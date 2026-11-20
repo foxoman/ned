@@ -69,10 +69,10 @@ proc undoAgo(g: UndoGroup): string =
   ## from an earlier session, which has no time
   if g.time == MonoTime(): return ""
   let s = msSince(g.time) div 1000
-  if s < 60: $s & " s ago"
-  elif s < 3600: $(s div 60) & " min ago"
-  elif s < 86400: $(s div 3600) & " h ago"
-  else: $(s div 86400) & " d ago"
+  if s < 60: trf("$1 s ago", s)
+  elif s < 3600: trf("$1 min ago", s div 60)
+  elif s < 86400: trf("$1 h ago", s div 3600)
+  else: trf("$1 d ago", s div 86400)
 
 proc undoPreviewOf(b: Buffer, br, depth: int): (Buffer, int) =
   ## the text the state has (a copy of the buffer taken there) and the line its last step changed

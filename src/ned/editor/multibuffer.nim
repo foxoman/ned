@@ -239,7 +239,7 @@ proc openMultibuffer(title: string, hits: seq[(string, int)], context = 1) =
   for sc in secs:
     text.add mbHeaderOf(lang, sc)
     text.add sc.orig
-  let b = openScratch(mbFreeTitle("Multibuffer: " & title), mbTextOf(text), lang)
+  let b = openScratch(mbFreeTitle(tx("Multibuffer: " & title)), mbTextOf(text), lang)
   b.readOnly = false
   b.savedSeq = b.topSeq()
   multiBufs[b.id] = secs
@@ -263,7 +263,7 @@ proc openMultibufferOf(title: string, ranges: seq[tuple[path: string, first, las
   secs = mbMerge(secs)
   if secs.len == 0: return nil
   let keep = curBuf
-  let b = openScratch(mbFreeTitle("Multibuffer: " & title), "", detectLang(secs[0].path, ""))
+  let b = openScratch(mbFreeTitle(tx("Multibuffer: " & title)), "", detectLang(secs[0].path, ""))
   b.readOnly = false
   mbRebuild(b, secs)
   mbLast = b.id
@@ -387,7 +387,7 @@ proc cmdMultibufferFromSearch() =
   if hits.len == 0:
     info("Search the project first (Alt+S), or find references (Alt+Q)")
     return
-  openMultibuffer((if panelTitle.len > 0 and panelKind == pkSearch: panelTitle else: "search results"), hits)
+  openMultibuffer((if panelTitle.len > 0 and panelKind == pkSearch: panelTitle else: tx("search results")), hits)
 
 proc mbHere(what: string): Buffer =
   ## the multibuffer in front — nil (and why) when it is not one, or it has edits not saved

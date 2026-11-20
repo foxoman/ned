@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.54](#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.55](#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -33,41 +33,17 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ---
 
-## What's new in 6.54
+## What's new in 6.55
 
-**Edit a proposed change before you take it.** A change Claude Code or Gemini CLI proposes, a file from an
-agent's worktree, and now an agent's write in the AI dock open as a diff with a third key: e opens the proposal in a
-tab of its own to edit, and Ctrl+S accepts it as you left it — the tool gets your version. Closing the tab rejects
-it.
+**ned in your language.** Every text ned shows — the menus, the palette, messages and questions, the settings
+window, the docks and panels, the status bar, the welcome page — can now be translated, and a translation needs no
+programming: one JSON file from each English text to yours, `i18n/<code>.json`. ned takes your system's language
+(`LANG`) or the one you choose in *Palette › Language…* (`ui.language`), and keeps English for what a translation does
+not have yet. No translation comes with ned yet: [TRANSLATING.md](TRANSLATING.md) says how to make one, try it as you
+go and send it. `"ui.language": "pseudo"` marks each text that can be translated, to find one that cannot.
 
-**An agent's writes as diffs first.** With `ai.agentReview` on, each file an agent of the AI dock (Claude Agent,
-Codex, Gemini CLI, Copilot) writes through ned waits as a diff: a writes it, d tells the agent you rejected it, e
-lets you edit it first ([The AI assistant](docs/guide/ai.md#agents-of-their-own-acp)).
-
-**Worktrees: from your uncommitted changes, and several.** *AI: agent in a worktree* asks, when you have changes
-not committed yet, whether the agent starts from them too: they are copied into its worktree and committed there
-first, so the review shows only what the agent did. Each worktree stays until you remove it: start another while
-one waits, and *AI: review the agent's branch* asks which one ([An agent in a worktree](docs/guide/ai.md#an-agent-in-a-worktree)).
-
-**The IDE link keeps its port.** ned starts again on the port and with the token it had, so a Claude Code still
-running in a terminal kept across the restart finds it again. Columns are counted as Claude Code and Gemini CLI count
-them, so a selection on a line with Arabic or an emoji is where they think it is. A change Gemini CLI proposes no
-longer closes when the connection that sent it does.
-
-**Copilot's telemetry refused.** Copilot's language server reached GitHub's telemetry address on its own, whatever
-it was told. Now it reaches the network through a small proxy of ned's on 127.0.0.1 that refuses that address and
-passes the rest on — through your own proxy when `HTTPS_PROXY` names one (`ai.copilotNoTelemetry`, on; not on
-Windows).
-
-**Lighter on memory.** On ned's own source the editor held 56 MB after a session of typing and completions; now 44.
-The completion list's items no longer each carry room for a declaration only a few of them have, the colours of the
-names a file sees are kept by their hashes, and the list's items are not kept twice.
-
-**Include order, by position.** The `include-order` check now reads each file from the top, as the compiler does: a
-name used above the import that brings it, further down the same file, or after the `include` in the file that
-includes it, is undeclared there. A call after a dot (`s.strip`) counts too ([Nim IDE](docs/guide/nim.md)).
-
-**Fixed.** A C file with an `#if` nested thousands of brackets deep could stop ned.
+**Fixed.** Python 3.14's REPL took the Enter after a pasted file as more of the paste, so *REPL: send the whole file*
+and Shift+Enter left the code waiting at `...` (Python 3.13 too when the paste and the Enter came together).
 
 ## Features
 
@@ -238,7 +214,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.54.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.55.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

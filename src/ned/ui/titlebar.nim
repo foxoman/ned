@@ -19,15 +19,15 @@ proc drawTitleBar() =
   type Btn = tuple[label, tip: string, fg: Rgb, act: Action, on: bool]
   var btns: seq[Btn]
   let running = runningJob() != nil
-  btns.add ((if running: ic("stop") else: ic("run")), (if running: "Stop (Alt+R runs again)" else: "Run file (Alt+R)"),
+  btns.add ((if running: ic("stop") else: ic("run")), (if running: tx("Stop (Alt+R runs again)") else: tx("Run file (Alt+R)")),
             (if running: theme.err else: theme.gitAdd),
             Action(proc() = (if runningJob() != nil: stopRun() else: runCurrent())), false)
   if scrW >= 60:
-    btns.add (ic("left"), "Toggle left dock (Ctrl+B)", theme.titleFg, Action(proc() = toggleDock(dsLeft)), treeOpen)
-    btns.add (ic("panel"), "Toggle bottom panel (Alt+O)", theme.titleFg, Action(proc() = togglePanel()), panelOpen)
-    btns.add (ic("right"), "Toggle right dock", theme.titleFg, Action(proc() = toggleDock(dsRight)), rightOpen)
-  btns.add (ic("ai"), "AI assistant (Alt+C)", theme.accent, Action(proc() = toggleAssistant()), rightOpen and rightView == svAssistant)
-  btns.add (ic("gear"), "Settings", theme.titleFg, Action(proc() = openSettingsUi()), false)
+    btns.add (ic("left"), tx("Toggle left dock (Ctrl+B)"), theme.titleFg, Action(proc() = toggleDock(dsLeft)), treeOpen)
+    btns.add (ic("panel"), tx("Toggle bottom panel (Alt+O)"), theme.titleFg, Action(proc() = togglePanel()), panelOpen)
+    btns.add (ic("right"), tx("Toggle right dock"), theme.titleFg, Action(proc() = toggleDock(dsRight)), rightOpen)
+  btns.add (ic("ai"), tx("AI assistant (Alt+C)"), theme.accent, Action(proc() = toggleAssistant()), rightOpen and rightView == svAssistant)
+  btns.add (ic("gear"), tx("Settings"), theme.titleFg, Action(proc() = openSettingsUi()), false)
   var bw = 1
   for b in btns: bw += strWidth(b.label) + 2
   var rx = scrW - bw
@@ -38,7 +38,7 @@ proc drawTitleBar() =
   var x = button(0, y, " " & ic("menu") & " ", proc() = openAppMenu(), "Menu (F10)", theme.fg, theme.titleBg)
   # menu bar labels when there is room
   var menusW = 0
-  for n in MenuNames: menusW += strWidth(n) + 2
+  for n in MenuNames: menusW += strWidth(tr(n)) + 2
   let proj = projectName()
   var branch = if gitBranch.len > 0: gitBranch else: ""
   if branch.len > 0 and wsRoots.len > 0 and gitRepo.len > 0 and gitRepo != findGitRoot(rootDir):
@@ -83,8 +83,8 @@ proc drawTitleBar() =
       setCell(sx - 1, y, Cell(ch: 0x2590, fg: bg, bg: theme.titleBg))
       setCell(sx + sw, y, Cell(ch: 0x258C, fg: bg, bg: theme.titleBg))
     let keyW = if sw >= 30: 8 else: 1                    # "Ctrl+P " and a gap before it
-    var txt = " " & ic("search") & "  Search files, or > for commands"
-    if strWidth(txt) + keyW > sw: txt = " " & ic("search") & " Search files"
+    var txt = " " & ic("search") & "  " & tr("Search files, or > for commands")
+    if strWidth(txt) + keyW > sw: txt = " " & ic("search") & " " & tr("Search files")
     discard putStr(sx, y, txt, theme.dim, bg, {}, sx + sw - keyW)
     if sw >= 30: discard putStr(sx + sw - 7, y, "Ctrl+P", blend(theme.dim, bg, 0.3), bg)
     region(sx, y, sw, 1, proc() = cmdFindFile(), "Go to file · > for commands · @ for symbols · : for a line")

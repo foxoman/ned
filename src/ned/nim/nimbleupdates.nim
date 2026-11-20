@@ -161,12 +161,12 @@ proc depShow() =
     items.add act("Update all " & $newer.len & " to their latest versions", "", proc() = nimbleBump(all))
   for d in rows:
     let label = d.name & (if d.op.len > 0: " " & d.op & " " & d.want else: "")
-    let inst = if d.installed.len > 0: " · installed " & d.installed else: ""
+    let inst = if d.installed.len > 0: " · " & trf("installed $1", d.installed) else: ""
     let detail = if d.err.len > 0: d.err
-                 elif d.op == "#": "pinned to #" & d.want & (if d.latest.len > 0: " · latest release " & d.latest else: "")
-                 elif d.depNewer: "→ " & d.latest & " available" & inst
-                 elif d.latest.len > 0: "up to date (latest " & d.latest & ")" & inst
-                 else: "no version tags" & inst
+                 elif d.op == "#": trf("pinned to #$1", d.want) & (if d.latest.len > 0: " · " & trf("latest release $1", d.latest) else: "")
+                 elif d.depNewer: "→ " & trf("$1 available", d.latest) & inst
+                 elif d.latest.len > 0: trf("up to date (latest $1)", d.latest) & inst
+                 else: tr("no version tags") & inst
     items.add act(label, detail, depRowAct(d, label, detail))
   openActions("Dependencies of " & extractFilename(nimble.file) & " — " &
               (if newer.len == 0: "all up to date" else: $newer.len & " with a newer version"), items)

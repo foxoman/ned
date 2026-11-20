@@ -41,8 +41,10 @@ def system_without(tmp, names):
         os.makedirs(d)
         for src in ["/usr/bin", "/bin"]:
             for n in os.listdir(src):
-                if not any(n.startswith(x) for x in names) and not os.path.exists(os.path.join(d, n)):
-                    os.symlink(os.path.join(src, n), os.path.join(d, n))
+                # (lexists: a link the system has that points nowhere is there too — /bin is often /usr/bin)
+                if any(n.startswith(x) for x in names) or os.path.lexists(os.path.join(d, n)): continue
+                try: os.symlink(os.path.join(src, n), os.path.join(d, n))
+                except OSError: pass
     return d
 
 

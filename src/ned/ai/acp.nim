@@ -367,7 +367,7 @@ proc acpRestartIn(a: AcpAgent, v: int) =
   if w and not b.dead:
     b.waiting = true
     aiBusy = true
-    aiPhase = "starting " & acpTitle() & "…"
+    aiPhase = tx("starting " & acpTitle() & "…")
 
 proc acpInit(a: AcpAgent, v: int) =
   ## initialize: ned says who it is and what it lends the agent (version 1: the files and the terminal), the agent what
@@ -546,7 +546,7 @@ proc acpPromptNow(a: AcpAgent) =
   a.turnStart = ui
   a.planMsg = -1
   aiBusy = true
-  aiPhase = "thinking…"
+  aiPhase = tx("thinking…")
   aiReqStart = getMonoTime()
   aiMsgs.add AiMsg(role: 1)
   inc aiVersion
@@ -579,11 +579,11 @@ proc acpTurn() =
     a.session = ""
   if a.state == "starting":
     a.waiting = true
-    aiPhase = "starting " & acpTitle() & "…"
+    aiPhase = tx("starting " & acpTitle() & "…")
     return
   if a.session.len == 0:
     a.waiting = true
-    aiPhase = "opening a conversation with " & acpTitle() & "…"
+    aiPhase = tx("opening a conversation with " & acpTitle() & "…")
     a.acpNewSession(proc() = a.acpPromptNow())
     return
   a.acpPromptNow()
@@ -779,7 +779,7 @@ proc acpUpdate(a: AcpAgent, u: JsonNode) =
   of "agent_message_chunk":
     let mi = a.acpMsgFor(u, 0)
     acpAddCapped(aiMsgs[mi].text, acpBlockText(u{"content"}))
-    if aiPhase.startsWith("thinking"): aiPhase = "writing…"
+    if aiPhase.startsWith("thinking"): aiPhase = tx("writing…")
   of "agent_message":
     let mi = a.acpMsgFor(u, 0)
     var t = ""
@@ -788,7 +788,7 @@ proc acpUpdate(a: AcpAgent, u: JsonNode) =
   of "agent_thought_chunk":
     let mi = a.acpMsgFor(u, 1)
     acpAddCapped(aiMsgs[mi].think, acpBlockText(u{"content"}))
-    aiPhase = "thinking…"
+    aiPhase = tx("thinking…")
   of "agent_thought":
     let mi = a.acpMsgFor(u, 1)
     var t = ""
@@ -843,8 +843,8 @@ proc acpUpdate(a: AcpAgent, u: JsonNode) =
     of "running":
       if not aiBusy:
         aiBusy = true
-        aiPhase = "working…"
-    of "requires_action": aiPhase = "waiting for you"
+        aiPhase = tx("working…")
+    of "requires_action": aiPhase = tx("waiting for you")
     else: discard
   else: discard                                # (user_message: ned shows yours; session_info_update …)
   inc aiVersion
@@ -902,7 +902,7 @@ proc acpPermission(a: AcpAgent, id, params: JsonNode) =
       return
   a.perms.add p
   aiMsgs[mi].calls[ci].state = 0
-  aiPhase = "waiting for approval"
+  aiPhase = tx("waiting for approval")
   showSide(svAssistant)
   inc aiVersion
   needRender = true
@@ -930,7 +930,7 @@ proc acpAnswer(mi, ci: int, allow, always: bool) =
     a.perms.delete(i)
     if always and allow: aiAlwaysAllow.incl aiMsgs[mi].calls[ci].name
     aiMsgs[mi].calls[ci].state = (if allow: 1 else: 3)
-    aiPhase = (if a.perms.len > 0: "waiting for approval" elif allow: truncTo(aiMsgs[mi].calls[ci].args, 50) & "…"
+    aiPhase = (if a.perms.len > 0: tx("waiting for approval") elif allow: truncTo(aiMsgs[mi].calls[ci].args, 50) & "…"
                else: "working…")
     inc aiVersion
     needRender = true
@@ -1222,7 +1222,7 @@ proc acpStop() =
   if not a.turn: return
   a.acpPermsCancel()
   if a.session.len > 0: a.acpNotify("session/cancel", %*{"sessionId": a.session})
-  aiPhase = "stopping…"
+  aiPhase = tx("stopping…")
   needRender = true
 
 proc acpNewChat() =

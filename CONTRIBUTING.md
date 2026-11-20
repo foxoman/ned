@@ -78,6 +78,13 @@ formatter wants a unit test.
 - **Fast on a phone**: nothing slow on the main loop; big files have a large-file mode; memory is measured
   (`nimble perf` checks the budget in `.github/ci/bench-budget.json`).
 - **Plain words** in the interface and the docs: say what happens, not how it is implemented.
+- **Every text can be translated**: a text shown to the person goes through `tr` (or a routine that calls it), so
+  the translators' template has it ([TRANSLATING.md](TRANSLATING.md#for-developers-keeping-ned-translatable)).
+
+## Translations
+
+ned's interface can be shown in other languages: a translation is one JSON file, and needs no programming.
+[TRANSLATING.md](TRANSLATING.md) says how to start one, try it in ned as you go, check it and send it.
 
 ## Themes
 

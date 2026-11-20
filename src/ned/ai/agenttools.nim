@@ -38,8 +38,8 @@ proc aiNoSandbox(): bool =
   ## With ai.sandbox "off" the person has chosen: commands run without asking, as before
   cfgAiApprove == "all" and sStr("ai.sandbox") != "off" and landlockAbi() == 0
 
-const AiNoSandboxNote = "ai.autoApprove is all, but this system has no sandbox for commands, so ned asks before " &
-                        "each one (to run them without asking, set ai.sandbox to off)"
+const AiNoSandboxNote = tx("ai.autoApprove is all, but this system has no sandbox for commands, so ned asks before " &
+                           "each one (to run them without asking, set ai.sandbox to off)")
 
 proc needsApproval(c: AiCall): bool =
   ## whether the call must wait for the user's yes: never in the planning step (a call that changes anything is refused
@@ -456,7 +456,7 @@ proc runCall(mi, ci: int) =
     if cmd.strip.len == 0:
       finishCall(mi, ci, "empty command", true)
       return
-    aiPhase = "running " & truncTo(cmd, 30)
+    aiPhase = tx("running " & truncTo(cmd, 30))
     let m = mi
     let k = ci
     # a remote folder: on the server (once the saves are there); what it changes there comes back before the
@@ -566,7 +566,7 @@ proc aiEditCheck(mi: int): bool =
   var left = runs.len
   var errs: OrderedTable[string, seq[string]]   # file → its errors ("line:col: message")
   var failed = ""                               # a checker that could not run
-  aiPhase = "checking the edits"
+  aiPhase = tx("checking the edits")
   needRender = true
   proc finish() =
     ## when the last checker has ended: puts each edited file's verdict on its last edit call — "no errors", or the
@@ -649,7 +649,7 @@ proc aiContinue() =
     let st = aiMsgs[mi].calls[ci].state
     if st == 0:
       if needsApproval(aiMsgs[mi].calls[ci]):
-        aiPhase = "waiting for approval"
+        aiPhase = tx("waiting for approval")
         aiBusy = true
         needRender = true
         if focus != fRight or rightView != svAssistant:

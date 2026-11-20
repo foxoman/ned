@@ -308,6 +308,7 @@ type
   PickItem = object
     label, detail, path, icon: string
     search: string        # more text the query may match (lower case): a setting's description
+    english: string       # the label in English when it is shown translated: the query matches it as well as the label
     line, col, idx, score: int
     hl: seq[int]
 

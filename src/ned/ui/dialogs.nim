@@ -8,6 +8,7 @@ type Toast = object
   actLabel: string
   act: Action
   fromMsg: bool         # a message (info/warn/error), not a notification with an action
+  orig: string          # its text in English (dropToasts finds it by that)
 
 var toasts: seq[Toast]
 
@@ -16,7 +17,9 @@ proc toast(text: string, sev = 3, actLabel = "", act: Action = nil, ttl = 0) =
   ## `act`; the same text again only extends the first one's time, at most four are kept (when notifications are on),
   ## and it goes after `ttl` ms (by default 9 s for an error, 12 s with a button, else 5 s)
   if not cfgToasts: return
-  let text = capMsg(text)
+  let orig = text
+  let text = capMsg(tr(text))
+  let actLabel = tr(actLabel)
   for t in toasts.mitems:
     if t.text == text:
       t.at = getMonoTime()            # the same again: shown a little longer, not twice
@@ -24,14 +27,14 @@ proc toast(text: string, sev = 3, actLabel = "", act: Action = nil, ttl = 0) =
       return
   toasts.add Toast(text: text, sev: sev, at: getMonoTime(),
                    ttl: (if ttl > 0: ttl elif sev == 1: 9000 elif act != nil: 12000 else: 5000),
-                   actLabel: actLabel, act: act)
+                   actLabel: actLabel, act: act, orig: orig)
   if toasts.len > 4: toasts.delete(0)
   needRender = true
 
 proc dropToasts(prefix: string) =
   ## the notifications that are no longer true (a folder's "not trusted yet", once it is)
   for i in countdown(toasts.high, 0):
-    if toasts[i].text.startsWith(prefix): toasts.delete(i)
+    if toasts[i].orig.startsWith(prefix): toasts.delete(i)
   needRender = true
 
 proc popupMsg(s: string, sev: int) =
@@ -79,7 +82,9 @@ proc openDialog(title, body: string, buttons: seq[(string, char)], onKey: proc(c
   ## opens a modal dialog on top of the others: a title, a body and buttons (each a label and the key it stands for);
   ## `onKey` is called with the key of the button chosen, `defaultSel` is the button selected at first and `danger`
   ## draws it as a warning
-  dialogs.add Dialog(title: title, body: body, buttons: buttons, sel: clamp(defaultSel, 0, max(0, buttons.high)),
+  var bs = buttons
+  for b in bs.mitems: b[0] = tr(b[0])
+  dialogs.add Dialog(title: tr(title), body: tr(body), buttons: bs, sel: clamp(defaultSel, 0, max(0, buttons.high)),
                      onKey: onKey, danger: danger)
   needRender = true
 
@@ -96,12 +101,12 @@ proc parseConfirm(message: string): (string, seq[(string, char)]) =
   var buttons: seq[(string, char)]
   if message.endsWith("(y/n)"):
     body = message[0 ..< message.len - 5].strip
-    return (body, @[("Yes", 'y'), ("No", 'n')])
+    return (body, @[(tx("Yes"), 'y'), (tx("No"), 'n')])
   var i = message.find(" (")
   let dash = message.find(" — (")
   if dash >= 0 and (i < 0 or dash < i): i = dash
   if i < 0:
-    return (message, @[("OK", 'y'), ("Cancel", 'c')])
+    return (message, @[(tx("OK"), 'y'), (tx("Cancel"), 'c')])
   body = message[0 ..< i].replace("—", "").strip(chars = {' ', '-'})
   let rest = message[i .. ^1]
   var k = 0
@@ -113,14 +118,14 @@ proc parseConfirm(message: string): (string, seq[(string, char)]) =
       var label = ($key).toUpperAscii & rest[k + 3 ..< e].replace("—", "").strip(chars = {' ', ','})
       if label.len == 1:
         label = case key
-          of 'y': "Yes"
-          of 'n': "No"
-          of 'c': "Cancel"
+          of 'y': tx("Yes")
+          of 'n': tx("No")
+          of 'c': tx("Cancel")
           else: label
       buttons.add (label, key)
       k = e
     else: inc k
-  if buttons.len == 0: buttons = @[("OK", 'y'), ("Cancel", 'c')]
+  if buttons.len == 0: buttons = @[(tx("OK"), 'y'), (tx("Cancel"), 'c')]
   (body, buttons)
 
 proc askConfirm(message: string, action: proc(c: char) {.closure.}) =
@@ -128,14 +133,14 @@ proc askConfirm(message: string, action: proc(c: char) {.closure.}) =
   ## about unsaved changes is titled that way with Save / Don't save buttons, and one starting with Delete or Discard is
   ## shown as a warning. `action` gets the key of the button chosen
   let (body, buttons0) = parseConfirm(message)
-  var title = "Confirm"
+  var title = tx("Confirm")
   var buttons = buttons0
   if "nsaved" in body or "Save changes" in body:
-    title = "Unsaved changes"
+    title = tx("Unsaved changes")
     for bt in buttons.mitems:
       case bt[1]
-      of 'y', 's': bt[0] = (if body.startsWith("Unsaved"): "Save all" else: "Save")
-      of 'n', 'd': bt[0] = "Don't save"
+      of 'y', 's': bt[0] = (if body.startsWith("Unsaved"): tx("Save all") else: tx("Save"))
+      of 'n', 'd': bt[0] = tx("Don't save")
       else: discard
-  elif body.startsWith("Delete") or body.startsWith("Discard"): title = "Are you sure?"
+  elif body.startsWith("Delete") or body.startsWith("Discard"): title = tx("Are you sure?")
   openDialog(title, body, buttons, action, 0, body.startsWith("Delete") or body.startsWith("Discard"))

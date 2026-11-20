@@ -366,7 +366,7 @@ proc aiRequest() =
     if mcpStarting():                         # their tools belong in this request: wait (at most 20 s)
       mcpWaitReq = true
       aiBusy = true
-      aiPhase = "starting MCP servers…"
+      aiPhase = tx("starting MCP servers…")
       needRender = true
       return
   let anth = cfgAiProvider == "anthropic"
@@ -425,7 +425,7 @@ proc aiRequest() =
   aiInlineThink = ""
   aiReqStart = getMonoTime()
   aiBusy = true
-  aiPhase = "thinking…"
+  aiPhase = tx("thinking…")
   if not aiInlineMode: aiMsgs.add AiMsg(role: 1)
   inc aiVersion
   let cmd = "curl -sS -N --no-buffer --max-time 900 -X POST " & quoteShell(url) & " -H @" & quoteShell(hf) &
@@ -503,7 +503,7 @@ proc aiRequest() =
     if failed:
       if mi >= 0 and aiMsgs[mi].role == 1 and aiMsgs[mi].text.len == 0 and aiMsgs[mi].calls.len == 0: aiMsgs.delete(mi)
       if retry:
-        aiPhase = "adjusting the request for " & aiModel() & "…"
+        aiPhase = tx("adjusting the request for " & aiModel() & "…")
         aiRequest()
         return
       let lm = m.toLowerAscii
@@ -522,7 +522,7 @@ proc aiRequest() =
       saveChat()
       return
     if mi >= 0 and aiMsgs[mi].role == 1 and aiMsgs[mi].calls.len > 0:
-      aiPhase = "running tools"
+      aiPhase = tx("running tools")
       aiContinue()
     else:
       if mi >= 0 and aiMsgs[mi].role == 1 and aiMsgs[mi].text.strip.len == 0:
@@ -623,11 +623,11 @@ proc aiContentParts(c: JsonNode, think, text: var string) =
 
 proc aiThinkPhase(think: string): string =
   ## the phase while a model thinks: "thinking · 312 words"
-  "thinking · " & $wordCount(think) & " words"
+  tx("thinking · " & $wordCount(think) & " words")
 
 proc aiCallPhase(c: AiCall): string =
   ## the phase while a tool call is being written: "calling edit src/a.nim · 3.2 KB"
-  "calling " & aiCallTarget(c) & (if c.args.len >= 1024: " · " & aiSizeText(c.args.len) else: "")
+  tx("calling " & aiCallTarget(c) & (if c.args.len >= 1024: " · " & aiSizeText(c.args.len) else: ""))
 
 proc aiLine(line: string) =
   ## one line of curl's output: the HTTP status marker is kept; a reply that is not streamed is collected whole; a line
@@ -677,7 +677,7 @@ proc aiLine(line: string) =
     aiSplit.feed(t, aiInlineThink, aiInlineText)
     aiTokensOut += (t.len + r.len) div 4
     aiPhase = if aiInlineText.len == 0 and aiInlineThink.len > 0: aiThinkPhase(aiInlineThink)
-              else: "editing… " & $aiTokensOut & " tokens"
+              else: tx("editing… " & $aiTokensOut & " tokens")
     needRender = true
     return
   let mi = curAssistant()
@@ -686,7 +686,7 @@ proc aiLine(line: string) =
     case j{"type"}.getStr
     of "response.output_text.delta":
       aiSplit.feed(j{"delta"}.getStr, aiMsgs[mi].think, aiMsgs[mi].text)
-      aiPhase = "writing…"
+      aiPhase = tx("writing…")
     of "response.reasoning_summary_text.delta", "response.reasoning_text.delta":
       aiMsgs[mi].think.add j{"delta"}.getStr
       aiPhase = aiThinkPhase(aiMsgs[mi].think)
@@ -695,7 +695,7 @@ proc aiLine(line: string) =
       if it != nil and it{"type"}.getStr == "function_call":
         aiMsgs[mi].calls.add AiCall(id: it{"call_id"}.getStr, name: it{"name"}.getStr, args: it{"arguments"}.getStr)
         aiBlocks[j{"output_index"}.getInt] = aiMsgs[mi].calls.high
-        aiPhase = "calling " & it{"name"}.getStr
+        aiPhase = tx("calling " & it{"name"}.getStr)
     of "response.function_call_arguments.delta":
       let ci = aiBlocks.getOrDefault(j{"output_index"}.getInt, -1)
       if ci >= 0 and ci < aiMsgs[mi].calls.len:
@@ -738,7 +738,7 @@ proc aiLine(line: string) =
       if cb{"type"}.getStr == "tool_use":
         aiMsgs[mi].calls.add AiCall(id: cb{"id"}.getStr, name: cb{"name"}.getStr)
         aiBlocks[idx] = aiMsgs[mi].calls.high
-        aiPhase = "calling " & cb{"name"}.getStr
+        aiPhase = tx("calling " & cb{"name"}.getStr)
       else: aiBlocks[idx] = -1
     of "content_block_delta":
       let d = j{"delta"}
@@ -746,7 +746,7 @@ proc aiLine(line: string) =
       case d{"type"}.getStr
       of "text_delta":
         aiSplit.feed(d{"text"}.getStr, aiMsgs[mi].think, aiMsgs[mi].text)
-        aiPhase = "writing…"
+        aiPhase = tx("writing…")
       of "thinking_delta":
         aiMsgs[mi].think.add d{"thinking"}.getStr
         aiPhase = aiThinkPhase(aiMsgs[mi].think)
@@ -785,7 +785,7 @@ proc aiLine(line: string) =
       if t.len == 0: aiPhase = aiThinkPhase(aiMsgs[mi].think)
     if t.len > 0:
       aiSplit.feed(t, aiMsgs[mi].think, aiMsgs[mi].text)
-      aiPhase = if aiMsgs[mi].text.len > 0: "writing…" else: aiThinkPhase(aiMsgs[mi].think)
+      aiPhase = if aiMsgs[mi].text.len > 0: tx("writing…") else: aiThinkPhase(aiMsgs[mi].think)
     let tc = d{"tool_calls"}
     if tc != nil and tc.kind == JArray:
       for c in tc:
@@ -831,7 +831,7 @@ proc mcpFetchMentions(t: string, withContext: bool, shownAs: string): bool =
     if srv != nil and (srv.name & "\0" & uri) notin mcpResCache: want.add (srv, uri)
   if want.len == 0: return false
   mcpResWaiting = want.len
-  aiPhase = "reading " & $want.len & " MCP resource(s)"
+  aiPhase = tx("reading " & $want.len & " MCP resource(s)")
   needRender = true
   for (srv, uri) in want:
     let key = srv.name & "\0" & uri

@@ -217,7 +217,7 @@ proc drawHexView(b: Buffer, x0, y0, w, h: int, active: bool) =
   else: head = "binary"
   head.add " · " & fmtSize(n)
   var x = putStr(x0 + 1, y0, head, theme.accent, theme.bg, {aBold}, x0 + w)
-  x = putStr(x + 2, y0, (if hx.insert: "INSERT" else: "OVERWRITE"), (if hx.insert: theme.warn else: theme.dim),
+  x = putStr(x + 2, y0, tr(if hx.insert: tx("INSERT") else: tx("OVERWRITE")), (if hx.insert: theme.warn else: theme.dim),
              theme.bg, {}, x0 + w)
   let (sa, se) = hx.hexSel()
   let posTxt = "0x" & toHex(hx.cur, offW).toLowerAscii & " (" & $hx.cur & ")" &

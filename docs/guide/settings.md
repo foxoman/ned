@@ -43,6 +43,11 @@ A few examples:
 }
 ```
 
+**Language**: `"ui.language"` is the language of ned's menus, messages and dialogs — `auto` (the default) takes
+your system's (`LANG`), `en` keeps English, and a code (`de`, `pt_BR`) a translation ned has or one of yours in
+`~/.config/ned/i18n/`; palette › *Language…* lists them. What a translation does not have stays in English. To make
+one: [TRANSLATING.md](../../TRANSLATING.md).
+
 *Settings: reset to defaults* (palette, or near the top of the Settings UI) puts every setting and key binding
 back to its default after asking. Your old file stays next to it as `config.json.bak-<date>`.
 

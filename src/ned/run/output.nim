@@ -218,7 +218,7 @@ proc runCommand(cmd0, cwd: string, after: proc(code: int) {.closure.} = nil) =
     if " install" in cmd or cmd.startsWith("pkg ") or cmd.startsWith("pip"):
       exeCache.clear()        # newly installed tools (nimlangserver, nph, …) get picked up
     if j.code == 0:
-      addPanelLine(PanelLine(text: "✓ Finished in " & formatFloat(dt, ffDecimal, 1) & "s", sev: 4, line: -1))
+      addPanelLine(PanelLine(text: "✓ " & trf("Finished in $1s", formatFloat(dt, ffDecimal, 1)), sev: 4, line: -1))
     else:
       addPanelLine(PanelLine(text: "✗ Exit code " & $j.code & " after " & formatFloat(dt, ffDecimal, 1) & "s" &
         (if errs > 0: " · " & $errs & " error(s) — Alt+N jumps to the next" else: ""), sev: 1, line: -1))

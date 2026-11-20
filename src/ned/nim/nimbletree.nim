@@ -257,7 +257,7 @@ proc cmdNimbleTree() =
     all.add x
   if info0.requires.len == 0: all.add PanelLine(text: "  (" & extractFilename(nf) & " requires nothing)", line: -1)
   setPanel(pkOutput)
-  panelTitle = "DEPENDENCIES"
+  panelTitle = tx("DEPENDENCIES")
   panelLines = all
   panelSel = (if all.len > 1: 1 else: 0)
   panelFollow = false

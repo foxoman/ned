@@ -254,7 +254,7 @@ proc profPanel() =
     panelLines.add PanelLine(text: align(formatFloat(tp, ffDecimal, 1), 8) & "  " & align(formatFloat(sp, ffDecimal, 1), 7) &
                              "   " & name & "  " & shown & (if line >= 0: ":" & $(line + 1) else: ""),
                              path: (if line >= 0: file else: ""), line: line)
-  panelTitle = "PROFILE · " & $profSamples & " samples"
+  panelTitle = tx("PROFILE · " & $profSamples & " samples")
   panelOpen = true
   panelFollow = false
   needRender = true

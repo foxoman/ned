@@ -141,14 +141,14 @@ proc statusLsMenu(): seq[MenuItem] =
     # (which Nim, and why: what decides it is the first line — then the ways to change it)
     let why = nim3Why(rootDir)
     let head =
-      if nim3On(): "Nim 3 (nimony)" & (if cfgNimCompiler == "auto" and why.len > 0: ": " & tildePath(why) & " is here"
-                                      else: ": this project says so (nim.compiler)")
-      elif cfgNimCompiler == "nimony": "Nim 3 asked for, but nimony is not installed"
-      elif cfgNimCompiler == "auto" and why.len > 0: "Nim 2: " & tildePath(why) & " is here, but nimony is not installed"
+      if nim3On(): (if cfgNimCompiler == "auto" and why.len > 0: trf("Nim 3 (nimony): $1 is here", tildePath(why))
+                    else: tr("Nim 3 (nimony): this project says so (nim.compiler)"))
+      elif cfgNimCompiler == "nimony": tr("Nim 3 asked for, but nimony is not installed")
+      elif cfgNimCompiler == "auto" and why.len > 0: trf("Nim 2: $1 is here, but nimony is not installed", tildePath(why))
       else: "Nim " & (if tcVer.len > 0: tcVerText(tcVer) else: "2") & (if tcWhy.len > 0: " (" & tcWhy & ")" else: "") &
-            (if nim2NifOn(): " — saved files read by the compiler (nim nif)" else: "")
+            (if nim2NifOn(): " — " & tr("saved files read by the compiler (nim nif)") else: "")
     result.add MenuItem(label: head, check: -1, disabled: true)
-    if nimonyBuilding: result.add MenuItem(label: "Building nimony… (the Run panel shows how it goes)", check: -1,
+    if nimonyBuilding: result.add MenuItem(label: tr("Building nimony… (the Run panel shows how it goes)"), check: -1,
                                            disabled: true)
     if cfgNimCompiler != "nimony": result.add mc("Nim 3: this project is Nim 3 (nimony)", "Make this project Nim 3")
     if cfgNimCompiler != "nim": result.add mc("Nim 3: this project is Nim 2 (nim)", "Make this project Nim 2")

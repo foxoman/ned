@@ -22,14 +22,18 @@ proc gitAskIdentity(dir: string, then: proc() {.closure.} = nil)
 
 var undoPickBuf = -1              # (the undo history's picker: the buffer it shows; -1 for any other picker)
 
-proc openActions(title: string, items: seq[(string, string, proc() {.closure.})], search: seq[string] = @[]) =
-  ## a picker of arbitrary actions (label, detail, action); `search`: extra text per item the query may match
+proc openActions(title: string, items: seq[(string, string, proc() {.closure.})], search: seq[string] = @[],
+                 data = false) =
+  ## a picker of arbitrary actions (label, detail, action); `search`: extra text per item the query may match. The
+  ## labels are shown in the language chosen, but with `data` (file names, lines, commits: not ned's words)
   undoPickBuf = -1
   pickActions.setLen(0)
   pickSwatches.setLen(0)
   var its: seq[PickItem]
   for i, (l, d, a) in items:
-    its.add PickItem(label: l, detail: d, idx: i, line: -1,
+    # (in the language chosen; the English label is searched too)
+    let tl = if data: l else: tr(l)
+    its.add PickItem(label: tl, detail: tr(d), idx: i, line: -1, english: (if tl != l: l else: ""),
                      search: (if i < search.len: search[i].toLowerAscii else: ""))
     pickActions.add a
   openPicker(pickAction, title, its)

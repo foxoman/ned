@@ -437,14 +437,14 @@ proc mdRender(text: string, width: int, bg: Rgb, baseDir: string): seq[ChatLine]
       var col = theme.dim
       var text = b.text
       # GitHub's alerts: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]
-      for (k, c, label) in [("[!NOTE]", theme.info, "ℹ Note"), ("[!TIP]", theme.gitAdd, "✓ Tip"),
-                            ("[!IMPORTANT]", theme.accent, "! Important"), ("[!WARNING]", theme.warn, "▲ Warning"),
-                            ("[!CAUTION]", theme.err, "✗ Caution")]:
+      for (k, c, mark, label) in [("[!NOTE]", theme.info, "ℹ", tx("Note")), ("[!TIP]", theme.gitAdd, "✓", tx("Tip")),
+                                  ("[!IMPORTANT]", theme.accent, "!", tx("Important")),
+                                  ("[!WARNING]", theme.warn, "▲", tx("Warning")), ("[!CAUTION]", theme.err, "✗", tx("Caution"))]:
         if text.startsWith(k):
           col = c
           text = text[k.len .. ^1].strip(chars = {'\n', ' '})
           for _ in 1 .. b.level: bars.add span("▎ ", col, bg)
-          result.add ChatLine(bg: bg, src: b.src, spans: bars & @[span(label, col, bg, {aBold})])
+          result.add ChatLine(bg: bg, src: b.src, spans: bars & @[span(mark & " " & tr(label), col, bg, {aBold})])
           bars.setLen(0)
           break
       for _ in 1 .. b.level: bars.add span("▎ ", col, bg)

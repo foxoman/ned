@@ -165,15 +165,15 @@ proc drawDockList(dl: var DockList, v: SideView, x0, y0, w, h: int, focused: boo
   let bg0 = theme.dockBg
   if dl.items.len == 0:
     let msg = case v
-      of svOutline: "No symbols in this file"
-      of svGit: "Loading…"
+      of svOutline: tr("No symbols in this file")
+      of svGit: tr("Loading…")
       of svTodos:
-        if todoScanBusy or todoQueue.len > 0: "Scanning…"
-        elif todoTags.len == 0: "No tags — settings › todo.tags"
+        if todoScanBusy or todoQueue.len > 0: tr("Scanning…")
+        elif todoTags.len == 0: tr("No tags — settings › todo.tags")
         else: (block:
           var ws: seq[string]
           for tg in todoTags: ws.add tg.word
-          "No " & ws.join(", ") & " comments" & (if todoScopeFile: " in this file" else: ""))
+          if todoScopeFile: trf("No $1 comments in this file", ws.join(", ")) else: trf("No $1 comments", ws.join(", ")))
       else: ""
     # (wrapped to the dock: a narrow one cut the list of tags in the middle)
     var yy = y0 + 1
@@ -196,7 +196,11 @@ proc drawDockList(dl: var DockList, v: SideView, x0, y0, w, h: int, focused: boo
   for r in 0 ..< rows:
     let i = dl.scroll + r
     if i >= dl.items.len: break
-    let it = dl.items[i]
+    var it = dl.items[i]
+    if trOn and it.data notin ["file", "hit"] and not it.data.startsWith("todo:") and v != svOutline:
+      # (a row's words in the language chosen — not a file's name, a line found, your comment or the outline's symbols)
+      it.text = tr(it.text)
+      it.detail = tr(it.detail)
     let y = y0 + r
     let sel = i == dl.sel
     let isH = hov(x0, y, w)
@@ -289,6 +293,6 @@ proc drawDockList(dl: var DockList, v: SideView, x0, y0, w, h: int, focused: boo
                if rightSide: rightList.sel = idx else: leftList.sel = idx
                ctxOpen(dockItemMenu(item, vv, rightSide)))))
   if hintRows > 0:
-    let hint = if v == svTodos: "f project/file · 1-9 filter · c copy · x done · i GitHub issue"
-               else: "s stage · u unstage · d diff · x discard · c commit"
+    let hint = if v == svTodos: tr("f project/file · 1-9 filter · c copy · x done · i GitHub issue")
+               else: tr("s stage · u unstage · d diff · x discard · c commit")
     discard putStr(x0 + 1, y0 + h - 1, truncTo(hint, w - 2), theme.dim, bg0, {aItalic}, x0 + w)

@@ -18,7 +18,7 @@ const MacroMark = "your macro"
 proc macroBadge(): string =
   ## the status bar's recording mark: `● REC`, the vim register being recorded into if any, and the number of keys so
   ## far
-  "● REC" & (if macroReg.len > 0: " @" & macroReg else: "") & " " & $macroKeys.len
+  "● " & tr("REC") & (if macroReg.len > 0: " @" & macroReg else: "") & " " & $macroKeys.len
 
 proc macroNoteKey(k: Key) =
   ## a key while recording (called first thing for every key): kept, except the ones a macro plays itself

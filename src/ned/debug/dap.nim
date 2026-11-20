@@ -54,6 +54,7 @@ proc dapSetDataBreakpoints() =
   dapRequest("setDataBreakpoints", %*{"breakpoints": arr})
 
 var dapStopReason = ""
+var dapStopHead = ""                   # the stop's line without its place ("‖ stopped (breakpoint)"): the place follows
 
 proc dapLogEmulate(path: string, ln: int) =
   ## a logpoint the adapter cannot print itself: ned works out its {expressions}, prints, and goes on
@@ -76,7 +77,7 @@ proc dapLogEmulate(path: string, ln: int) =
         inc k
       else: o.add t
     dbgOut.add "◇ " & at & "  " & o
-    dbgState = "● running"
+    dbgState = tx("● running")
     dapRequest("continue", %*{"threadId": dapThread})
     dbgPanel()
   if exprs.len == 0:
@@ -120,7 +121,7 @@ proc dapRefresh() =
           dbgAt = (path, ln)
           let b = openFile(path)
           if b != nil: b.centerOn(Pos(line: min(ln, b.lines.high), col: 0))
-          dbgState = dbgState.split(" at ")[0] & " at " & extractFilename(path) & ":" & $(ln + 1) & " in " & f{"name"}.getStr
+          dbgState = dapStopHead & " " & trf("at $1 in $2", extractFilename(path) & ":" & $(ln + 1), f{"name"}.getStr)
     if dbgFrames.len == 0:
       dbgPanel()
       return
@@ -201,10 +202,14 @@ proc dapHandle(j: JsonNode) =
       let reason = body{"reason"}.getStr
       dapStopReason = reason
       let desc = body{"description"}.getStr
-      dbgState = "‖ stopped" & (if reason.len > 0: " (" & reason & ")" else: "") &
+      # (the reasons of the protocol, in the translators' template: tr finds them)
+      const reasons {.used.} = [tx("breakpoint"), tx("step"), tx("pause"), tx("exception"), tx("entry"),
+                                tx("function breakpoint"), tx("data breakpoint")]
+      dbgState = "‖ " & (if reason.len > 0: trf("stopped ($1)", tr(reason)) else: tr("stopped")) &
                  (if desc.len > 0 and desc.toLowerAscii != reason.toLowerAscii and not desc.toLowerAscii.startsWith("paused"):
                     ": " & desc else: "") &
                  (if body{"text"}.getStr.len > 0: " " & body{"text"}.getStr else: "")
+      dapStopHead = dbgState
       if reason == "data breakpoint": dbgOut.add "● " & (if desc.len > 0: desc else: "a watched value changed")
       if dapTempBp[1] >= 0:
         let p = dapTempBp[0]
@@ -212,13 +217,13 @@ proc dapHandle(j: JsonNode) =
         dapSetBreakpoints(p)
       dapRefresh()
     of "continued":
-      dbgState = "● running"
+      dbgState = tx("● running")
       dbgAt = ("", -1)
     of "output":
       let cat = body{"category"}.getStr
       if cat notin ["telemetry", "important", "console"] and dapInitDone:   # (not the adapter's own banner and chatter)
         for l in body{"output"}.getStr.strip(leading = false).splitLines: dbgOut.add (if cat == "stderr": "! " else: "") & l
-    of "exited": dbgState = "program exited with code " & $body{"exitCode"}.getInt
+    of "exited": dbgState = tx("program exited with code " & $body{"exitCode"}.getInt)
     of "terminated":
       let st = if dbgState.startsWith("program exited"): dbgState else: "program exited"
       dbgEnd(st)
@@ -252,7 +257,7 @@ proc dapHandle(j: JsonNode) =
           if not ok: dbgEnd("could not " & req & ": " & msg)
           else:
             dapLaunched = true
-            if dbgState.startsWith("starting"): dbgState = "● running"
+            if dbgState.startsWith("starting"): dbgState = tx("● running")
           dbgPanel()))
       return
     # the adapter asks something else of ned (runInTerminal …): not supported
@@ -509,11 +514,11 @@ proc dapLaunch(b: Buffer, ad: JsonNode, port: int, exe, cargoExe, root: string) 
   for x in jitems(dapSubstJ(ad{"command"}, b, port, exe, cargoExe, root)): cmd.add x.getStr
   if cmd.len == 0 or not ad.dapExeFound:
     if cmd.len > 0 and cmd[0] == "gdb" and haveExe("gdb"):
-      dbgState = "gdb " & versionOf("gdb") & " has no DAP mode (it needs gdb 14 or newer) — Debug: choose the debugger…"
+      dbgState = tx("gdb " & versionOf("gdb") & " has no DAP mode (it needs gdb 14 or newer) — Debug: choose the debugger…")
     else:
-      dbgState = "the debug adapter is not installed: " & (if ad{"needs"}.getStr.len > 0: ad{"needs"}.getStr
-                                                         elif cmd.len > 0: cmd[0] else: "none set") &
-                 (if ad{"install"}.getStr.len > 0: " — palette › Debug: install the debugger" else: "")
+      dbgState = tx("the debug adapter is not installed: " & (if ad{"needs"}.getStr.len > 0: ad{"needs"}.getStr
+                                                             elif cmd.len > 0: cmd[0] else: "none set") &
+                    (if ad{"install"}.getStr.len > 0: " — palette › Debug: install the debugger" else: ""))
     dbgPanel()
     return
   # (gdb: no debuginfod — its question where DEBUGINFOD_URLS is set would wait for an answer nobody gives)
@@ -522,7 +527,7 @@ proc dapLaunch(b: Buffer, ad: JsonNode, port: int, exe, cargoExe, root: string) 
   try:
     dbgProc = spawnProc(cmd, parentDir(b.path), siPipe, (if ad{"connect"}.getBool: erMerge else: erNull))
   except OSError as e:
-    dbgState = "could not start " & cmd[0] & ": " & e.msg
+    dbgState = tx("could not start " & cmd[0] & ": " & e.msg)
     dbgPanel()
     return
   finally:
@@ -546,7 +551,7 @@ proc dapLaunch(b: Buffer, ad: JsonNode, port: int, exe, cargoExe, root: string) 
       dbgEnd("could not connect to " & cmd[0] & " on port " & $port)
       return
     dapSock = fd
-  dbgState = "starting " & extractFilename(cmd[0]) & "…"
+  dbgState = tx("starting " & extractFilename(cmd[0]) & "…")
   let launchArgs = dapSubstJ((if ad{"launch"} != nil: ad["launch"] else: newJObject()), b, port, exe, cargoExe, root)
   let request = ad{"request"}.getStr("launch")
   dapRequest("initialize", %*{"clientID": "ned", "clientName": AppName, "adapterID": b.lang.id, "pathFormat": "path",
@@ -563,7 +568,7 @@ proc dapLaunch(b: Buffer, ad: JsonNode, port: int, exe, cargoExe, root: string) 
       if not ok: dbgEnd("could not " & request & ": " & msg)
       else:
         dapLaunched = true
-        if dbgState.startsWith("starting"): dbgState = "● running"
+        if dbgState.startsWith("starting"): dbgState = tx("● running")
       dbgPanel()))
   dbgPanel()
 
@@ -591,14 +596,14 @@ proc dapStart(b: Buffer) =
     dbgOut = @[]
     dapLaunch(b, ad, port, exe, cargoExe, root)
     return
-  dbgState = "building " & extractFilename(b.path) & " with debug information…"
+  dbgState = tx("building " & extractFilename(b.path) & " with debug information…")
   dbgOut = @["$ " & build]
   dbgPanel()
   let bb = b
   discard startJob(jkTool, build & " 2>&1", root, proc(j: Job) =
     if j.code != 0:
       for l in j.output.splitLines: dbgOut.add l
-      dbgState = "the build failed"
+      dbgState = tx("the build failed")
       dbgPanel()
       return
     dapLaunch(bb, ad, port, exe, cargoExe, root))

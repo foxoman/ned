@@ -69,6 +69,7 @@ answers; they never touch the editor's state. They are unit-tested without the e
 | `core/text` | UTF-8 runes, display widths, grapheme clusters, the pool of characters made of several code points |
 | `core/encodings` | what a file's bytes are (UTF-8, BOM, UTF-16, Windows-1252 …) and the conversions |
 | `core/editorconfig` | `.editorconfig` files |
+| `core/i18n` | the interface in other languages: `tr`, `trf`, `tx`, the catalogues ([Translations](#translations)) |
 | `core/images` | PNG, JPEG, GIF and BMP decoded; half blocks, sixel, kitty and iTerm2 output |
 | `editor/regex` | the regular expressions of Find and Replace (ned does not use `std/re`) |
 | `editor/binfmt`, `editor/asmview` | executables read (ELF, Mach-O, PE), their symbols; disassembly for Compiler Explorer |
@@ -88,6 +89,24 @@ The editor plugs into a module through hooks the module exports: the Nim index r
 Two modules — or a module and the editor — must not define the same top-level name (the same proc signature, the
 same type or variable), even a private one: the formatter's self-test in the UI suite merges every file of ned
 into one and compiles it ([Pitfalls](pitfalls.md#two-modules-with-the-same-top-level-name)).
+
+### Translations
+
+Every text ned shows goes through `tr` (`core/i18n`): with a language chosen (`ui.language`), it is looked up in
+that language's catalogue — `i18n/<code>.json`, built into ned from `i18n/LANGUAGES` by `config/settings.nim`, with
+the person's file of the same name in `~/.config/ned/i18n/` over it and each plugin's `i18n/<code>.json` merged in
+(`plugins/host.nim`) — and comes back as it is when the catalogue does not have it. A catalogue's key is the English
+text; one with parts that change is written with `$1` … and found whole (patterns indexed by their first and last
+bytes, and remembered), the parts in the translation's order. English costs one test of `trOn` per text.
+
+The routines that show a text translate it themselves (`setMsg`, `toast`, `openDialog`, `openMenu`, `openActions`,
+`openPicker`, the forms, `button`, `pill`, `drawFrame`, a tooltip, a dock row), so the code keeps English texts:
+compare and store the English, translate only where it is drawn. `trf` translates a text with parts by its key as
+written; `tx` marks a text in a table for the template without translating it there. `tests/i18n/extract.py`
+writes the translators' template (`i18n/template.json`) from those calls and from `ned --i18n-strings` (the
+commands, the settings, the menu bar); CI checks it is up to date. `ui.language: pseudo` shows each text that went
+through `tr` between ⟦ and ⟧, and `NED_I18N_RECORD=FILE` writes each one down: `tests/i18n/untranslated.py` reads
+that and the UI suite's screens to find a text missed. See [TRANSLATING.md](../../TRANSLATING.md).
 
 ### Windows
 

@@ -36,18 +36,18 @@ proc drawTouchBar() =
     of "right": keys.add ("→", Key(kind: kRight), "")
     of "up": keys.add ("↑", Key(kind: kUp), "")
     of "down": keys.add ("↓", Key(kind: kDown), "")
-    of "home": keys.add ("Home", Key(kind: kHome), "")
-    of "end": keys.add ("End", Key(kind: kEnd), "")
-    of "pgup": keys.add ("PgUp", Key(kind: kPgUp), "")
-    of "pgdn": keys.add ("PgDn", Key(kind: kPgDn), "")
+    of "home": keys.add (tr("Home"), Key(kind: kHome), "")
+    of "end": keys.add (tr("End"), Key(kind: kEnd), "")
+    of "pgup": keys.add (tr("PgUp"), Key(kind: kPgUp), "")
+    of "pgdn": keys.add (tr("PgDn"), Key(kind: kPgDn), "")
     of "undo": keys.add ("↶", ctl('z'), "")
     of "redo": keys.add ("↷", ctl('y'), "")
-    of "save": keys.add ("Save", ctl('s'), "")
-    of "find": keys.add ("Find", ctl('f'), "")
+    of "save": keys.add (tr("Save"), ctl('s'), "")
+    of "find": keys.add (tr("Find"), ctl('f'), "")
     of "palette": keys.add ("≡", ctl('e'), "")
-    of "copy": keys.add ("Copy", ctl('c'), "")
-    of "cut": keys.add ("Cut", ctl('x'), "")
-    of "paste": keys.add ("Paste", ctl('v'), "")
+    of "copy": keys.add (tr("Copy"), ctl('c'), "")
+    of "cut": keys.add (tr("Cut"), ctl('x'), "")
+    of "paste": keys.add (tr("Paste"), ctl('v'), "")
     else:
       let eqAt = n.find('=')
       let low = n.toLowerAscii
@@ -205,7 +205,7 @@ proc drawStatusBar() =
   let srv = lspFor(b, false)
   var lsTxt = ""
   if srv != nil:
-    lsTxt = if srv.status.len > 0: "○ " & truncTo(srv.status, 26) elif srv.ready: ic("ok") & " " & srv.name else: "○ " & srv.name
+    lsTxt = if srv.status.len > 0: "○ " & truncTo(tr(srv.status), 26) elif srv.ready: ic("ok") & " " & srv.name else: "○ " & srv.name
   if b.lspMore:
     # a linter's server next to it (lsp.alsoRun, lsp.linters): "pyright + ruff"
     var more = ""
@@ -222,12 +222,12 @@ proc drawStatusBar() =
     let st = nsStatus(b)
     lsTxt = if st.len == 0: "○ nimsuggest" elif st == "nimsuggest": ic("ok") & " nimsuggest" else: "○ " & st
   if lsTxt.len > 0 and scrW >= 60:
-    let tip = if b.lang.mode == lmNim and nim3On(): "Language intelligence · Nim 3: nimony in " & tildePath(nimonyRoot())
-              elif b.lang.mode == lmNim and nimToolchainLine().len > 0: "Language intelligence · " & nimToolchainLine()
-              else: "Language intelligence"
+    let tip = if b.lang.mode == lmNim and nim3On(): trf("Language intelligence · Nim 3: nimony in $1", tildePath(nimonyRoot()))
+              elif b.lang.mode == lmNim and nimToolchainLine().len > 0: trf("Language intelligence · $1", nimToolchainLine())
+              else: tr("Language intelligence")
     if b.lang.mode == lmNim and nimonyBuilding:
       let st = nimonyBuildStep()
-      lsTxt.add " · building nimony" & (if st.len > 0: " " & truncTo(st, 22) else: "…")
+      lsTxt.add " · " & tr("building nimony") & (if st.len > 0: " " & truncTo(st, 22) else: "…")
     # (a Nim file: a tap says which Nim and why, and offers the others — on a tablet there is no right click)
     let tap: Action = if b.lang.mode == lmNim: (proc() = ctxOpen(statusLsMenu())) else: (proc() = showSide(svProject))
     x = button(x, y, " " & lsTxt & " ", tap, tip, theme.dim, bg, rightAct = proc() = ctxOpen(statusLsMenu()))
@@ -238,7 +238,7 @@ proc drawStatusBar() =
               of 1: theme.gitAdd
               of 4: theme.err
               else: theme.dim
-    x = button(x, y, " " & ctext & " ", proc() = showSide(svProject), ctip & " — the Nim panel", cfg, bg)
+    x = button(x, y, " " & ctext & " ", proc() = showSide(svProject), trf("$1 — the Nim panel", tr(ctip)), cfg, bg)
   if b.lang.mode == lmNim and tcProblem.len > 0 and scrW >= 60 and not nim3On():
     # (the Nim in use is not what the project's .nimble asks for)
     x = button(x, y, " " & (if cfgAccessible: "[!]" else: "⚠") & " Nim " & tcVerText(tcVer) & ": " & tcProblem & " ",
@@ -282,48 +282,48 @@ proc drawStatusBar() =
   var right: seq[(string, Rgb, Action, string)]
   let p = b.primary.head
   var pos = if b.hex != nil: "0x" & toHex(b.hex.cur, 8).toLowerAscii & " / " & $b.hex.data.len
-            elif b.viewer != nil: lfStatus(b) & ", Col " & $(b.visColAt(p.line, p.col) + 1)
-            else: "Ln " & $(p.line + 1) & ", Col " & $(b.visColAt(p.line, p.col) + 1)
-  if b.cursors.len > 1: pos.add " (" & $b.cursors.len & " cursors)"
+            elif b.viewer != nil: trf("$1, Col $2", lfStatus(b), b.visColAt(p.line, p.col) + 1)
+            else: trf("Ln $1, Col $2", p.line + 1, b.visColAt(p.line, p.col) + 1)
+  if b.cursors.len > 1: pos.add " " & trf("($1 cursors)", b.cursors.len)
   elif b.primary.hasSel:
     let (a, e) = b.primary.range
     let n = if a.line == e.line: e.col - a.col else: e.line - a.line + (if e.col > 0: 1 else: 0)
-    pos.add " (" & $n & (if a.line == e.line: " selected)" else: " lines)")
-  right.add (pos, theme.statusFg, Action(proc() = openPrompt(pGoto, "Go to line[:col]")), "Go to line (Ctrl+G)")
-  right.add ((if b.indent == "\t": "Tab Size: " & $b.tabOf else: "Spaces: " & $b.indent.len) &
-             (if b.ecInfo.len > 0: " (EditorConfig)" else: ""), theme.dim,
+    pos.add " " & (if a.line == e.line: trf("($1 selected)", n) else: trf("($1 lines)", n))
+  right.add (pos, theme.statusFg, Action(proc() = openPrompt(pGoto, "Go to line[:col]")), tx("Go to line (Ctrl+G)"))
+  right.add ((if b.indent == "\t": trf("Tab Size: $1", b.tabOf) else: trf("Spaces: $1", b.indent.len)) &
+             (if b.ecInfo.len > 0: " " & tr("(EditorConfig)") else: ""), theme.dim,
              Action(proc() = openMenu(@[mc("Indent with 2 spaces"), mc("Indent with 4 spaces"), mc("Indent with tabs")],
-                                      mouseX - 10, y - 4)), "Indentation")
+                                      mouseX - 10, y - 4)), tx("Indentation"))
   right.add (encLabel(b.enc), (if b.enc.len > 0: theme.accent else: theme.dim), Action(proc() = cmdEncodingMenu()),
-             "Encoding — reopen or save with another")
-  right.add ((if b.crlf: "CRLF" else: "LF"), theme.dim, Action(proc() = runCmd("Toggle line endings (LF/CRLF)")), "Line endings")
-  right.add (b.lang.name, theme.dim, Action(proc() = cmdLanguages()), "Select language mode")
+             tx("Encoding — reopen or save with another"))
+  right.add ((if b.crlf: "CRLF" else: "LF"), theme.dim, Action(proc() = runCmd("Toggle line endings (LF/CRLF)")), tx("Line endings"))
+  right.add (b.lang.name, theme.dim, Action(proc() = cmdLanguages()), tx("Select language mode"))
   if b.lang.mode == lmNim and b.path.len > 0:
     var nm: seq[string]
     if nim3On(): nm.add "Nim 3"
-    elif cfgNimCompiler == "nimony": nm.add "nimony (not found)"
+    elif cfgNimCompiler == "nimony": nm.add tr("nimony (not found)")
     if cfgNimTarget != "c": nm.add cfgNimTarget
     if cfgNimMode != "debug": nm.add cfgNimMode
-    if nm.len > 0: right.add (nm.join("·"), theme.accent, Action(proc() = openMenuBar(4)), "Build settings")
+    if nm.len > 0: right.add (nm.join("·"), theme.accent, Action(proc() = openMenuBar(4)), tx("Build settings"))
   # Telescope, the Markdown preview (a Markdown file, or its preview), the assistant: a tap each
-  right.add (ic("telescope"), theme.dim, Action(proc() = telescope()), "Telescope: every finder (Alt+Shift+F)")
+  right.add (ic("telescope"), theme.dim, Action(proc() = telescope()), tx("Telescope: every finder (Alt+Shift+F)"))
   if batterySave:
     right.add (ic("battery"), theme.gitAdd, Action(proc() = batteryToggle()),
-               "Battery saver: on — a tap turns it off (ui.batterySaver)")
+               tx("Battery saver: on — a tap turns it off (ui.batterySaver)"))
   if lowMemory:
-    right.add ("mem low", theme.warn, Action(proc() = info("Little memory left: ned keeps light until the system " &
+    right.add (tr("mem low"), theme.warn, Action(proc() = info("Little memory left: ned keeps light until the system " &
                "has twice ui.lowMemory free (" & $memAvailableMB() & " MB now)")),
-               "Short of memory: checks one at a time and on save, nothing read ahead (ui.lowMemory)")
+               tx("Short of memory: checks one at a time and on save, nothing read ahead (ui.lowMemory)"))
   if (b.lang.mode == lmMarkdown and b.path.len > 0) or (b.mdSrc != 0 and not b.mdNimDocs):
     var shown = b.mdSrc != 0
     for pb in bufs:
       if pb.mdSrc == b.id and not pb.mdNimDocs: shown = true
     right.add (ic("markdown") & (if shown: " ✓" else: ""), (if shown: theme.accent else: theme.dim),
                Action(proc() = cmdMarkdownPreview()),
-               (if shown: "Markdown preview: close it" else: "Markdown preview: beside the file, following your edits"))
+               (if shown: tx("Markdown preview: close it") else: tx("Markdown preview: beside the file, following your edits")))
   let ais = aiStatus()
   right.add ((if ais.len > 0: ic("ai") & " " & ais else: ic("ai")), (if ais.len > 0: theme.accent else: theme.dim),
-             Action(proc() = toggleAssistant()), "AI assistant (Alt+C)")
+             Action(proc() = toggleAssistant()), tx("AI assistant (Alt+C)"))
   # what goes first when there is no room: LF, UTF-8 and the indentation before the language, an encoding that is
   # not UTF-8 or CRLF later (they say something about the file), the position and the AI never
   var prio: seq[int]

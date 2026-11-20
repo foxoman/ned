@@ -40,7 +40,7 @@ proc historyVersions(path: string): seq[(int64, string)] =
 proc agoText(ms: int64): string =
   ## how long ago a time (unix milliseconds) was, in words: `12s ago`, `5 min ago`, `3 h ago`, `2 days ago`
   let s = max(0'i64, (epochTime() * 1000).int64 - ms) div 1000
-  if s < 60: $s & "s ago"
-  elif s < 3600: $(s div 60) & " min ago"
-  elif s < 86400: $(s div 3600) & " h ago"
-  else: $(s div 86400) & " days ago"
+  if s < 60: trf("$1s ago", s)
+  elif s < 3600: trf("$1 min ago", s div 60)
+  elif s < 86400: trf("$1 h ago", s div 3600)
+  else: trf("$1 days ago", s div 86400)

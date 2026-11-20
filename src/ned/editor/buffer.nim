@@ -36,8 +36,8 @@ func name(b: Buffer): string =
   ## untitled
   if b.path.len > 0: extractFilename(b.path)
   elif b.title.len > 0: b.title
-  elif b.isWelcome(): "Welcome"
-  else: "untitled"
+  elif b.isWelcome(): tx("Welcome")
+  else: tx("untitled")
 # the width of a tab in this buffer: the file's own (.editorconfig) or the editor.tabSize setting
 proc tabOf(b: Buffer): int = (if b.tabSize > 0: b.tabSize else: cfgTabSize)
 # whether large-file mode is in force for the buffer (the file is large and the person has not turned the mode off)

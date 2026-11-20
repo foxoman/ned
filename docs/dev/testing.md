@@ -319,6 +319,28 @@ same numbers from a session of yours ([Architecture](architecture.md#timedwork-a
 | `python3 tests/docs/links.py` | every relative link and `#anchor` in the Markdown of the README, CHANGELOG, CONTRIBUTING, SECURITY, `docs/`, `tests/` and `examples/` goes somewhere |
 | `ned --doc-settings`, `ned --doc-commands` | CI compares them with [docs/reference/settings.md](../reference/settings.md) and [commands.md](../reference/commands.md), made with an empty `XDG_CONFIG_HOME` |
 
+## Translations
+
+| check | what |
+|---|---|
+| `python3 tests/i18n/extract.py --ned ./ned --check` | `i18n/template.json` has every text ned shows (CI; without `--check` it writes it) |
+| `python3 tests/i18n/extract.py --lang de [--missing]` | a translation: JSON, how much is done, a `$n` lost or added, texts ned no longer has |
+| `nim r tests/unit/ti18n.nim` | `tr` itself: texts with parts in another order, `$$`, the spaces around, pseudo, `LANG`, your file over ned's |
+| `t_655_i18n` (UI suite) | a catalogue of yours: the menus, the palette (searched in English too), messages, dialogs, the settings, the status bar |
+
+To find a text that cannot be translated yet, run the UI suite in the pseudo language with its screens and the
+texts `tr` was given kept, then let `untranslated.py` compare them with the template:
+
+```sh
+NED_UI_PSEUDO=1 NED_UI_SCREENS=/tmp/screens.txt NED_I18N_RECORD=/tmp/seen.txt NED_UI_FULL=1 python3 tests/ui/run.py ./ned
+python3 tests/i18n/untranslated.py /tmp/screens.txt /tmp/seen.txt
+```
+
+It lists the texts that came to `tr` but are not in the template (made some way `extract.py` does not see: mark them
+with `tx` or `trf`), then the words on the screens that never went through `tr`. In pseudo some tests fail with no
+fault of ned's: each text is two columns wider, so a narrow row (the status bar, the menu bar) leaves something out,
+and the tests read the screen without ⟦ ⟧, so a click at a word's place lands a column or two to its left.
+
 ## Theme contrast
 
 [`tests/themes/contrast.py`](../../tests/themes/contrast.py) reads the `mkTheme(…)` and `phosphorTheme(…)` lines of

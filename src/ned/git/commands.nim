@@ -9,7 +9,7 @@ proc gitShell(cmd, okMsg: string, then: proc() = nil, inRepo = "") =
   discard startJob(jkGit, remoteGitBefore(root) & cmd, root, proc(j: Job) =
     let o = stripAnsi(j.output).strip
     if j.code == 0:
-      info(okMsg & (if o.len > 0 and o.count('\n') == 0: " — " & o else: ""))
+      info(tr(okMsg) & (if o.len > 0 and o.count('\n') == 0: " — " & o else: ""))
       if then != nil: then()
     else: error("git: " & (if o.len > 0: o.splitLines[^1] else: "failed"))
     refreshGitStatus()
@@ -45,7 +45,7 @@ proc gitNet(args, okMsg: string, then: proc() = nil) =
                    proc(j: Job) =
     let o = stripAnsi(j.output).strip
     if j.code == 0:
-      info(okMsg & (if o.len > 0: "\n" & o.splitLines[^1] else: ""))
+      info(tr(okMsg) & (if o.len > 0: "\n" & o.splitLines[^1] else: ""))
       if args.startsWith("push") and haveExe("gh"):
         ciDue = true                     # the run the push starts shows up after a few seconds
         ciDueAt = getMonoTime() + initDuration(seconds = 8)
@@ -162,12 +162,14 @@ proc gitCommitBox(amend: bool) =
   proc open(msg: string) =
     ## opens the message tab with this starting message
     let n = gitStaged()
-    let text = msg & "\n\n# Write the message above — the first line is the summary. Ctrl+S commits" &
-               (if amend: " (replacing the last commit)" else: "") & ", Ctrl+W cancels.\n" &
-               "# Lines starting with # are left out. Staged: " & $n & " file(s)" &
-               (if n == 0 and not amend: " — nothing staged: you will be asked about committing everything" else: "") & "\n"
+    let text = msg & "\n\n# " &
+               tr(if amend: tx("Write the message above — the first line is the summary. Ctrl+S commits (replacing the " &
+                               "last commit), Ctrl+W cancels.")
+                  else: tx("Write the message above — the first line is the summary. Ctrl+S commits, Ctrl+W cancels.")) &
+               "\n# " & trf("Lines starting with # are left out. Staged: $1 file(s)", n) &
+               (if n == 0 and not amend: " — " & tr("nothing staged: you will be asked about committing everything") else: "") & "\n"
     let where = if gitRepoRoots().len > 1: " — " & extractFilename(root) else: ""
-    let cb = openScratch((if amend: "Amend commit" else: "Commit message") & where, text, langByName("Markdown"))
+    let cb = openScratch((if amend: tx("Amend commit") else: tx("Commit message")) & where, text, langByName("Markdown"))
     cb.readOnly = false
     cb.savedSeq = cb.topSeq()
     commitBufs[cb.id] = CommitBuf(amend: amend, root: root)

@@ -223,7 +223,7 @@ proc lspSpawn(id: string, c: seq[string], secondary: bool, ri = -1): LspServer =
     let shown = if c.len > 1 and extractFilename(c[0]) in ["python", "python3", "node", "sh", "bash", "ruby"]:
                   extractFilename(c[1]) else: extractFilename(c[0])
     let s = LspServer(langId: id, name: shown, cmd: c, pr: p, inFd: p.inFd, uid: lspUidNext, secondary: secondary,
-                      outFd: p.outFd, errFd: p.errFd, status: "starting…", startedAt: getMonoTime())
+                      outFd: p.outFd, errFd: p.errFd, status: tx("starting…"), startedAt: getMonoTime())
     inc lspUidNext
     if ri >= 0:
       let r = remotes[ri]

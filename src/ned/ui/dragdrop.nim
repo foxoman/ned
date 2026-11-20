@@ -241,39 +241,39 @@ proc drawDnd() =
   case z
   of dzOpen:
     tint(ex, ey, ew, eh)
-    what = "open"
+    what = tr("open")
   of dzPane:
     if idx in 0 ..< panes.len:
       let r = panes[idx].rect
       tint(r.x, r.y, r.w, r.h)
-      what = if dragTarget == dtTabOut: "show here" else: "open here"
+      what = if dragTarget == dtTabOut: tr("show here") else: tr("open here")
   of dzSplitRight:
     let r = if idx in 0 ..< panes.len: panes[idx].rect else: (x: ex, y: ey, w: ew, h: eh)
     tint(r.x + r.w div 2, r.y, r.w - r.w div 2, r.h)
-    what = "split right"
+    what = tr("split right")
   of dzSplitDown:
     let r = if idx in 0 ..< panes.len: panes[idx].rect else: (x: ex, y: ey, w: ew, h: eh)
     tint(r.x, r.y + r.h div 2, r.w, r.h - r.h div 2)
-    what = "split down"
+    what = tr("split down")
   of dzFolder:
     let y = lay.bodyTop + 2 + idx - treeScroll
     tint(0, y, lay.leftW, 1)
     let n = treeRows[idx]
-    what = "move into " & (if n.isDir: n.name else: extractFilename(parentDir(n.path))) & "/"
+    what = trf("move into $1/", (if n.isDir: n.name else: extractFilename(parentDir(n.path))))
   of dzTerminal:
     tint(lay.edX, panelTopY + 1, lay.edW, max(1, lay.panelH - 1))
-    what = if dragTarget == dtFile: "type its path" else: "paste"
+    what = if dragTarget == dtFile: tr("type its path") else: tr("paste")
   of dzText:
     let (ok, p) = editorPosAt(dndX, dndY)
     if ok:
       setCell(dndX, dndY, Cell(ch: 0x258F, fg: theme.accent, bg: grid[dndY * scrW + dndX].bg, at: {aBold}))
       discard p
-    what = "move here (Ctrl: copy)"
+    what = tr("move here (Ctrl: copy)")
   else: discard
   let name = case dragTarget
              of dtTabOut: (let b = bufById(dndBufId); if b != nil: b.name else: "")
              of dtFile: extractFilename(dndPath)
-             else: (let l = dndText.splitLines; truncTo(l[0], 24) & (if l.len > 1: " (+" & $(l.len - 1) & " lines)" else: ""))
+             else: (let l = dndText.splitLines; truncTo(l[0], 24) & (if l.len > 1: " " & trf("(+$1 lines)", l.len - 1) else: ""))
   let label = " " & name & (if what.len > 0: " → " & what else: "") & " "
   let lw = strWidth(label)
   let lx = clamp(dndX + 2, 0, max(0, scrW - lw))

@@ -27,36 +27,36 @@ proc dockActions(v: SideView): seq[(string, string, Action)] =
   ## the buttons at the right of a dock's header for a view: (icon, tooltip, action) — new file and refresh for the
   ## files, commit for git, replace for search, run tests, add or install a plugin, and so on
   case v
-  of svFiles: @[(ic("plus"), "New file", Action(proc() = openMenu(treeMenu(nil), mouseX, mouseY + 1))),
-                ("⟳", "Refresh", Action(proc() = refreshTree()))]
-  of svGit: @[(ic("ok"), "Commit", Action(proc() = openPrompt(pGitCommit, "Commit message", ""))),
-              ("⟳", "Refresh", Action(proc() = refreshGitStatus()))]
-  of svSearch: @[("⇄", "Replace in files (Alt+H)", Action(proc() = toggleReplaceRow())),
-                 ("⟳", "Search again", Action(proc() = projectSearch(dockQuery)))]
-  of svTests: @[(ic("run"), "Run all tests", Action(proc() = runCmd("Run all tests"))),
-                ("◑", "Run all tests with coverage (c: the selected test's file)",
+  of svFiles: @[(ic("plus"), tx("New file"), Action(proc() = openMenu(treeMenu(nil), mouseX, mouseY + 1))),
+                ("⟳", tx("Refresh"), Action(proc() = refreshTree()))]
+  of svGit: @[(ic("ok"), tx("Commit"), Action(proc() = openPrompt(pGitCommit, "Commit message", ""))),
+              ("⟳", tx("Refresh"), Action(proc() = refreshGitStatus()))]
+  of svSearch: @[("⇄", tx("Replace in files (Alt+H)"), Action(proc() = toggleReplaceRow())),
+                 ("⟳", tx("Search again"), Action(proc() = projectSearch(dockQuery)))]
+  of svTests: @[(ic("run"), tx("Run all tests"), Action(proc() = runCmd("Run all tests"))),
+                ("◑", tx("Run all tests with coverage (c: the selected test's file)"),
                  Action(proc() = runCmd("Test coverage: run and colour the lines that ran"))),
-                ("⟳", "Rescan tests", Action(proc() = rescanTests()))]
-  of svProject: @[("⟳", "Refresh tools", Action(proc() =
+                ("⟳", tx("Rescan tests"), Action(proc() = rescanTests()))]
+  of svProject: @[("⟳", tx("Refresh tools"), Action(proc() =
                     resetExeCache()
                     loadNimbleInfo(true)
                     probeTools()))]
-  of svAssistant: @[(ic("plus"), "New chat", Action(proc() = runCmd("AI: new chat"))),
-                    (ic("more"), "Assistant options",
+  of svAssistant: @[(ic("plus"), tx("New chat"), Action(proc() = runCmd("AI: new chat"))),
+                    (ic("more"), tx("Assistant options"),
                      Action(proc() = openMenu(menuItems(MenuNames.find("AI")), mouseX - 30, mouseY + 1)))]
-  of svOutline: @[("⟳", "Refresh", Action(proc() = (buf().outlineAt = -1)))]
-  of svTodos: @[("⎘", "Copy the list as Markdown (c)", Action(proc() = todoCopyMarkdown())),
-                ("⟳", "Rescan the project (r)", Action(proc() = todoScanProject()))]
-  of svPlugins: @[(ic("plus"), "Add: ned's own plugins, an example, from git, a new one…", Action(proc() =
+  of svOutline: @[("⟳", tx("Refresh"), Action(proc() = (buf().outlineAt = -1)))]
+  of svTodos: @[("⎘", tx("Copy the list as Markdown (c)"), Action(proc() = todoCopyMarkdown())),
+                ("⟳", tx("Rescan the project (r)"), Action(proc() = todoScanProject()))]
+  of svPlugins: @[(ic("plus"), tx("Add: ned's own plugins, an example, from git, a new one…"), Action(proc() =
                     openMenu(@[mc("Plugins: available plugins (ned's own)…", "Available plugins (ned's own)…"),
                                mc("Plugins: add an example…", "An example…"), mc("Plugins: install from git…", "From git…"),
                                mc("Plugins: browse the plugin list…", "From the plugin list…"),
                                mc("Plugins: new plugin…", "A new plugin…")], mouseX, mouseY + 1))),
-                  ("⇣", "Install a plugin from git…", Action(proc() =
+                  ("⇣", tx("Install a plugin from git…"), Action(proc() =
                     openPrompt(pPluginInstall, "Plugin repository (https://…)", ""))),
-                  ("ⓘ", "The plugin API (nedplugin.nim)", Action(proc() = runCmd("Plugins: the API (nedplugin.nim)"))),
-                  ("⟳", "Reload the plugins", Action(proc() = plugReload()))]
-  of svTimeline: @[("⟳", "Refresh", Action(proc() =
+                  ("ⓘ", tx("The plugin API (nedplugin.nim)"), Action(proc() = runCmd("Plugins: the API (nedplugin.nim)"))),
+                  ("⟳", tx("Reload the plugins"), Action(proc() = plugReload()))]
+  of svTimeline: @[("⟳", tx("Refresh"), Action(proc() =
                      timelinePath = ""
                      refreshTimeline()))]
 
@@ -81,18 +81,20 @@ proc drawTodoHeader(x0, y0, w: int): int =
     capture word:
       x = button(x, y, label, proc() =
         if word in todoOff: todoOff.excl word else: todoOff.incl word
-        needRender = true, (if off: "Show " else: "Hide ") & word & (if n < 9: " (" & $(n + 1) & ")" else: ""),
+        needRender = true, (if off: trf("Show $1", word) else: trf("Hide $1", word)) & (if n < 9: " (" & $(n + 1) & ")" else: ""),
         (if off: theme.dim else: col), (if off: bg0 else: blend(bg0, col, 0.20)), (if off: {} else: {aBold})) + 1
   if order.len == 0 and (todoScanBusy or todoQueue.len > 0):
-    discard putStr(x0 + 2, y, "Scanning…", theme.dim, bg0, {aItalic}, x0 + w)
+    discard putStr(x0 + 2, y, tr("Scanning…"), theme.dim, bg0, {aItalic}, x0 + w)
   inc y
   fillRect(x0, y, w, 1, theme.fg, bg0)
   var sx = x0 + 1
-  sx = button(sx, y, (if todoScopeFile: "○" else: "◉") & " Project ", proc() = (todoScopeFile = false),
+  sx = button(sx, y, (if todoScopeFile: "○" else: "◉") & " " & tr("Project") & " ", proc() = (todoScopeFile = false),
               "Every file in the project (f)", (if todoScopeFile: theme.dim else: theme.fg), bg0)
-  sx = button(sx, y, (if todoScopeFile: "◉" else: "○") & " This file ", proc() = (todoScopeFile = true),
+  sx = button(sx, y, (if todoScopeFile: "◉" else: "○") & " " & tr("This file") & " ", proc() = (todoScopeFile = true),
               "Only the file you are editing (f)", (if todoScopeFile: theme.fg else: theme.dim), bg0)
-  let sum = $todoDockVis & (if todoScopeFile: "" else: " in " & $todoDockFiles & (if todoDockFiles == 1: " file" else: " files"))
+  let sum = if todoScopeFile: $todoDockVis
+            elif todoDockFiles == 1: trf("$1 in 1 file", todoDockVis)
+            else: trf("$1 in $2 files", todoDockVis, todoDockFiles)
   if sx + strWidth(sum) + 2 < x0 + w: discard putStr(x0 + w - strWidth(sum) - 1, y, sum, theme.dim, bg0)
   y + 1 - y0
 
@@ -190,7 +192,7 @@ proc drawSearchInput(x0, y0, w: int): int =
       sideView = svSearch
       dockField = k
     region(x0 + 1, y, 3, 1, onFocus)
-    let cx = drawField(fx, y, fw, text, cur, active, theme.fg, bg, placeholder, onFocus = onFocus)
+    let cx = drawField(fx, y, fw, text, cur, active, theme.fg, bg, tr(placeholder), onFocus = onFocus)
     if active:
       cursorX = cx
       cursorY = y
@@ -198,7 +200,7 @@ proc drawSearchInput(x0, y0, w: int): int =
   # the chevron opens the replace row, like VS Code
   discard button(x0, y, (if dockShowReplace: ic("chevD") else: ic("chevR")), proc() = toggleReplaceRow(),
                  "Toggle replace (Alt+H)", theme.dim, theme.dockBg)
-  field(y, 0, dockQuery, dockQueryCur, "Search", ic("search"), 10)
+  field(y, 0, dockQuery, dockQueryCur, tx("Search"), ic("search"), 10)
   var bx = x0 + w - 10
   bx = button(bx, y, "Aa", proc() =
     findCase = not findCase
@@ -214,19 +216,19 @@ proc drawSearchInput(x0, y0, w: int): int =
     (if findRegex: theme.accent else: theme.dim), bg, (if findRegex: {aBold, aUnder} else: {}))
   inc y
   if dockShowReplace:
-    field(y, 1, dockReplace, dockReplaceCur, (if findRegex: "Replace ($1 = group 1)" else: "Replace"), "⇄", 6)
+    field(y, 1, dockReplace, dockReplaceCur, (if findRegex: tx("Replace ($1 = group 1)") else: tx("Replace")), "⇄", 6)
     discard button(x0 + w - 6, y, " All ", proc() = projectReplaceAll(), "Replace all (Alt+Enter)",
                    theme.badgeFg, theme.accent)
     inc y
   if dockShowInclude:
-    field(y, 2, dockInclude, dockIncludeCur, "files: *.nim, src/, !tests/", "▤", 2)
+    field(y, 2, dockInclude, dockIncludeCur, tx("files: *.nim, src/, !tests/"), "▤", 2)
     discard button(x0 + w - 3, y, ic("close"), proc() = clearIncludeRow(), "Clear the files filter", theme.dim, bg)
     inc y
   var info = ""
   if dockQueryRan.len > 0:
-    info = $searchCount & (if searchCount >= cfgSearchMax: "+" else: "") &
-           (if w >= 34: " results in " else: " in ") & $searchFiles & " files" &
-           (if searchDone: "" else: " · searching…")
+    let n = $searchCount & (if searchCount >= cfgSearchMax: "+" else: "")
+    info = (if w >= 34: trf("$1 results in $2 files", n, searchFiles) else: trf("$1 in $2 files", n, searchFiles)) &
+           (if searchDone: "" else: " · " & tr("searching…"))
   fillRect(x0, y, w, 1, theme.dim, theme.dockBg)
   discard putStr(x0 + 2, y, truncTo(info, max(1, w - 10)), theme.dim, theme.dockBg, {}, x0 + w - 8)
   if not dockShowInclude:

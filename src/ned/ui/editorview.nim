@@ -820,7 +820,7 @@ proc drawEditor(b: Buffer, x0, y0, w, h: int, active: bool) =
              not b.aiIsComment(line + 1) and not b.aiIsDocComment(line) and sBool("ai.commentButton") and
              (cfgAiProvider in ["ollama", "custom"] or aiKey().len > 0):
           # the comment the cursor is on: ✦ writes the code it describes (as Alt+Shift+C does)
-          let nx = putStr(ex + 3, y, "✦ write it", theme.inlay, rowBg, {aItalic}, tailLim)
+          let nx = putStr(ex + 3, y, tr("✦ write it"), theme.inlay, rowBg, {aItalic}, tailLim)
           region(ex + 3, y, nx - ex - 3, 1, proc() = aiCodeFromComment(),
                  "The assistant writes the code this comment describes (Alt+Shift+C) — shown before it is used")
         elif cfgBlame and active and line == ph.line and blameText.len > 0 and ex + 8 < tailLim and
@@ -834,15 +834,15 @@ proc drawEditor(b: Buffer, x0, y0, w, h: int, active: bool) =
           if line in profDl:
             let (sn, tn) = profDl[line]
             heat = tn / tot
-            txt = "◷ " & formatFloat(tn * 100 / tot, ffDecimal, 1) & "% of the time · " &
-                  formatFloat(sn * 100 / tot, ffDecimal, 1) & "% in itself"
+            txt = "◷ " & trf("$1% of the time · $2% in itself", formatFloat(tn * 100 / tot, ffDecimal, 1),
+                             formatFloat(sn * 100 / tot, ffDecimal, 1))
           elif line in profLn:
             let (sn, tn) = profLn[line]
             if tn * 200 >= tot:                       # (from 0.5 %)
               heat = tn / tot
               const bars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
               txt = bars[clamp(int(heat * 8), 0, 7)] & " " & formatFloat(tn * 100 / tot, ffDecimal, 1) & "%" &
-                    (if sn * 200 >= tot and sn < tn: " · " & formatFloat(sn * 100 / tot, ffDecimal, 1) & "% on the line itself" else: "")
+                    (if sn * 200 >= tot and sn < tn: " · " & trf("$1% on the line itself", formatFloat(sn * 100 / tot, ffDecimal, 1)) else: "")
           if txt.len > 0:
             discard putStr(ex + 3, y, txt, blend(theme.inlay, theme.err, clamp(heat * 1.6, 0.0, 1.0)), rowBg, {aItalic}, tailLim)
         elif cfgRefCounts and b.lang.mode == lmNim and (let (rl, unused) = b.refLensAt(line); rl.len > 0) and ex + 6 < tailLim:
@@ -932,8 +932,8 @@ proc drawEditor(b: Buffer, x0, y0, w, h: int, active: bool) =
         # on the <<<<<<< line: the choices, clickable
         var bx = tx0 + visColOf(s, s.len) - baseVc + 2
         let cidx = conflictStart
-        for (lab0, ch) in [("Accept ours", "ours"), ("Accept theirs", "theirs"), ("Accept both", "both")]:
-          let lab = " " & lab0 & " "
+        for (lab0, ch) in [(tx("Accept ours"), "ours"), (tx("Accept theirs"), "theirs"), (tx("Accept both"), "both")]:
+          let lab = " " & tr(lab0) & " "
           if bx + lab.len >= limX: break
           let chc = ch
           capture cidx, chc:
@@ -1028,7 +1028,7 @@ proc drawEditor(b: Buffer, x0, y0, w, h: int, active: bool) =
       xx = putStr(xx + 2, y, note, col, hbg, {}, x0 + w - 2)
     # (its buttons, for a touch screen: more lines above, below, the piece out — not in the Git changes view)
     let btns = b.title != "Git: changes" and xx + 30 < x0 + w
-    let hint = "↵ or click: open"
+    let hint = tr("↵ or click: open")
     let hx = x0 + w - strWidth(hint) - 2 - (if btns: 10 else: 0)
     if xx + strWidth(hint) + 3 < hx + strWidth(hint): discard putStr(hx, y, hint, theme.dim, hbg)
     let pp = path

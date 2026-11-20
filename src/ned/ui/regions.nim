@@ -95,8 +95,9 @@ proc seenOn(c, under: Rgb, k = 0.12): Rgb =
   if rgbDist(c, under) < 30: blend(under, theme.fg, k) else: c
 
 proc drawFrame(x, y, w, h: int, bg, border: Rgb, title = "", titleFg: Rgb = NoColor, shadow = true) =
-  ## draws a box: filled with `bg`, a rounded border in the `border` colour, the title in bold on the top edge, and
-  ## (unless `shadow` is false) a drop shadow
+  ## draws a box: filled with `bg`, a rounded border in the `border` colour, the title (in the language chosen) in bold
+  ## on the top edge, and (unless `shadow` is false) a drop shadow
+  let title = tr(title)
   fillRect(x, y, w, h, theme.fg, bg)
   for xx in x + 1 ..< x + w - 1:
     setCell(xx, y, Cell(ch: 0x2500, fg: border, bg: bg))
@@ -115,7 +116,9 @@ proc drawFrame(x, y, w, h: int, bg, border: Rgb, title = "", titleFg: Rgb = NoCo
 
 proc button(x, y: int, label: string, act: Action, tip = "", fg: Rgb = NoColor, bg: Rgb = NoColor,
             at: set[Attr] = {}, hoverBg: Rgb = NoColor, rightAct: Action = nil): int =
-  ## a flat button; returns the x after it
+  ## a flat button (its label and tip in the language chosen); returns the x after it
+  let label = tr(label)
+  let tip = tr(tip)
   let w = strWidth(label)
   let baseBg = if bg == NoColor: grid[clamp(y, 0, scrH - 1) * scrW + clamp(x, 0, scrW - 1)].bg else: bg
   let isH = hov(x, y, w)
@@ -125,7 +128,10 @@ proc button(x, y: int, label: string, act: Action, tip = "", fg: Rgb = NoColor, 
 
 proc pill(x, y: int, label: string, act: Action, tip = "", fg: Rgb = NoColor, bg: Rgb = NoColor,
           at: set[Attr] = {}, hoverBg: Rgb = NoColor, rightAct: Action = nil): int =
-  ## a button with rounded-looking ends — half blocks in its colour — for dialogs and toasts; returns the x after it
+  ## a button with rounded-looking ends — half blocks in its colour — for dialogs and toasts (its label and tip in the
+  ## language chosen); returns the x after it
+  let label = tr(label)
+  let tip = tr(tip)
   let w = strWidth(label) + 4
   let under = grid[clamp(y, 0, scrH - 1) * scrW + clamp(x, 0, scrW - 1)].bg
   let base = if bg == NoColor: seenOn(theme.btnBg, under, 0.16) else: bg     # (a button you can see as one)

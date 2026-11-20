@@ -100,8 +100,9 @@ proc copySel(cut: bool) =
       b.endEdit()
       b.normalize()
   let n = text.count('\n') + (if lineMode: 0 else: 1)
-  info((if cut: "Cut " else: "Copied ") & (if lineMode: $parts.len & " line(s)" else: $text.len & " chars" &
-       (if n > 1: " / " & $n & " lines" else: "")))
+  let what = if lineMode: trf("$1 line(s)", parts.len)
+             else: trf("$1 chars", text.len) & (if n > 1: " / " & trf("$1 lines", n) else: "")
+  info(if cut: trf("Cut $1", what) else: trf("Copied $1", what))
 
 proc pasteLayout(b: Buffer, text: string, at: Pos, lineMode = false): string =
   ## pasted lines of code take the indentation of where they go (editor.formatOnPaste): the first line sits where

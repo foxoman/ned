@@ -239,6 +239,9 @@ proc initCommands() =
     info("Line endings: " & (if b.crlf: "CRLF" else: "LF"))))
   add("Open settings file", "", openSettings())
   add("Settings", "", openSettingsUi())
+  add("Language…", "", cmdUiLanguage())
+  add("Language: reload the translations", "", (applyLanguage(force = true); info(trf("Language: $1 ($2 texts)",
+      (if trLanguage().len == 0: "English" else: trLanguageName()), trCount()))))
   add("Settings: quick list (type a name, Enter changes it)…", "", openSettingsList())
   add("Settings: show all defaults", "", (discard openScratch("default settings.json", defaultSettingsText(), langByName("JSON"))))
   add("Settings: reset to defaults", "", resetSettings())
@@ -849,6 +852,34 @@ proc initCommands() =
     "and Linux, written in Nim. Desktop-style UI in the terminal, Nim IDE features, integrated terminal, AI assistant, " &
     $allThemesRaw().len & " themes and vim mode.\n\nMade by " & NedAuthor & " — " & NedSite & " · " & NedEmail &
     "\nSettings: " & configFile(), @[("OK", 'y')], nil))
+
+proc i18nStrings(): string =
+  ## the texts ned makes from its tables, as a JSON list (`ned --i18n-strings`: tests/i18n/extract.py adds them to
+  ## the translators' template): the menu bar's names, the commands' names (and the words some show for a key), the
+  ## settings' sections, names and descriptions
+  if commands.len == 0: initCommands()
+  initSettingDefs()
+  var all: seq[string]
+  var seen: HashSet[string]
+  proc put(s: string) =
+    ## one text, once
+    if s.len > 0 and s notin seen:
+      seen.incl s
+      all.add s
+  for n in MenuNames: put n
+  for c in commands:
+    if c.keys == MacroMark or c.name.startsWith("User: "): continue
+    put c.name
+    var words = 0                          # (a key's words — "what it does" — not Ctrl+S, Alt+Shift+F)
+    for w in c.keys.split({' ', '+', ',', '/', '(', ')'}):
+      if w.len >= 3 and w.allCharsInSet({'a' .. 'z', '\''}): inc words
+    if words >= 1: put c.keys
+  for d in setDefs:
+    put d.cat
+    put settingPretty(d)
+    put d.doc
+  for (_, what, _) in PlugBundled: put what
+  $(%all)
 
 proc commandsMarkdown(): string =
   ## every command of the palette as Markdown (`ned --doc-commands`: docs/reference/commands.md is made from it)

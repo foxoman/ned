@@ -164,6 +164,7 @@ type
 var
   plugs: seq[PlugInfo]
   plugHosts: seq[PlugHost]
+  plugTrDone: HashSet[string]             # the plugins' translations merged into the language in use
   plugRegs: seq[PlugReg]                  # every process's registrations
   plugFailedOnce: HashSet[string]         # plugins left out after they broke a start (until their file changes)
   plugLog: seq[(string, string)]          # plugin, a line
@@ -433,7 +434,7 @@ proc plugPermsCheck() =
     if missing == {}: continue
     p.enabled = false
     p.waiting = true
-    p.err = "waiting for your OK: it asks to " & plugPermsList(missing)
+    p.err = tx("waiting for your OK: it asks to " & plugPermsList(missing))
     if p.id notin plugPermToasted:
       plugPermToasted.incl p.id
       let pid = p.id
@@ -476,13 +477,13 @@ proc plugDiscover() =
       if not p.enabled: p.err = "off"
       elif project and not codeTrusted(rootDir):
         p.enabled = false
-        p.err = "the folder is not trusted"
+        p.err = tx("the folder is not trusted")
       elif p.needs.len > 0 and not plugNeedsOk(p.needs, Version):
         p.enabled = false
-        p.err = "it needs ned " & p.needs & " (this is " & Version & ")"
+        p.err = tx("it needs ned " & p.needs & " (this is " & Version & ")")
       elif id in plugFailedOnce:
         p.enabled = false
-        p.err = "it broke the plugins' start (fix it and save)"
+        p.err = tx("it broke the plugins' start (fix it and save)")
       plugs.add p
   # ned's own plugins you turned on (a plugin of yours with the same name is the one that runs)
   let bon = plugBundledOn()
@@ -501,12 +502,29 @@ proc plugDiscover() =
       if not p.enabled: p.err = "off"
       elif p.needs.len > 0 and not plugNeedsOk(p.needs, Version):
         p.enabled = false
-        p.err = "it needs ned " & p.needs & " (this is " & Version & ")"
+        p.err = tx("it needs ned " & p.needs & " (this is " & Version & ")")
       elif n in plugFailedOnce:
         p.enabled = false
-        p.err = "it broke the plugins' start"
+        p.err = tx("it broke the plugins' start")
       plugs.add p
   plugPermsCheck()
+  plugTranslations()
+
+proc plugTranslations(fresh = false) =
+  ## each plugin's own translation of the language in use (its i18n/<code>.json, as ned's own), merged into it once;
+  ## `fresh`: the language was just loaded again, so each is merged again
+  if fresh: plugTrDone.clear()
+  if trLanguage().len == 0 or trLanguage() == "pseudo": return
+  for p in plugs:
+    if not p.enabled or p.bundled: continue
+    for c in trCandidates(trLanguage()):
+      let f = p.dir / "i18n" / c & ".json"
+      if fileExists(f):
+        if f notin plugTrDone:
+          plugTrDone.incl f
+          let why = try: trLoadText(readFile(f)) except IOError as e: e.msg
+          if why.len > 0: warn("Translation of " & p.id & ": " & why)
+        break
 
 proc plugInfoOf(id: string): int =
   ## where a plugin is in the plugs list by its id, -1 when it is not there
@@ -1026,13 +1044,13 @@ proc plugBuild(h: PlugHost, startAfter: bool) =
   let bin = plugBin(h)
   let src = plugCacheRoot() / "native" / ("host_" & sig & ".nim")
   if findExe("nim").len == 0:
-    if startAfter: h.state = "failed: building it needs nim (Termux: pkg install nim)"
+    if startAfter: h.state = tx("failed: building it needs nim (Termux: pkg install nim)")
     return
   try:
     createDir(parentDir(src))
     writeFile(src, plugHostSource(h))
   except CatchableError as e:
-    if startAfter: h.state = "failed: " & e.msg
+    if startAfter: h.state = tx("failed: " & e.msg)
     return
   var dirs: seq[string]
   for id in h.ids:
@@ -1076,7 +1094,7 @@ proc plugBuild(h: PlugHost, startAfter: bool) =
                    " — staying with nim e"))
   if j == nil:
     h.building = false
-    if startAfter: h.state = "failed: could not run nim c"
+    if startAfter: h.state = tx("failed: could not run nim c")
 
 proc plugBeingWritten(h: PlugHost): bool =
   ## one of the host's plugins (of yours) changed in the last 10 minutes: being written — not compiled at every save
@@ -1142,14 +1160,14 @@ proc plugStart(h: PlugHost) =
     return
   else:
     if findExe("nim").len == 0:
-      h.state = "failed: plugins need nim (Termux: pkg install nim)"
+      h.state = tx("failed: plugins need nim (Termux: pkg install nim)")
       return
     let hostFile = plugCacheRoot() / "host" / ("host_" & h.sig & ".nims")
     try:
       createDir(parentDir(hostFile))
       writeFile(hostFile, plugHostSource(h))
     except CatchableError as e:
-      h.state = "failed: " & e.msg
+      h.state = tx("failed: " & e.msg)
       return
     argv = @["nim", "e", "--hints:off", "--warnings:off", "--path:" & plugLibDir(), hostFile]
     # (compiled at once, in the background, for the next start — and for this one once it has been idle and stopped:
@@ -1182,7 +1200,7 @@ proc plugStart(h: PlugHost) =
     h.errTail.setLen(0)
     h.newRegs.setLen(0)
   except CatchableError as e:
-    h.state = "failed: " & e.msg
+    h.state = tx("failed: " & e.msg)
   if saved[1]: putEnv("NED_PLUGIN_DIRS", saved[0]) else: delEnv("NED_PLUGIN_DIRS")
 
 proc plugHostDied(h: PlugHost) =
@@ -3665,11 +3683,11 @@ proc buildPluginItems(): seq[SideItem] =
     let what = if h.name == PlugShared: ""
                else: h.name & (if h.full: " (Nim)" else: "") & " · "
     let line = case h.state
-      of "ready": ic("ok") & " " & what & "running · " & (if h.native: "native" else: "nim e") &
-                  (if h.name == PlugShared: " · " & $n & " plugin" & (if n == 1: "" else: "s") else: "")
-      of "starting": "○ " & what & "starting… " & $msSince(h.startedAt) & " ms"
-      of "building": "○ " & what & "compiling… " & $(msSince(h.startedAt) div 1000) & " s"
-      else: "○ " & what & h.state
+      of "ready": ic("ok") & " " & what & tr("running") & " · " & (if h.native: tr("native") else: "nim e") &
+                  (if h.name != PlugShared: "" elif n == 1: " · " & tr("1 plugin") else: " · " & trf("$1 plugins", n))
+      of "starting": "○ " & what & trf("starting… $1 ms", msSince(h.startedAt))
+      of "building": "○ " & what & trf("compiling… $1 s", msSince(h.startedAt) div 1000)
+      else: "○ " & what & tr(h.state)
     result.add sideItem(line, (if h.state.startsWith("failed"): 3 elif h.state == "ready": 5 else: 2), "◆", "",
                         plugHostMenu(h.name))
   for (p, t, pct) in plugProgress:
@@ -3692,7 +3710,7 @@ proc buildPluginItems(): seq[SideItem] =
                 if err.len == 0 and r != nil and r.kind == JArray: x.items = r
                 elif err.len > 0: x.items = %*[{"text": "error: " & err, "color": "error"}]
             needRender = true)
-    result.add sideItem(v.title.toUpperAscii, 6, "", v.plugin)
+    result.add sideItem(tr(v.title).toUpperAscii, 6, "", v.plugin)
     if v.items == nil:
       result.add sideItem("…", 2, "", "", depth = 1)
       continue
@@ -3719,13 +3737,14 @@ proc buildPluginItems(): seq[SideItem] =
     let pid = p.id
     let on = p.enabled
     let role = if on: (if p.err.len > 0: 3 else: 1) else: 2
-    var det = if p.err.len > 0 and p.err != "off": p.err elif not on: "off" elif p.project: "project"
-              elif p.bundled: "ned's" elif p.full: "Nim, compiled" elif plugRunsAlone(p): "own process" else: ""
+    var det = if p.err.len > 0 and p.err != "off": tr(p.err) elif not on: tr("off") elif p.project: tr("project")
+              elif p.bundled: tr("ned's") elif p.full: tr("Nim, compiled") elif plugRunsAlone(p): tr("own process")
+              else: ""
     # its version (pluginInfo), an update waiting (↑), pinned (📌)
     if p.version.len > 0: det = p.version & (if det.len > 0: " · " & det else: "")
     let upd = plugUpdateText(p)
     if plugPinned(pid).len > 0: det = "📌 " & det
-    elif upd.len > 0: det = "↑ " & (if upd == "newer": "newer" else: upd) & " · " & det
+    elif upd.len > 0: det = "↑ " & (if upd == "newer": tr("newer") else: upd) & " · " & det
     if p.project and p.err == "the folder is not trusted": inc untrusted
     if pid == plugFocusId:
       # (just turned on: the dock goes to its row — kept there until what it adds is listed under it)
@@ -3741,31 +3760,31 @@ proc buildPluginItems(): seq[SideItem] =
         if r.plugin != pid: continue
         let what = case r.kind
           of "command": "› " & r.data{"title"}.getStr & (if r.data{"keys"}.getStr.len > 0: "  " & r.data{"keys"}.getStr else: "")
-          of "event": "on " & r.data{"event"}.getStr & " " & r.data{"pattern"}.getStr
-          of "language": "language " & r.data{"id"}.getStr
-          of "formatter": "formats " & r.data{"lang"}.getStr
-          of "lsp": "language server for " & r.data{"lang"}.getStr
-          of "completion": "completions for " & r.data{"lang"}.getStr
-          of "hover": "hover for " & r.data{"lang"}.getStr
-          of "codeActions": "code actions for " & r.data{"lang"}.getStr
-          of "symbols": "symbols (outline) for " & r.data{"lang"}.getStr
-          of "snippet": "snippet " & r.data{"trigger"}.getStr & " (" & r.data{"lang"}.getStr & ")"
-          of "aiTool": "assistant's tool " & r.data{"name"}.getStr & (if r.data{"readOnly"}.getBool: " (reads)" else: "")
-          of "view": "view " & r.data{"title"}.getStr
+          of "event": tx("on " & r.data{"event"}.getStr & " " & r.data{"pattern"}.getStr)
+          of "language": tx("language " & r.data{"id"}.getStr)
+          of "formatter": tx("formats " & r.data{"lang"}.getStr)
+          of "lsp": tx("language server for " & r.data{"lang"}.getStr)
+          of "completion": tx("completions for " & r.data{"lang"}.getStr)
+          of "hover": tx("hover for " & r.data{"lang"}.getStr)
+          of "codeActions": tx("code actions for " & r.data{"lang"}.getStr)
+          of "symbols": tx("symbols (outline) for " & r.data{"lang"}.getStr)
+          of "snippet": tx("snippet " & r.data{"trigger"}.getStr & " (" & r.data{"lang"}.getStr & ")")
+          of "aiTool": tx("assistant's tool " & r.data{"name"}.getStr & (if r.data{"readOnly"}.getBool: " (reads)" else: ""))
+          of "view": tx("view " & r.data{"title"}.getStr)
           of "viewClick", "requires", "info": ""
-          of "setting": "setting plugins." & pid & "." & r.data{"key"}.getStr
-          of "vimMap": "vim " & r.data{"mode"}.getStr & "map " & r.data{"keys"}.getStr
-          of "operator": "vim operator " & r.data{"keys"}.getStr
-          of "textObject": "vim text object " & r.data{"keys"}.getStr
-          of "ex": "vim :" & r.data{"name"}.getStr
-          of "timer": "every " & $r.data{"ms"}.getInt & " ms"
+          of "setting": tx("setting plugins." & pid & "." & r.data{"key"}.getStr)
+          of "vimMap": tx("vim " & r.data{"mode"}.getStr & "map " & r.data{"keys"}.getStr)
+          of "operator": tx("vim operator " & r.data{"keys"}.getStr)
+          of "textObject": tx("vim text object " & r.data{"keys"}.getStr)
+          of "ex": tx("vim :" & r.data{"name"}.getStr)
+          of "timer": tx("every " & $r.data{"ms"}.getInt & " ms")
           else: r.kind
         if what.len == 0: continue
         if r.kind == "command":
           result.add sideItem(what, 7, "", "", plugInvokeAction(regKey(r)), depth = 1)
         else: result.add sideItem(what, 2, "", "", depth = 1)
   if untrusted > 0:
-    result.add sideItem($untrusted & " project plugin" & (if untrusted == 1: "" else: "s") & " held back", 4, "⛉",
+    result.add sideItem((if untrusted == 1: tx("1 project plugin held back") else: tx($untrusted & " project plugins held back")), 4, "⛉",
                         "trust the folder", proc() = runCmd("Workspace: trust this folder"))
   # ned's own plugins not turned on yet: a tap shows what it does and turns it on
   var avail: seq[(string, string)]
@@ -3801,7 +3820,7 @@ proc cmdPluginCommands() =
     var starting = false
     for h in plugHosts:
       if h.state in ["starting", "building"]: starting = true
-    info("No plugin commands" & (if starting: " yet — the plugins are starting" else: ""))
+    info(if starting: "No plugin commands yet — the plugins are starting" else: "No plugin commands")
     return
   openActions("Plugin commands", items)
 
@@ -3812,7 +3831,7 @@ proc cmdPluginToggle() =
   for p in plugs:
     let pid = p.id
     let on = p.enabled
-    let det = (if on: "turn off" else: "turn on") & (if p.err.len > 0 and p.err != "off": " · " & p.err else: "")
+    let det = tr(if on: tx("turn off") else: tx("turn on")) & (if p.err.len > 0 and p.err != "off": " · " & tr(p.err) else: "")
     capture pid, on:
       items.add act((if on: "● " else: "○ ") & pid, det, proc() = plugSetEnabled(pid, not on))
   if items.len == 0:

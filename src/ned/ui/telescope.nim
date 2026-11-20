@@ -21,14 +21,15 @@ proc tsText(text: string, lang = ""): TsPreview = TsPreview(text: text, lang: la
 # a preview made of a command's output (a git diff by default), run the first time it is shown
 proc tsCmd(cmd: string, lang = "Diff"): TsPreview = TsPreview(cmd: cmd, lang: lang)
 
-proc tsOpen(title: string, entries: seq[TsEntry], again: proc() {.closure.} = nil) =
-  ## a finder: the picker, each entry's preview beside it
+proc tsOpen(title: string, entries: seq[TsEntry], again: proc() {.closure.} = nil, data = true) =
+  ## a finder: the picker, each entry's preview beside it; its labels are what was found (`data`: not translated), but
+  ## in the list of finders
   var items: seq[(string, string, Action)]
   var search: seq[string]
   for e in entries:
     items.add (e.label, e.detail, e.act)
     search.add e.search
-  openActions(title, items, search)
+  openActions(title, items, search, data)
   tsActive = true
   tsPreviews.setLen(0)
   for e in entries: tsPreviews.add e.pv
@@ -59,7 +60,7 @@ proc tsPreviewText(idx: int): Buffer =
       if gen != tsGen or i >= tsPreviews.len: return       # (another finder since)
       var t = stripAnsi(j.output)
       if t.len > 200_000: t = t[0 ..< 200_000]
-      tsPreviews[i].text = (if t.strip.len == 0: "(nothing)" else: t)
+      tsPreviews[i].text = (if t.strip.len == 0: tr("(nothing)") else: t)
       tsTextBufs.del i
       needRender = true)
   let text = if tsPreviews[idx].text.len > 0: tsPreviews[idx].text
@@ -152,8 +153,8 @@ proc tsGrep(q: string) =
     tsPreviews = pvs
     tsTextBufs.clear()
     refilterPicker(keepSel = true)
-    pickTitle = "Live grep — " & (if items.len >= 1500: "the first 1500 lines" else: $items.len & " lines") &
-                " with “" & q & "”")
+    pickTitle = (if items.len >= 1500: tx("Live grep — the first 1500 lines with “" & q & "”")
+                 else: tx("Live grep — " & $items.len & " lines with “" & q & "”")))
 
 proc tsLiveGrep(initial = "") =
   ## opens the Live grep finder with no entries and no filtering: tsLive runs tsGrep on what is typed. With an initial
@@ -177,9 +178,10 @@ proc tsSettings() =
     let v = sval(d.key)
     let shown = if v.kind == JString: v.getStr else: $v
     let key = d.key
-    var t = d.key & "\n\n" & d.doc & "\n\nNow:     " & shown & "\nDefault: " & (if d.def.kind == JString: d.def.getStr else: $d.def)
-    if d.opts.len > 0: t.add "\nOne of:  " & d.opts.join(" · ")
-    t.add "\nSection: " & d.cat
+    var t = d.key & "\n\n" & tr(d.doc) & "\n\n" & trf("Now:     $1", shown) & "\n" &
+            trf("Default: $1", (if d.def.kind == JString: d.def.getStr else: $d.def))
+    if d.opts.len > 0: t.add "\n" & trf("One of:  $1", d.opts.join(" · "))
+    t.add "\n" & trf("Section: $1", tr(d.cat))
     es.add TsEntry(label: d.key, detail: truncTo(shown, 30), search: d.doc.toLowerAscii & " " & d.cat.toLowerAscii,
                    act: (proc() = openSettingsUi(key)), pv: tsText(t))
   tsOpen("Settings — Enter opens it in the Settings panel", es, tsSettings)
@@ -195,8 +197,9 @@ proc tsKeys() =
   for i, c in commands:
     if c.keys.len == 0: continue
     es.add TsEntry(label: c.keys & "   " & c.name, detail: "", search: c.name.toLowerAscii,
-                   act: tsCmdAct(i), pv: tsText(c.name & "\n\nKey: " & c.keys & "\n\nEnter runs it. Your own keys: the " &
-                                                "\"keys\" setting ({\"ctrl+alt+x\": \"" & c.name & "\"})."))
+                   act: tsCmdAct(i), pv: tsText(tr(c.name) & "\n\n" & trf("Key: $1", c.keys) & "\n\n" &
+                                                trf("Enter runs it. Your own keys: the \"keys\" setting " &
+                                                    "({\"ctrl+alt+x\": \"$1\"}).", c.name)))
   tsOpen("Keys — Enter runs the command", es, tsKeys)
 
 proc tsProblems() =
@@ -453,11 +456,13 @@ proc tsPlugins() =
   var have: HashSet[string]
   for p in plugs:
     have.incl p.id
-    es.add TsEntry(label: p.id, detail: (if p.enabled: "on" else: "off") & (if p.version.len > 0: " · " & p.version else: "") &
-                   (if p.bundled: " · ned's" else: ""), act: (proc() = cmdPlugins()), pv: tsFile(p.file, 0))
+    es.add TsEntry(label: p.id, detail: tr(if p.enabled: tx("on") else: tx("off")) &
+                   (if p.version.len > 0: " · " & p.version else: "") & (if p.bundled: " · " & tr("ned's") else: ""),
+                   act: (proc() = cmdPlugins()), pv: tsFile(p.file, 0))
   for (n, what, src) in PlugBundled:
     if n in have: continue
-    es.add TsEntry(label: n, detail: "available · " & what, search: what.toLowerAscii, act: plugBundledAct(n, true),
+    es.add TsEntry(label: n, detail: trf("available · $1", tr(what)), search: what.toLowerAscii,
+                   act: plugBundledAct(n, true),
                    pv: tsText(src, "Nim"))
   tsOpen("Plugins — Enter turns one of ned's on", es, tsPlugins)
 
@@ -592,7 +597,7 @@ proc telescope() =
   var es: seq[TsEntry]
   proc add(label, detail: string, act: Action, help: string) =
     ## adds a finder to the list, its help text as the preview beside it
-    es.add TsEntry(label: label, detail: detail, act: act, pv: tsText(label & "\n\n" & help))
+    es.add TsEntry(label: label, detail: detail, act: act, pv: tsText(tr(label) & "\n\n" & tr(help)))
   add("Files", "Ctrl+P", proc() = cmdFindFile(), "The project's files, the open and recent ones first. :line, @symbol, " &
       "#project symbol and >command work in it too.\n\nIn every finder of places — files, lines, symbols, problems: " &
       "Alt+V opens the one chosen in a pane at the right, Alt+X in a pane below, Alt+Q puts them all in a multibuffer.")
@@ -635,7 +640,7 @@ proc telescope() =
   add("Recent projects", "", proc() = cmdRecentProjects(), "The folders you worked in.")
   if tsLast != nil:
     add("Resume: " & tsLastTitle, "", proc() = tsResume(), "The last finder, with what you had typed.")
-  tsOpen("Telescope — what to find?", es)
+  tsOpen("Telescope — what to find?", es, data = false)
 
 proc tsLivePump() =
   ## (main loop) a live finder's query, a moment after the typing stops

@@ -2,6 +2,10 @@
 
 var tabScroll = 0
 
+proc tabName(b: Buffer): string =
+  ## a tab's name: its file's, else ned's name for the view in the language chosen ("Welcome", "Preview: x.md")
+  if b.path.len > 0: b.name else: tr(b.name)
+
 proc tabMenu(i: int): seq[MenuItem] =
   ## the right-click menu of tab number i: the close variants, reopening a closed tab, showing it in a split, copying
   ## its path and revealing it in the file tree. The tab is held by index and checked again when an item is used.
@@ -55,7 +59,7 @@ proc drawTabBar() =
   let actW = 4
   let avail = x0 + w - actW
   var widths: seq[int]
-  for b in bufs: widths.add strWidth(b.name) + 6
+  for b in bufs: widths.add strWidth(b.tabName) + 6
   tabScroll = clamp(tabScroll, 0, bufs.high)
   if curBuf < tabScroll: tabScroll = curBuf
   var used = 0
@@ -86,7 +90,7 @@ proc drawTabBar() =
       xx = putStr(xx, y, fileIcon(b.path), langColor(b.path), bg, {}, avail)
     elif b.title.len > 0: xx = putStr(xx, y, ic("spark"), theme.accent, bg, {}, avail)
     else: xx = putStr(xx, y, " ", fg, bg, {}, avail)
-    xx = putStr(xx + 1, y, b.name, fg, bg, (if active: {aBold} else: {}), avail)
+    xx = putStr(xx + 1, y, b.tabName, fg, bg, (if active: {aBold} else: {}), avail)
     let cx = xx + 1
     if cx < avail:
       let showClose = active or isH

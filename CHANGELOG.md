@@ -1,6 +1,42 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-654). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-655). Older releases:
+
+## What's new in 6.54
+
+**Edit a proposed change before you take it.** A change Claude Code or Gemini CLI proposes, a file from an
+agent's worktree, and now an agent's write in the AI dock open as a diff with a third key: e opens the proposal in a
+tab of its own to edit, and Ctrl+S accepts it as you left it — the tool gets your version. Closing the tab rejects
+it.
+
+**An agent's writes as diffs first.** With `ai.agentReview` on, each file an agent of the AI dock (Claude Agent,
+Codex, Gemini CLI, Copilot) writes through ned waits as a diff: a writes it, d tells the agent you rejected it, e
+lets you edit it first ([The AI assistant](docs/guide/ai.md#agents-of-their-own-acp)).
+
+**Worktrees: from your uncommitted changes, and several.** *AI: agent in a worktree* asks, when you have changes
+not committed yet, whether the agent starts from them too: they are copied into its worktree and committed there
+first, so the review shows only what the agent did. Each worktree stays until you remove it: start another while
+one waits, and *AI: review the agent's branch* asks which one ([An agent in a worktree](docs/guide/ai.md#an-agent-in-a-worktree)).
+
+**The IDE link keeps its port.** ned starts again on the port and with the token it had, so a Claude Code still
+running in a terminal kept across the restart finds it again. Columns are counted as Claude Code and Gemini CLI count
+them, so a selection on a line with Arabic or an emoji is where they think it is. A change Gemini CLI proposes no
+longer closes when the connection that sent it does.
+
+**Copilot's telemetry refused.** Copilot's language server reached GitHub's telemetry address on its own, whatever
+it was told. Now it reaches the network through a small proxy of ned's on 127.0.0.1 that refuses that address and
+passes the rest on — through your own proxy when `HTTPS_PROXY` names one (`ai.copilotNoTelemetry`, on; not on
+Windows).
+
+**Lighter on memory.** On ned's own source the editor held 56 MB after a session of typing and completions; now 44.
+The completion list's items no longer each carry room for a declaration only a few of them have, the colours of the
+names a file sees are kept by their hashes, and the list's items are not kept twice.
+
+**Include order, by position.** The `include-order` check now reads each file from the top, as the compiler does: a
+name used above the import that brings it, further down the same file, or after the `include` in the file that
+includes it, is undeclared there. A call after a dot (`s.strip`) counts too ([Nim IDE](docs/guide/nim.md)).
+
+**Fixed.** A C file with an `#if` nested thousands of brackets deep could stop ned.
 
 ## What's new in 6.53
 

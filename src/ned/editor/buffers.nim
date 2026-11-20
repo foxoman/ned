@@ -105,7 +105,8 @@ proc openFile(path: string, line = -1, col = -1): Buffer =
         if l.startsWith("<<<<<<<") and (l.len == 7 or l[7] == ' '): inc nc
       if nc > 0:
         let bid = b.id
-        toast($nc & " merge conflict" & (if nc == 1: "" else: "s") & " in " & b.name, 2, "Merge editor", proc() =
+        toast((if nc == 1: trf("1 merge conflict in $1", b.name) else: trf("$1 merge conflicts in $2", nc, b.name)), 2,
+              "Merge editor", proc() =
           for k, x in bufs:
             if x.id == bid:
               curBuf = k

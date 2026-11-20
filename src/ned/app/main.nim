@@ -213,6 +213,7 @@ proc mainLoop() =
     if fixWanted > 0: timeout = min(timeout, 200)
     for t in terms:
       if t.replQ.len > 0: timeout = min(timeout, 250)
+      if t.replEnter.len > 0: timeout = min(timeout, 60)
     if reapPids.len > 0: timeout = min(timeout, 500)
     if startTrace: timeout = min(timeout, 20)
     timeout = min(timeout, plugNextDueMs())
@@ -620,6 +621,7 @@ proc usage() =
   echo "                        token is kept in ned's private folder and sent to it from then on"
   echo "  --default-settings    print the full settings file with every option and its default"
   echo "  --doc-settings, --doc-commands  every setting, every command of the palette, as Markdown (the docs)"
+  echo "  --i18n-strings     the texts ned makes from its tables, as JSON (tests/i18n/extract.py: TRANSLATING.md)"
   echo "  --reset [--yes] [--keep-plugins]  remove ned's settings, sessions, history, caches and downloads: ned"
   echo "                        starts as on its first run (asks first; --yes does not ask)"
   echo "  -es, --headless FILE  vim mode with no terminal: a case of keys per line on stdin (JSON), where it left"
@@ -954,6 +956,10 @@ proc main() =
       of "--doc-commands":
         applyTheme("nim-crown")
         stdout.write commandsMarkdown()
+        quit 0
+      of "--i18n-strings":
+        applyTheme("nim-crown")
+        stdout.write i18nStrings()
         quit 0
       of "--bench":
         if ai >= cl.len: quit "ned: --bench needs a file", 2
