@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.55](#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.56](#whats-new-in-656) · [6.55](CHANGELOG.md#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -33,17 +33,22 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ---
 
-## What's new in 6.55
+## What's new in 6.56
 
-**ned in your language.** Every text ned shows — the menus, the palette, messages and questions, the settings
-window, the docks and panels, the status bar, the welcome page — can now be translated, and a translation needs no
-programming: one JSON file from each English text to yours, `i18n/<code>.json`. ned takes your system's language
-(`LANG`) or the one you choose in *Palette › Language…* (`ui.language`), and keeps English for what a translation does
-not have yet. No translation comes with ned yet: [TRANSLATING.md](TRANSLATING.md) says how to make one, try it as you
-go and send it. `"ui.language": "pseudo"` marks each text that can be translated, to find one that cannot.
+**ned in eleven languages besides English.** German, French, Spanish, Italian, Portuguese (Portugal), Dutch, Polish, Swedish,
+Czech, Greek and Russian are built in, each with every text ned shows. ned takes the one your system speaks
+(`LANG`), or the one you choose in *Palette › Language…* (`ui.language`). They were written by Claude, not by native
+speakers: a word that reads wrong is a line to change in `i18n/<code>.json`, and a pull request or an issue with the
+better words is welcome ([TRANSLATING.md](TRANSLATING.md)).
 
-**Fixed.** Python 3.14's REPL took the Enter after a pasted file as more of the paste, so *REPL: send the whole file*
-and Shift+Enter left the code waiting at `...` (Python 3.13 too when the paste and the Enter came together).
+**A translation may leave a part out.** A text such as `"Saved $1 file$2"` fills `$2` with the English plural
+ending; a translation can drop it and write a form that fits any number (`"Gespeichert: $1 Datei(en)"`). A word ned
+adds to another text with a space before it (`" here"`) is translated too.
+
+**Fixed.** On Windows the folder picker goes to another drive: type `D:\` and Enter
+([#11](https://github.com/foxoman/ned/pull/11), from dwhall).
+
+---
 
 ## Features
 
@@ -214,7 +219,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.55.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.56.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

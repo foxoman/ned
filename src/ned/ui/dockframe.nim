@@ -230,9 +230,11 @@ proc drawSearchInput(x0, y0, w: int): int =
     info = (if w >= 34: trf("$1 results in $2 files", n, searchFiles) else: trf("$1 in $2 files", n, searchFiles)) &
            (if searchDone: "" else: " · " & tr("searching…"))
   fillRect(x0, y, w, 1, theme.dim, theme.dockBg)
-  discard putStr(x0 + 2, y, truncTo(info, max(1, w - 10)), theme.dim, theme.dockBg, {}, x0 + w - 8)
+  # (files… at the right end, as wide as it is in the language chosen)
+  let fw = if dockShowInclude: 0 else: strWidth(tr("files…")) + 1
+  discard putStr(x0 + 2, y, truncTo(info, max(1, w - 4 - fw)), theme.dim, theme.dockBg, {}, x0 + w - 1 - fw)
   if not dockShowInclude:
-    discard button(x0 + w - 7, y, "files…", proc() = showIncludeRow(), "Only search some files (globs)",
+    discard button(x0 + w - fw, y, "files…", proc() = showIncludeRow(), "Only search some files (globs)",
                    theme.dim, theme.dockBg)
   y + 1 - y0
 

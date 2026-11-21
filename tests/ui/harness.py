@@ -220,7 +220,7 @@ def start(*files, w=140, h=40, path=None, env_extra=''):
     # (drawn — its menu bar or its status bar — before the first keys: under load ned takes longer to start, and
     # keys sent before it reads them land elsewhere)
     time.sleep(0.8)
-    wait_for(r'≡ +File|Ln \d+, Col|EXITED', 10)
+    wait_for(r'≡ +File|Ln \d+, Col|EXITED|≡ .*⚙', 10)       # (the last: the title bar in any language)
     time.sleep(0.5)
     keys('Escape')
 
@@ -382,8 +382,10 @@ def ned_single_file():
             if m and not line.startswith(' ') and all(os.path.exists(os.path.join(base, x.strip() + '.nim'))
                                                       for x in m.group(1).split(',')):
                 continue
-            # (a file read at compile time, next to its source: by its full path now)
-            line = re.sub(r'staticRead\("([^"/][^"]*)"\)', lambda mm: 'staticRead("' + os.path.abspath(os.path.join(base, mm.group(1))) + '")', line)
+            # (a file read at compile time, next to its source: by its full path now; a folder joined to a name
+            # keeps its "/": staticRead("../i18n/" & c & ".json"))
+            line = re.sub(r'staticRead\("([^"/][^"]*)"', lambda mm: 'staticRead("' + os.path.abspath(os.path.join(base, mm.group(1))) +
+                          ('/' if mm.group(1).endswith('/') else '') + '"', line)
             # (the folder of the source, in code — not in a string that writes it, as ned's C header wrapper's do)
             line = code_sub(r'currentSourcePath\(\)\.parentDir', lambda mm: '"' + os.path.abspath(base) + '"', line)
             # (… and the folders n levels up, as the plugin host and the index cache name them)

@@ -39,7 +39,7 @@ proc togglePanel() =
     if panelLines.len == 0:
       panelTitle = "OUTPUT"
       panelKind = pkOutput
-      panelLines = @[PanelLine(text: "No output yet — Alt+R runs the current file", sev: 3, line: -1)]
+      panelLines = @[PanelLine(text: tr("No output yet — Alt+R runs the current file"), sev: 3, line: -1)]
     panelOpen = true
 
 proc newFile() =

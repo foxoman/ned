@@ -81,6 +81,9 @@ jobs:
           python3 tests/docs/wiring.py ./ned          # menus name real commands, settings declared and read
       - name: The translators' template has every text ned shows
         run: python3 tests/i18n/extract.py --ned ./ned --check
+      - name: The translations built in read and keep their parts
+        run: |
+          for l in $(grep -v '^#' i18n/LANGUAGES); do python3 tests/i18n/extract.py --ned ./ned --lang "$l" || exit 1; done
 
   nedls:
     # the language server driven by a test client, and the formatter checked by Nim's own parser

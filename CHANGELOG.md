@@ -1,6 +1,18 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-655). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-656). Older releases:
+
+## What's new in 6.55
+
+**ned in your language.** Every text ned shows — the menus, the palette, messages and questions, the settings
+window, the docks and panels, the status bar, the welcome page — can now be translated, and a translation needs no
+programming: one JSON file from each English text to yours, `i18n/<code>.json`. ned takes your system's language
+(`LANG`) or the one you choose in *Palette › Language…* (`ui.language`), and keeps English for what a translation does
+not have yet. No translation comes with ned yet: [TRANSLATING.md](TRANSLATING.md) says how to make one, try it as you
+go and send it. `"ui.language": "pseudo"` marks each text that can be translated, to find one that cannot.
+
+**Fixed.** Python 3.14's REPL took the Enter after a pasted file as more of the paste, so *REPL: send the whole file*
+and Shift+Enter left the code waiting at `...` (Python 3.13 too when the paste and the Enter came together).
 
 ## What's new in 6.54
 

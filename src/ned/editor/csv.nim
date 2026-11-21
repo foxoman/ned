@@ -129,18 +129,19 @@ proc cmdCsvSummary() =
   proc num(x: float): string =
     ## a number for the summary: whole values without decimals, others with up to three decimals and no trailing zeros
     if abs(x) < 1e15 and x == float(int64(x)): $int64(x) else: formatFloat(x, ffDecimal, 3).strip(leading = false, chars = {'0'}).strip(leading = false, chars = {'.'})
-  var ls = @[PanelLine(text: "COLUMN " & $(col + 1) & " — " & name, sev: 5, line: -1),
-             PanelLine(text: "  rows " & $n & (if empty > 0: " · empty " & $empty else: "") & " · different values " & $counts.len, line: -1)]
+  var ls = @[PanelLine(text: tr("COLUMN " & $(col + 1) & " — " & name), sev: 5, line: -1),
+             PanelLine(text: tr("  rows " & $n & (if empty > 0: " · empty " & $empty else: "") & " · different values " &
+                                $counts.len), line: -1)]
   if nums > 0:
-    ls.add PanelLine(text: "  numbers " & $nums & " · sum " & num(sum) & " · smallest " & num(lo) & " · largest " & num(hi) &
-                           " · mean " & num(sum / nums.float), line: -1)
+    ls.add PanelLine(text: tr("  numbers " & $nums & " · sum " & num(sum) & " · smallest " & num(lo) & " · largest " &
+                              num(hi) & " · mean " & num(sum / nums.float)), line: -1)
   if nums < n - empty:
     counts.sort()
     var top: seq[string]
     for v, c in counts:
       top.add truncTo(v, 30) & " ×" & $c
       if top.len >= 8: break
-    ls.add PanelLine(text: "  most common: " & top.join(" · "), line: -1)
+    ls.add PanelLine(text: tr("  most common: " & top.join(" · ")), line: -1)
   setPanel(pkOutput)
   panelTitle = "CSV"
   panelLines = ls

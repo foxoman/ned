@@ -211,7 +211,16 @@ proc uiLanguages(): seq[(string, string)] =
   result.add ("en", "English")
   var seen = @["en"]
   proc nameOf(text, code: string): string =
-    ## a catalogue's "@language" (its code when it has none)
+    ## a catalogue's "@language" (its code when it has none): from its line when it is near the start, as ned's and
+    ## the template's are (a catalogue is thousands of texts: not read whole for its name), else the whole file
+    let at = text.find("\"@language\"")
+    if at >= 0 and at < 4096:
+      var e = text.find('\n', at)
+      if e < 0: e = text.len
+      try:
+        let j = parseJson("{" & text[at ..< e].strip.strip(leading = false, chars = {','}) & "}")
+        if j{"@language"}.getStr.len > 0: return j{"@language"}.getStr
+      except CatchableError: discard
     try:
       let j = parseJson(text)
       if j.kind == JObject and j{"@language"}.getStr.len > 0: return j{"@language"}.getStr

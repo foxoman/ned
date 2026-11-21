@@ -1,5 +1,5 @@
 ## The interface in other languages (src/ned/core/i18n.nim): a catalogue's texts found whole, those with parts that
-## change ($1 …) in any order, $$ a dollar sign, the spaces around a text kept, a part that is a word of the
+## change ($1 …) in any order or left out, $$ a dollar sign, the spaces around a text kept, a part that is a word of the
 ## catalogue translated too, the pseudo language, the language of the system's settings, a file of yours over ned's,
 ## and what is said when a catalogue cannot be read.
 ## Run: nim r tests/unit/ti18n.nim
@@ -18,6 +18,10 @@ const De = """{
  "Costs $$5": "Kostet 5 $$",
  "Price: $$$1": "Preis: $1 $$",
  "Imports updated in $1 file(s)$2": "Importe in $1 Datei(en) erneuert$2",
+ "here": "hier",
+ "@file @diff — context": "@file @diff — Kontext",
+ "Found it$1": "Gefunden$1",
+ "Closed $1 tab$2": "Tabs geschlossen: $1",
  "$1: $2": "nie",
  "Untranslated": ""
 }"""
@@ -39,6 +43,7 @@ suite "i18n":
     check tr("Nothing like it") == "Nothing like it"
     check tr("Untranslated") == "Untranslated"              # (an empty translation: the English stays)
     check trCount() >= 8
+    check tr("@file @diff — context") == "@file @diff — Kontext"   # (@ and a word alone: the catalogue's own entry)
 
   test "the spaces around a text stay":
     discard trLoad("de", [("de", De)])
@@ -58,6 +63,15 @@ suite "i18n":
     discard trLoad("de", [("de", De)])
     check tr("Wrap: on") == "Umbruch: an"
     check tr("Wrap: off") == "Umbruch: off"
+    check tr("Found it here") == "Gefunden hier"           # (a part with spaces around it: looked up without them)
+    check tr("Found it  here ") == "Gefunden  hier "
+    check tr("Found it there") == "Gefunden there"
+
+  test "a translation may leave a part out (an English plural ending)":
+    discard trLoad("de", [("de", De)])
+    check tr("Closed 3 tabs") == "Tabs geschlossen: 3"
+    check tr("Closed 1 tab") == "Tabs geschlossen: 1"
+    check trf("Closed $1 tab$2", 2, "s") == "Tabs geschlossen: 2"
 
   test "a part may be empty (a text that leaves it out)":
     discard trLoad("de", [("de", De)])

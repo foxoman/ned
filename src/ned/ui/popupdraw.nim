@@ -54,10 +54,11 @@ proc drawDialog() =
   if dialogs.len == 0: return
   let d = dialogs[^1]
   shadeRect(0, 0, scrW, scrH)
-  let w = min(scrW - 4, max(44, min(70, strWidth(d.body) + 8)))
-  let lines = wrapText(d.body, w - 6)
   var btnW = 0
   for (l, _) in d.buttons: btnW += strWidth(l) + 4 + 1
+  # (as wide as its buttons too: in another language they can be longer than the text — "Zapisz wszystkie")
+  let w = min(scrW - 4, max(max(44, min(70, strWidth(d.body) + 8)), btnW + 4))
+  let lines = wrapText(d.body, w - 6)
   let h = lines.len + 6
   let (x, y) = boxPlace("dialog", (scrW - w) div 2, max(1, (scrH - h) div 2 - 2), w, h)
   modalStart = regions.len

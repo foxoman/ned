@@ -4,6 +4,22 @@ ned's menus, palette, messages, dialogs, docks, settings and help can be shown i
 one file, `i18n/<code>.json`: a JSON object from each English text to yours. No programming is needed, and a file
 that is only partly done already works: what it does not have stays in English.
 
+## Built in
+
+| Code | Language | | Code | Language |
+|---|---|---|---|---|
+| `de` | Deutsch | | `pl` | Polski |
+| `fr` | Français | | `sv` | Svenska |
+| `es` | Español | | `cs` | Čeština |
+| `it` | Italiano | | `el` | Ελληνικά |
+| `pt` | Português (Portugal) | | `ru` | Русский |
+| `nl` | Nederlands | | | |
+
+These were written by Claude (Anthropic's AI model) for 6.56, not by native speakers. They are complete, but a
+word may read oddly or a term may not be the one your language's programmers use. Corrections are welcome: change
+the text in `i18n/<code>.json` and send a pull request, or open an issue with the English text and the better words.
+To improve one, start from its file instead of the template.
+
 ## Start
 
 1. Take `i18n/template.json`: every text ned shows, in English, with `""` beside it. It is made from the source,
@@ -37,6 +53,10 @@ Some texts have parts ned fills in — a file's name, a number. The template wri
 `"Deleted $1 recovery file(s)"`. Keep each `$n` in your translation; you may put them in any order your language
 needs (`"Move $1 to $2"` → `"$2: $1 verschieben"`). `$$` stands for a dollar sign itself.
 
+A part may be left out when your language does not need it. Most often it is an English plural ending:
+`"Saved $1 file$2"` fills `$2` with `s` or nothing, and a translation can drop it and write a form that fits any
+number (`"Gespeichert: $1 Datei(en)"`). A translation may not add a part the English does not have, or use one twice.
+
 A part is sometimes an English word ned chose (`"$1 (on)"`): the template has that word too, and translating it
 translates it everywhere.
 
@@ -61,7 +81,8 @@ python3 tests/i18n/extract.py --lang de             # i18n/de.json (or a path): 
 python3 tests/i18n/extract.py --lang de --missing   # … and each text still to do
 ```
 
-It says how many texts are done, a `$n` your translation lost or added, and texts ned no longer has (they can go).
+It says how many texts are done, a `$n` your translation added or used twice, and texts ned no longer has (they
+can go).
 
 ## Send it
 

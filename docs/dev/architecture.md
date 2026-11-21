@@ -97,7 +97,9 @@ that language's catalogue — `i18n/<code>.json`, built into ned from `i18n/LANG
 the person's file of the same name in `~/.config/ned/i18n/` over it and each plugin's `i18n/<code>.json` merged in
 (`plugins/host.nim`) — and comes back as it is when the catalogue does not have it. A catalogue's key is the English
 text; one with parts that change is written with `$1` … and found whole (patterns indexed by their first and last
-bytes, and remembered), the parts in the translation's order. English costs one test of `trOn` per text.
+bytes, and remembered), the parts in the translation's order; a translation may leave a part out (an English plural
+ending), and a part that is itself a catalogue text is translated too, with the spaces around it kept (`trPart`).
+English costs one test of `trOn` per text. Eleven catalogues come with ned (6.56); only the one in use is read.
 
 The routines that show a text translate it themselves (`setMsg`, `toast`, `openDialog`, `openMenu`, `openActions`,
 `openPicker`, the forms, `button`, `pill`, `drawFrame`, a tooltip, a dock row), so the code keeps English texts:

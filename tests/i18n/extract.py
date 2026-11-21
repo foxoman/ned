@@ -165,9 +165,20 @@ def template_of(expr, raw=False):
     return out if good(out) else None
 
 
+def meta(k):
+    """a catalogue's own entry ("@language"), not a text: @ and a word"""
+    return re.fullmatch(r"@\w+", k) is not None
+
+
+# words of fewer than three letters that are texts of their own: the dialogs' buttons, menus, a tooltip
+SHORT = {"No", "OK", "AI", "Up"}      # (not "Go": the menu, and the language too)
+
+
 def good(t, least=3):
-    """worth translating: three letters of text at least (not "$1: $2"), and not a key, a path or code"""
+    """worth translating: three letters of text at least (not "$1: $2"), or one of the SHORT words, and not a key, a
+    path or code"""
     if t is None: return False
+    if t.strip() in SHORT: return True
     lit = re.sub(r"\$\d", "", t)
     if sum(1 for c in lit if c.isalpha()) < least: return False
     if re.fullmatch(r"[a-z]+(\.[a-zA-Z]+)+", t.strip()): return False        # (a setting's key)
@@ -312,12 +323,25 @@ def scan_file(path, found):
     # the command syntax: info "Saved", toast "…"
     words = "info|warn|error|toast" + ("|command|message|status|progress|view|confirm|ask" if
                                         rel.startswith("plugins" + os.sep) else "")
-    for m in re.finditer(r'(?<![\w.])(%s)[ ]+("(?:[^"\\\n]|\\.)*")' % words, src):
+    # (a statement of its own: at the start of a line or after a ':' — not a word inside a string: "(error " & …)
+    for m in re.finditer(r'(?:^|(?<=:))[ \t]*(%s)[ ]+("(?:[^"\\\n]|\\.)*")' % words, src, re.M):
         add(template_of(m.group(2)), m.start())
 
 
+HELP_KEYS = {"Ctrl", "Alt", "Shift", "Enter", "Tab", "Space", "Esc", "PgUp", "PgDn", "Home", "End", "Del", "Ins",
+             "Backspace", "Insert", "Delete", "Cmd", "Meta"}
+
+
+def help_key_words(key):
+    """the help's key column has words to translate ("Right click", "Palette ›"), not only keys ("Ctrl+Alt+←"); a
+    command or a file name ("/server:prompt", ".editorconfig") stays as it is"""
+    if key[:1] in "/.": return False
+    return any(w not in HELP_KEYS for w in re.findall(r"[A-Za-z]{3,}", key))
+
+
 def scan_help(path, found):
-    """the key-bindings help (popups.nim's HelpLines): each line's description, as helpRows splits it from its keys"""
+    """the key-bindings help (popups.nim's HelpLines): each line's description, as helpRows splits it from its keys,
+    and the key column's words"""
     src = open(path, encoding="utf-8").read()
     i = src.find("const HelpLines = [")
     if i < 0: return
@@ -330,6 +354,8 @@ def scan_help(path, found):
         elif l[0] != " ":
             k = l.find("  ")
             t = l[k:].lstrip() if 0 < k <= 21 else l
+            if 0 < k <= 21 and help_key_words(l[:k]):
+                found.setdefault(l[:k].replace("$", "$$"), []).append("%s:%d" % (rel, src.count("\n", 0, m.start()) + 1))
         else: t = l.strip()
         if good(t): found.setdefault(t.replace("$", "$$"), []).append("%s:%d" % (rel, src.count("\n", 0, m.start()) + 1))
 
@@ -378,15 +404,19 @@ def main():
         try: cat = json.load(open(path, encoding="utf-8"))
         except (OSError, ValueError) as e: sys.exit("%s: %s" % (path, e))
         if not isinstance(cat, dict): sys.exit(path + ": not a JSON object of English text → translation")
-        done = {k: v for k, v in cat.items() if not k.startswith("@") and isinstance(v, str) and v}
+        done = {k: v for k, v in cat.items() if not meta(k) and isinstance(v, str) and v}
         missing = [t for t in tpl if t not in done]
         unused = [k for k in done if k not in tpl]
         bad = []
         for k, v in done.items():
-            if sorted(re.findall(r"\$\d", k)) != sorted(re.findall(r"\$\d", v)): bad.append((k, v))
+            # (a translation may leave a part out — an English plural ending: "$1 file$2" → "Datei(en): $1" — but
+            # not add one, use one twice, or lose a $$)
+            tv = re.findall(r"\$\d", v)
+            if len(tv) != len(set(tv)) or not set(tv) <= set(re.findall(r"\$\d", k)) or k.count("$$") != v.count("$$"):
+                bad.append((k, v))
         print("%s: %d of %d translated (%d%%)" % (os.path.basename(path), len(tpl) - len(missing), len(tpl),
               (len(tpl) - len(missing)) * 100 // max(1, len(tpl))))
-        for k, v in bad: print("  $n differ: %r → %r" % (k, v))
+        for k, v in bad: print("  $n added, twice or $$ lost: %r → %r" % (k, v))
         if unused: print("  %d no longer in ned (they can go): %s" % (len(unused), ", ".join(map(repr, unused[:10]))))
         if "--missing" in a:
             for t in missing: print("  missing: %r" % t)

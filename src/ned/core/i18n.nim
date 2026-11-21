@@ -68,9 +68,16 @@ proc trClear() =
   trMemo.clear()
   trName = ""
 
+proc trMeta(key: string): bool =
+  ## a catalogue's own entry, not a text: @ and a word ("@language"); "@file @diff — context" is a text
+  if key.len < 2 or key[0] != '@': return false
+  for c in key[1 .. ^1]:
+    if not (c.isAlphaNumeric or c == '_'): return false
+  true
+
 proc trAdd(key, to: string) =
   ## one entry of a catalogue (an empty translation is not one: the English text stays)
-  if key.len == 0 or to.len == 0 or key.startsWith("@"): return
+  if key.len == 0 or to.len == 0 or trMeta(key): return
   if '$' notin key:
     trExact[key] = to
     return
@@ -129,6 +136,20 @@ proc trFill(to: string, caps: openArray[string]): string =
       result.add to[i]
       inc i
 
+proc trPart(c: string): string =
+  ## a part a pattern found, translated when the catalogue has it as it is or without the spaces around it (" here"
+  ## as "here", the spaces kept: a piece ned adds after another text); else as it is
+  if c.len == 0: return c
+  let e = trExact.getOrDefault(c)
+  if e.len > 0: return trUnescape(e)
+  var a = 0
+  var b = c.high
+  while a <= b and c[a] == ' ': inc a
+  while b >= a and c[b] == ' ': dec b
+  if a > b or (a == 0 and b == c.high): return c
+  let t = trExact.getOrDefault(c[a .. b])
+  if t.len > 0: c[0 ..< a] & trUnescape(t) & c[b + 1 .. ^1] else: c
+
 proc trPatterns(s: string): (bool, string) =
   ## a text found among the entries with parts: (found, its translation)
   var caps: seq[string]
@@ -137,8 +158,7 @@ proc trPatterns(s: string): (bool, string) =
     ## it (a word ned chose: "Wrap: $1" with "on")
     for k in l:
       if trMatch(trPats[k], s, caps):
-        for c in caps.mitems:
-          if c.len > 0 and c in trExact: c = trUnescape(trExact[c])
+        for c in caps.mitems: c = trPart(c)
         return (true, trFill(trPats[k].to, caps))
   for n in countdown(min(TrHead, s.len), 1):
     let l = trByHead.getOrDefault(s[0 ..< n])

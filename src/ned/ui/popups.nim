@@ -576,8 +576,9 @@ const HelpLines = [
 ]
 
 proc helpRows(w: int): seq[(int, string, string)] =
-  ## the key list as rows that fit the box: (0 heading · 1 key and text · 2 plain text, key, text) —
-  ## long descriptions wrap under their own column
+  ## the key list as rows that fit the box: (0 heading · 1 key and text · 2 plain text · 3 as 1 with a palette path
+  ## for the key, key, text) — long descriptions wrap under their own column; a key column's words are translated, and
+  ## one that comes out too wide for its column has a row of its own
   for l in HelpLines:
     if l.len == 0:
       result.add (2, "", "")
@@ -597,10 +598,16 @@ proc helpRows(w: int): seq[(int, string, string)] =
     else:
       text = l.strip
       keyed = true
-    text = tr(text)                       # (the description in the language chosen; the keys as they are)
+    text = tr(text)                       # (the description in the language chosen; the keys' words too)
+    let kind = if not keyed: 2 elif key.startsWith("Palette"): 3 else: 1
+    if key.len > 0:
+      key = tr(key)
+      if strWidth(key) > 20:
+        result.add (kind, key, "")
+        key = ""
     let tw = max(10, w - 4 - (if keyed: 21 else: 0))
     for i, part in wrapText(text, tw):
-      result.add ((if keyed: 1 else: 2), (if i == 0: key else: ""), part)
+      result.add (kind, (if i == 0: key else: ""), part)
 
 proc drawHelp() =
   ## draws the key-bindings help, a box almost as big as the screen, scrolled by `helpScroll`: headings, keys in one
@@ -619,9 +626,9 @@ proc drawHelp() =
     let (kind, key, text) = hr[i]
     case kind
     of 0: discard putStr(x + 2, y + 1 + r, text, theme.accent, theme.popupBg, {aBold}, x + w - 1)
-    of 1:
+    of 1, 3:
       if key.len > 0:
-        discard putStr(x + 2, y + 1 + r, key, (if key.startsWith("Palette"): theme.dim else: theme.syn[tkFunc]),
+        discard putStr(x + 2, y + 1 + r, key, (if kind == 3: theme.dim else: theme.syn[tkFunc]),
                        theme.popupBg, {}, x + w - 1)
       discard putStr(x + 2 + 21, y + 1 + r, text, theme.fg, theme.popupBg, {}, x + w - 1)
     else: discard putStr(x + 2, y + 1 + r, text, theme.dim, theme.popupBg, {}, x + w - 1)

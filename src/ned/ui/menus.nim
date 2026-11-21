@@ -50,10 +50,12 @@ proc openMenu(items: seq[MenuItem], x, y: int, bar = -1) =
   ## opens a menu (or a submenu on top of the ones open) at x, y, moved to fit on the screen; the first item that can be
   ## chosen is selected, and a menu longer than the screen scrolls. `bar` is the menu-bar entry it belongs to, -1 for a
   ## context menu (which moves up to fit; a bar's dropdown stays under the bar). The labels are put in the language
-  ## chosen here
+  ## chosen here, and the key text when it is words ("Tab with lines selected"; a key itself stays as it is)
   var items = items
   if trOn:
-    for it in items.mitems: it.label = tr(it.label)
+    for it in items.mitems:
+      it.label = tr(it.label)
+      if it.keys.len > 0: it.keys = tr(it.keys)
   var w = menuWidth(items)
   var mx = clamp(x, 0, max(0, scrW - w - 1))
   var my = y

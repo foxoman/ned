@@ -468,8 +468,8 @@ proc ceRun() =
   let src = bufById(ce.srcBufId)
   if src == nil: return
   if ceCross():
-    panelStore[pkOutput] = @[PanelLine(text: "Compiler Explorer: a program for " & ceTargetLabel(ceTarget()) &
-                                        " does not run here (target: native runs it)", sev: 2, line: -1)]
+    panelStore[pkOutput] = @[PanelLine(text: tr("Compiler Explorer: a program for " & ceTargetLabel(ceTarget()) &
+                                        " does not run here (target: native runs it)"), sev: 2, line: -1)]
     return
   let cc = ceCompiler()
   if cc.len == 0: return
@@ -489,7 +489,7 @@ proc ceRun() =
   discard startJob(jkTool, build & " 2>&1", ce.shadow, proc(j: Job) =
     if gen != ce.runGen: return
     if j.code != 0:
-      var pl = @[PanelLine(text: "Compiler Explorer — " & name & ": the program did not build", sev: 1, line: -1)]
+      var pl = @[PanelLine(text: tr("Compiler Explorer — " & name & ": the program did not build"), sev: 1, line: -1)]
       for l in stripAnsi(j.output).splitLines:
         if l.strip.len > 0: pl.add PanelLine(text: l, line: -1)
       panelStore[pkOutput] = pl
@@ -498,11 +498,11 @@ proc ceRun() =
     let rj = startJob(jkTool, quoteShell(exe) & (if args.len > 0: " " & args else: "") & " 2>&1 </dev/null", ce.shadow,
       proc(j2: Job) =
         if gen != ce.runGen: return
-        var pl = @[PanelLine(text: "Compiler Explorer — " & name & " · Program returned: " & $j2.code, sev: 5, line: -1)]
+        var pl = @[PanelLine(text: tr("Compiler Explorer — " & name & " · Program returned: " & $j2.code), sev: 5, line: -1)]
         let o = stripAnsi(j2.output)
         if o.strip.len > 0:
           for l in o.strip(leading = false).splitLines: pl.add PanelLine(text: l, line: -1)
-        else: pl.add PanelLine(text: "(no output)", line: -1)
+        else: pl.add PanelLine(text: tr("(no output)"), line: -1)
         panelStore[pkOutput] = pl
         needRender = true)
     if rj != nil: rj.deadlineMs = 10_000)
@@ -598,7 +598,7 @@ proc cmdCeToggleRun() =
   if on:
     panelKind = pkOutput
     panelOpen = true
-    panelStore[pkOutput] = @[PanelLine(text: "Compiler Explorer: building and running the program…", sev: 5, line: -1)]
+    panelStore[pkOutput] = @[PanelLine(text: tr("Compiler Explorer: building and running the program…"), sev: 5, line: -1)]
     if ce.viewBufId > 0 and not ce.failed: ceRun()
   info("Compiler Explorer: " & (if on: "the program runs after each compile (its output: the Output panel)"
                                 else: "the program no longer runs"))

@@ -124,6 +124,10 @@ UI suite on a quiet machine: under load a few timing-sensitive tests can fail, a
   Then `python3 tests/i18n/extract.py --ned ./ned` (CI checks the template is up to date). What is not translated:
   files and code, AI prompts, compilers' and language servers' words, the engines' problems, reports to paste into an
   issue, and the command line ([TRANSLATING.md](TRANSLATING.md#for-developers-keeping-ned-translatable)).
+- ned comes with eleven translations (6.56: `i18n/LANGUAGES`). A new or changed text shows in English in them until
+  it is translated; `python3 tests/i18n/extract.py --ned ./ned --lang de --missing` lists what one lacks, and a
+  catalogue's entry for a text ned no longer has is harmless (it can go). A translation may leave out a `$n` (an
+  English plural ending) but not add one; `--lang` checks it.
 - Screenshots (`screenshots/`): every one is drawn from its tmux capture (`screenshots/captures/NAME.ansi`) in the
   Coder Nerd Font Mono by `tests/shots/render.py` — a new one too, never a screen grab
   ([Screenshots](docs/dev/testing.md#screenshots)).
