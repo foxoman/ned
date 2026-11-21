@@ -15,10 +15,12 @@ proc stateFile(): string = getEnv("XDG_STATE_HOME", getHomeDir() / ".local" / "s
 proc tmpDir(): string =
   ## a folder for temporary files: TMPDIR when it exists, else /tmp, else the home folder (on Windows the user's own
   ## temporary folder)
-  when defined(windows): return getTempDir().strip(leading = false, chars = {'/', '\\'})   # (%TEMP%: the user's own)
-  result = getEnv("TMPDIR")
-  if result.len == 0 or not dirExists(result): result = "/tmp"
-  if not dirExists(result): result = getHomeDir()
+  when defined(windows):
+    return getTempDir().strip(leading = false, chars = {'/', '\\'})   # (%TEMP%: the user's own)
+  else:
+    result = getEnv("TMPDIR")
+    if result.len == 0 or not dirExists(result): result = "/tmp"
+    if not dirExists(result): result = getHomeDir()
 
 # ── settings registry: one table drives the settings file, the settings UI and validation ──
 

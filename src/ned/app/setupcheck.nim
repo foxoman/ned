@@ -45,13 +45,14 @@ proc installHint(termuxPkg, linuxPkg: string): string =
     return (if haveExe("scoop"): "scoop install " & linuxPkg
             elif haveExe("winget"): "winget install " & linuxPkg
             else: "install " & linuxPkg & " (scoop or winget)")
-  if haveExe("apt"): "sudo apt install " & linuxPkg
-  elif haveExe("dnf"): "sudo dnf install " & linuxPkg
-  elif haveExe("pacman"): "sudo pacman -S " & linuxPkg
-  elif haveExe("apk"): "sudo apk add " & linuxPkg
-  elif haveExe("zypper"): "sudo zypper install " & linuxPkg
-  elif haveExe("brew") or defined(macosx): "brew install " & linuxPkg
-  else: "install " & linuxPkg & " with your package manager"
+  else:
+    if haveExe("apt"): "sudo apt install " & linuxPkg
+    elif haveExe("dnf"): "sudo dnf install " & linuxPkg
+    elif haveExe("pacman"): "sudo pacman -S " & linuxPkg
+    elif haveExe("apk"): "sudo apk add " & linuxPkg
+    elif haveExe("zypper"): "sudo zypper install " & linuxPkg
+    elif haveExe("brew") or defined(macosx): "brew install " & linuxPkg
+    else: "install " & linuxPkg & " with your package manager"
 
 proc versionOf(tool: string): string =
   ## first version-looking word of `tool --version` ("" when there is none)

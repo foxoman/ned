@@ -23,49 +23,51 @@ proc clipSet(text: string) =
   when defined(windows):
     discard winClipSet(text)            # (the Windows clipboard itself)
     return
-  if text.len < 200_000:
-    writeAll("\e]52;c;" & base64.encode(text) & "\a")
-  var cmd = ""
-  if findExe("termux-clipboard-set").len > 0: cmd = "termux-clipboard-set"
-  elif findExe("pbcopy").len > 0: cmd = "LC_CTYPE=UTF-8 pbcopy"                # macOS
-  elif getEnv("WAYLAND_DISPLAY").len > 0 and findExe("wl-copy").len > 0: cmd = "wl-copy"
-  elif getEnv("DISPLAY").len > 0 and findExe("xclip").len > 0: cmd = "xclip -selection clipboard"
-  elif isWsl() and findExe("powershell.exe").len > 0:
-    # the Windows clipboard, for consoles without OSC 52 and for big copies
-    cmd = "powershell.exe -NoProfile -NonInteractive -Command " &
-          "\"[Console]::InputEncoding=[Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())\""
-  if cmd.len > 0:
-    let f = privTmp("clip")
-    try:
-      writeFile(f, text)
-      discard startJob(jkAux, cmd & " < " & quoteShell(f), rootDir, proc(j: Job) =
-        try: removeFile(f)
-        except CatchableError: discard)
-    except CatchableError: discard
+  else:
+    if text.len < 200_000:
+      writeAll("\e]52;c;" & base64.encode(text) & "\a")
+    var cmd = ""
+    if findExe("termux-clipboard-set").len > 0: cmd = "termux-clipboard-set"
+    elif findExe("pbcopy").len > 0: cmd = "LC_CTYPE=UTF-8 pbcopy"                # macOS
+    elif getEnv("WAYLAND_DISPLAY").len > 0 and findExe("wl-copy").len > 0: cmd = "wl-copy"
+    elif getEnv("DISPLAY").len > 0 and findExe("xclip").len > 0: cmd = "xclip -selection clipboard"
+    elif isWsl() and findExe("powershell.exe").len > 0:
+      # the Windows clipboard, for consoles without OSC 52 and for big copies
+      cmd = "powershell.exe -NoProfile -NonInteractive -Command " &
+            "\"[Console]::InputEncoding=[Text.Encoding]::UTF8; Set-Clipboard -Value ([Console]::In.ReadToEnd())\""
+    if cmd.len > 0:
+      let f = privTmp("clip")
+      try:
+        writeFile(f, text)
+        discard startJob(jkAux, cmd & " < " & quoteShell(f), rootDir, proc(j: Job) =
+          try: removeFile(f)
+          except CatchableError: discard)
+      except CatchableError: discard
 
 proc clipGet(): string =
   ## the text on the system clipboard, read with the first helper there is (Termux:API, pbpaste, wl-paste, xclip,
   ## PowerShell under WSL, the Windows clipboard itself) — "" when there is none. A helper that does not answer in time
   ## is given up for the rest of the run with a warning. Windows line ends become \n.
   when defined(windows): return winClipGet()
-  if sysClipBroken: return ""
-  var cmd = ""
-  var wait = 1500
-  if findExe("termux-clipboard-get").len > 0: cmd = "termux-clipboard-get"
-  elif findExe("pbpaste").len > 0: cmd = "LC_CTYPE=UTF-8 pbpaste"               # macOS
-  elif getEnv("WAYLAND_DISPLAY").len > 0 and findExe("wl-paste").len > 0: cmd = "wl-paste -n"
-  elif getEnv("DISPLAY").len > 0 and findExe("xclip").len > 0: cmd = "xclip -selection clipboard -o"
-  elif isWsl() and findExe("powershell.exe").len > 0:
-    cmd = WslPaste                                                              # the Windows clipboard
-    wait = 5000                                                                 # PowerShell starts slowly
-  if cmd.len == 0: return ""
-  let (ok, o, e) = runFilter(cmd, "", rootDir, wait)
-  if not ok and e == "timed out":
-    sysClipBroken = true
-    warn(if cmd.startsWith("termux"): "System clipboard unavailable (is the Termux:API app installed?)"
-         else: "System clipboard unavailable (" & cmd.split(' ')[0] & " did not answer)")
-    return ""
-  if ok: o.replace("\r\n", "\n") else: ""
+  else:
+    if sysClipBroken: return ""
+    var cmd = ""
+    var wait = 1500
+    if findExe("termux-clipboard-get").len > 0: cmd = "termux-clipboard-get"
+    elif findExe("pbpaste").len > 0: cmd = "LC_CTYPE=UTF-8 pbpaste"               # macOS
+    elif getEnv("WAYLAND_DISPLAY").len > 0 and findExe("wl-paste").len > 0: cmd = "wl-paste -n"
+    elif getEnv("DISPLAY").len > 0 and findExe("xclip").len > 0: cmd = "xclip -selection clipboard -o"
+    elif isWsl() and findExe("powershell.exe").len > 0:
+      cmd = WslPaste                                                              # the Windows clipboard
+      wait = 5000                                                                 # PowerShell starts slowly
+    if cmd.len == 0: return ""
+    let (ok, o, e) = runFilter(cmd, "", rootDir, wait)
+    if not ok and e == "timed out":
+      sysClipBroken = true
+      warn(if cmd.startsWith("termux"): "System clipboard unavailable (is the Termux:API app installed?)"
+          else: "System clipboard unavailable (" & cmd.split(' ')[0] & " did not answer)")
+      return ""
+    if ok: o.replace("\r\n", "\n") else: ""
 
 proc copySel(cut: bool) =
   ## copies (or cuts) the selection. With nothing selected it takes the cursors' whole lines, each line once (line

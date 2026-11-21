@@ -405,7 +405,13 @@ proc pickerKey(k: Key) =
           closePicker()
           openFolder(d)
       return
-    if k.kind == kEnter and pickQuery.len > 0 and pickQuery[0] in {'/', '~'}:
+    if k.kind == kEnter and (
+      when defined(windows):
+        ((pickQuery.len > 0 and pickQuery[0] in {'/', '~'}) or
+          (pickQuery.len > 1 and pickQuery[0] in {'a'..'z', 'A'..'Z'} and pickQuery[1] == ':'))
+      else:
+        (pickQuery.len > 0 and pickQuery[0] in {'/', '~'})
+      ):
       let d = absolutePath(expandTilde(pickQuery.strip)).normalizedPath
       if dirExists(d): browseFolder(d)
       else: error("No such folder: " & pickQuery)

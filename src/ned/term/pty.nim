@@ -142,12 +142,13 @@ proc termShell(): string =
       let p = findExe(c)
       if p.len > 0: return p
     return getEnv("ComSpec", "cmd.exe")
-  let s = getEnv("SHELL")
-  if s.len > 0 and fileExists(s): return s
-  for c in ["bash", "zsh", "fish", "sh"]:
-    let p = findExe(c)
-    if p.len > 0: return p
-  "/bin/sh"
+  else:
+    let s = getEnv("SHELL")
+    if s.len > 0 and fileExists(s): return s
+    for c in ["bash", "zsh", "fish", "sh"]:
+      let p = findExe(c)
+      if p.len > 0: return p
+    "/bin/sh"
 
 proc hostFrame(kind: char, payload: string): string =
   ## one message between ned and a term host (see termhost): its kind, its length (4 bytes, big-endian), its bytes
