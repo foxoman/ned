@@ -1,2 +1,3 @@
 # The translations built into ned: one language code per line (its catalogue is i18n/<code>.json). Add yours here
 # with its file — see TRANSLATING.md.
+zh_CN
