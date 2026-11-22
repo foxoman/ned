@@ -243,7 +243,7 @@ proc cmdUiLanguage() =
   var items: seq[(string, string, Action)]
   let cur = sStr("ui.language")
   let sysL = trLangOfEnv()
-  items.add act("auto", trf("your system's: $1", (if sysL.len > 0: sysL else: "English")) &
+  items.add act("auto", trf("your system's: $1", (if sysL.len > 0: sysL else: tr("English"))) &
                 (if cur == "auto": "  ✓" else: ""), proc() = setSetting("ui.language", %"auto"))
   for l in uiLanguages():
     let c = l[0]
@@ -253,5 +253,5 @@ proc cmdUiLanguage() =
       items.add act(shown, d, proc() = setSetting("ui.language", %c))
   items.add act("Translate ned into your language…", "TRANSLATING.md", proc() =
     openLinkTarget("https://github.com/foxoman/ned/blob/main/TRANSLATING.md"))
-  openActions("Language", items)
+  openActions("Language", items, dataDetails = true)     # (the codes as they are: "it" is Italian)
 

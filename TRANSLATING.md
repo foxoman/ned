@@ -58,7 +58,8 @@ A part may be left out when your language does not need it. Most often it is an 
 number (`"Gespeichert: $1 Datei(en)"`). A translation may not add a part the English does not have, or use one twice.
 
 A part is sometimes an English word ned chose (`"$1 (on)"`): the template has that word too, and translating it
-translates it everywhere.
+translates it everywhere. Only ned's own words are (they are listed in `i18n/PARTS`): a part that is a name — a file
+called `test`, a branch called `build` — stays as it is.
 
 ## What is translated
 
@@ -105,7 +106,10 @@ details, a dock row (`sideItem`) — so a text passed to them is ready. A text d
 
 - `tr("Nothing opened yet")` where it is drawn;
 - `trf("Saved $1 files", n)` for one with parts (not `"Saved " & $n & " files"` drawn as it is);
-- `tx("…")` in a constant or a table, and `tr(…)` where that text is shown.
+- `tx("…")` in a constant or a table, and `tr(…)` where that text is shown;
+- `dataText(name)` for a name passed whole to one of those routines — a file, a branch, a commit's subject, git's or
+  a server's words — and `actData(label, detail, …)` for a picker's entry made of them: shown as they are (a branch
+  called `test` is not the word "test").
 
 Then `python3 tests/i18n/extract.py --ned ./ned` writes the template again (CI checks it is up to date). A run of the
 UI suite in the pseudo language finds what was missed: `tests/i18n/untranslated.py` says how.

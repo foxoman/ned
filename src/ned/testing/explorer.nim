@@ -137,7 +137,8 @@ proc buildTestItems(): seq[SideItem] =
       of 4: ("–", 2)
       else: ((if e.isSuite: "◇" else: "○"), 2)
     result.add sideItem(e.name, (if st == 0: (if e.isSuite: 8 else: 0) else: role), icn, "line " & $(e.line + 1),
-                        testAct(e.path, e.name, e.line, e.isSuite), e.path, e.line, (if e.isSuite: 1 else: 2))
+                        testAct(e.path, e.name, e.line, e.isSuite), e.path, e.line, (if e.isSuite: 1 else: 2),
+                        asIs = true)            # (a test called "build" is not the word)
 
 proc lensAt(b: Buffer, l: int): (string, Action) =
   ## runnable things on a line: test / suite / isMainModule / proc main (Nim), tests in Python, Go and Rust

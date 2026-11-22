@@ -290,7 +290,7 @@ proc drawPicker() =
     ph = n + 4
   if pickNear and edCaretX >= 0 and edCaretY >= 0 and scrW >= 60:
     # quick fixes: a box as wide as its items, under the line they fix (or over it), so the problem stays in view
-    var w = strWidth(pickTitle) + 8
+    var w = strWidth(tr(pickTitle)) + 8
     for it in pickItems: w = max(w, max(strWidth(it.label) + strWidth(it.detail) + 10, 2 * strWidth(it.detail) + 8))
     pw = min(scrW - 2, max(44, w))
     px = max(0, min(edCaretX - 4, scrW - pw - 1))
@@ -326,7 +326,7 @@ proc drawPicker() =
     if preview: moveBar.w = pw
   if preview: drawPickPreview(px + pw + 1, py, scrW - (px + pw + 1) - 1, max(ph, min(scrH - py - 2, ph + 6)))
   elif below and scrH - 2 - (py + ph + 1) >= 6: drawPickPreview(px, py + ph + 1, pw, scrH - 2 - (py + ph + 1))
-  drawBox(px, py, pw, ph, title)
+  drawBox(px, py, pw, ph, dataText(title))     # (translated already: a branch in it is not looked up again)
   let lq = pickQueryNorm()
   pickBox = (px, py, pw, ph)
   pickListY = py + 3
@@ -433,7 +433,7 @@ const HelpLines = [
   "F6                   Move focus: editor → docks → panel",
   "Alt+Z                Zen mode: no chrome, centred column, focus dimming (Esc Esc leaves; vim: :zen)",
   "Alt+\\                Split the editor / the next pane   Alt+|  close this pane   View › Panes: layouts",
-  "Ctrl+Alt+Shift+arrow The pane that way (vim: Ctrl+W h j k l)",
+  "Ctrl+Alt+Shift+arrow  The pane that way (vim: Ctrl+W h j k l)",
   "Ctrl+Alt+← / →       Make the pane or the focused dock narrower / wider",
   "Ctrl+Alt+↑ / ↓       Make the bottom panel taller / shorter (panes one above the other: move the divider)",
   "Panel ⤢ button       Maximize the bottom panel (palette › Toggle maximized panel)",
@@ -446,7 +446,7 @@ const HelpLines = [
   "Ctrl+P / Ctrl+O      Find file  (: line · @ symbol · # project symbol · > command)",
   "File › Open folder…  Tap through folders (◆ = a project) · Enter goes in · ⌫ up · Alt+Enter opens it",
   "Ctrl+N / Ctrl+W      New file / close tab        Ctrl+S / Ctrl+Q  save / quit",
-  "Alt+← Alt+→ Alt+1..9 Switch tabs (also Ctrl+PgUp/PgDn)",
+  "Alt+← Alt+→ Alt+1..9  Switch tabs (also Ctrl+PgUp/PgDn)",
   "Ctrl+G               Go to line[:col]            Ctrl+T  symbol in file",
   "Alt+. / F12          Go to definition (also Ctrl+click)   Alt+,  jump back   Alt+<  go forward",
   "Alt+F12              Peek definition (a popup)   Alt+Shift+F12  peek references",
@@ -479,7 +479,7 @@ const HelpLines = [
   "Ctrl+A / Ctrl+L      Select all / select line",
   "Ctrl+D / Alt+A       Next occurrence / all occurrences (multi-cursor)",
   "Alt+J / Alt+K        Add cursor below / above (also Alt+Shift+↑/↓)    Esc  single cursor",
-  "Alt+click / Alt+drag Add a cursor / box (column) selection",
+  "Alt+click / Alt+drag  Add a cursor / box (column) selection",
   "Alt+Shift+→ / ←      Grow / shrink the selection: name, call, argument, statement, block, routine",
   "Alt+Shift+S          Surround with brackets, quotes, a tag or a block (Edit › Surround: change, delete a pair)",
   "→ x ⇥ after a word   Next edit: Tab goes there, Tab again makes the same change · Esc no (editor.nextEdit)",
@@ -525,7 +525,7 @@ const HelpLines = [
   "Palette ›            Test coverage: run (Nim, Python, Go, Rust, JS/TS) · summary by file · load an lcov file · hide",
   "Test explorer › c    The selected Nim test file with coverage (◑ at the top: all the tests)",
   "Palette ›            Problems: all of them with their code — one editable multibuffer",
-  "Run › Configurations Ways to run the project (main, arguments, env, defines) — Alt+R runs the chosen one",
+  "Run › Configurations  Ways to run the project (main, arguments, env, defines) — Alt+R runs the chosen one",
   "F4 / Shift+F4        The last task again / pick a task: Makefile, package.json, justfile, Taskfile, cargo, go, nimble",
   "Palette › Nim:       what can this proc raise? · benchmark a call · Nimble: release a new version",
   "",
@@ -539,7 +539,7 @@ const HelpLines = [
   "                     for full screen: there Alt+Shift+Enter (or remove Alt+Enter in its Settings › Actions)",
   "Alt+Enter            Quick fixes: imports, missing case branches, generate $ == hash init, doc comment,",
   "                     run the selection, debug this test, AI fix",
-  "Alt+H on a selection Its type        Nim › Refactor: extract proc · sort imports · proc ⇄ func",
+  "Alt+H on a selection  Its type        Nim › Refactor: extract proc · sort imports · proc ⇄ func",
   "Alt+H on an error    A type mismatch as a table: what you gave, what the closest overload wants (✗ the misfit)",
   "▶ by runnableExamples  Runs that proc's examples (✓/✗ after) · Nim › Run all examples in the file",
   "Palette › Nim:       docs browser · switch compiler version · share to Playground · REPL · export (*)",

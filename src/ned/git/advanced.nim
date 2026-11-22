@@ -176,9 +176,11 @@ proc pickBranch(title: string, cb: proc(name: string)) =
       if f[1].endsWith("/HEAD"): continue
       let n = f[1]
       capture n:
-        items.add act(n, (if f[2].startsWith("refs/remotes/"): "remote · " else: "") & f[3], proc() = cb(n))
+        # (the branch and git's "2 days ago" as they are)
+        items.add act(dataText(n), (if f[2].startsWith("refs/remotes/"): "remote · " & f[3] else: dataText(f[3])),
+                      proc() = cb(n))
     if items.len == 0: info("No other branches")
-    else: openActions(title.replace("$cur", gitBranch), items))
+    else: openActions(dataText(tr(title).replace("$cur", gitBranch)), items))     # (translated, then the branch in it)
 
 proc gitCherryPickFromBranch() =
   ## Git › Cherry-pick from a branch: asks for a branch, lists its last commits that this branch does not have, and
@@ -193,7 +195,7 @@ proc gitCherryPickFromBranch() =
         if f.len < 3: continue
         let h = f[0]
         capture h:
-          items.add act(f[1], h & " · " & f[2], proc() =
+          items.add actData(f[1], h & " · " & f[2], proc() =
             askConfirm("Copy " & h & " onto " & gitBranch & "? (y/n)", proc(c: char) =
               if c in {'y', 'Y'}: gitShell("git cherry-pick " & h, "Cherry-picked " & h)))
       if items.len == 0: info(br & " has no commits that " & gitBranch & " does not have")
@@ -218,7 +220,7 @@ proc gitCompareBranch() =
         let path = f[^1]
         let old = if f.len >= 3: f[1] else: path
         capture st, path, old:
-          items.add act(st & "  " & path, (case st[0]
+          items.add act(dataText(st & "  " & path), (case st[0]
             of 'A': "new on " & gitBranch
             of 'D': "deleted on " & gitBranch
             of 'R': "renamed from " & old

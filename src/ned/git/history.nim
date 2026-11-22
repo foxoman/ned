@@ -194,7 +194,7 @@ proc gitBisectStart() =
     if t < 0: continue
     let h = l[0 ..< t]
     let label = l[t + 1 .. ^1]
-    items.add act(h & "  " & label, "", bisectFromAct(root, h))
+    items.add act(dataText(h & "  " & label), "", bisectFromAct(root, h))
   openActions("Bisect: pick a commit where it still worked (now it is broken)", items)
 
 proc gitWorktrees() =
@@ -218,7 +218,7 @@ proc gitWorktrees() =
     if main.len == 0: main = p
     let here = (ri < 0 and p == root) or (ri >= 0 and p == remotes[ri].absPath)
     let pp = p
-    items.add act((if here: "● " else: "  ") & p, (if b.len > 0: b else: tr("detached")) & (if here: " · " & tr("this one") else: ""), proc() =
+    items.add act(dataText((if here: "● " else: "  ") & p), (if b.len > 0: b else: tr("detached")) & (if here: " · " & tr("this one") else: ""), proc() =
       var acts: seq[(string, string, Action)]
       if ri >= 0:
         acts.add act("Open it", "over SSH, like this folder", proc() = remoteOpen(remotes[ri].host & ":" & pp))
@@ -229,7 +229,7 @@ proc gitWorktrees() =
         acts.add act("Remove it…", "its folder goes; the branch stays", proc() =
           askConfirm("Remove the worktree " & pp & "? Its folder is deleted (the branch stays) (y/n)", proc(c: char) =
             if c in {'y', 'Y'}: gitShell("git worktree remove " & quoteShell(pp), "Worktree removed", nil, root)))
-      openActions(pp, acts))
+      openActions(dataText(pp), acts))
   for l in o.splitLines & @[""]:
     if l.startsWith("worktree "): path = l[9 .. ^1]
     elif l.startsWith("branch "): br = l[7 .. ^1].replace("refs/heads/", "")
@@ -261,7 +261,7 @@ proc gitWorktrees() =
         let b = l.strip
         if b.len > 0 and b != gitRepoInfo(root).branch:
           capture b:
-            bs.add act(b, "", proc() = mk(b, false))
+            bs.add act(dataText(b), "", proc() = mk(b, false))
     openActions("Worktree for which branch?", bs))
   items.add act("Prune", "forget worktrees whose folder is gone", proc() = gitShell("git worktree prune", "Pruned", nil, root))
   openActions("Worktrees of " & extractFilename(base), items)
@@ -281,7 +281,7 @@ proc submoduleAct(root, sp: string, st: char): Action =
         acts.add act("Open it", "as the project", proc() = openFolder(full))
       acts.add act("Record its current commit", "stage it here, to commit", proc() =
         gitShell("git add -- " & quoteShell(sp), "Staged " & sp & " at its current commit", nil, root))
-    openActions(sp, acts)
+    openActions(dataText(sp), acts)
 
 proc gitSubmodules() =
   ## the repository's submodules: their state, update them, add one, show one in the Git dock
@@ -304,7 +304,7 @@ proc gitSubmodules() =
         of '+': "at another commit than the one recorded"
         of 'U': "merge conflicts"
         else: "up to date"
-      items.add act(sp, sha[0 ..< min(8, sha.len)] & " · " & state, submoduleAct(root, sp, st))
+      items.add act(dataText(sp), sha[0 ..< min(8, sha.len)] & " · " & state, submoduleAct(root, sp, st))
   if items.len > 0:
     items.add act("Update all", "git submodule update --init --recursive", proc() =
       gitShell("git submodule update --init --recursive", "Submodules updated", nil, root))

@@ -19,9 +19,15 @@ With --menus, every item of every menu of the menu bar and its submenus instead,
 to its menu, Down to the item (Right into a submenu), Enter — the same three checks after. The items come from ned
 itself (NED_MENU_DUMP: what each menu holds, as it is drawn in that folder).
 
-Usage: commands.py path/to/ned [--jobs N (3)] [--only TEXT] [--plugins] [--menus] [--keep]
+With --lang CODE, ned in that language (a built-in one, or a catalogue's path: PATH/xx.json, put in place as yours);
+with --layout, also each screen after a command must have its boxes whole: no right side out of line with its top
+corner (a text measured in bytes, not columns) and no broken character (a text cut inside a character); with
+--size WxH, ned in a screen of that size (130x36 if not: a tablet's is smaller).
+
+Usage: commands.py path/to/ned [--jobs N (3)] [--only TEXT] [--plugins] [--menus] [--lang CODE] [--layout]
+                   [--size WxH] [--keep]
 Exit status 1 when a command broke one of the three (or, with --plugins, a plugin did not start)."""
-import glob, json, os, re, shutil, socket, subprocess, sys, tempfile, threading, time
+import glob, json, os, re, shutil, socket, subprocess, sys, tempfile, threading, time, unicodedata
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +40,14 @@ ONLY = ARGS[ARGS.index('--only') + 1] if '--only' in ARGS else ''
 KEEP = '--keep' in ARGS
 PLUGINS = '--plugins' in ARGS
 MENUS = '--menus' in ARGS
+LAYOUT = '--layout' in ARGS
+SIZE = (ARGS[ARGS.index('--size') + 1] if '--size' in ARGS else '130x36').split('x')
+LANG_ARG = ARGS[ARGS.index('--lang') + 1] if '--lang' in ARGS else ''
+LANG_FILE = os.path.abspath(LANG_ARG) if LANG_ARG.endswith('.json') else ''
+LANG = os.path.splitext(os.path.basename(LANG_ARG))[0] if LANG_FILE else LANG_ARG
+CAT = json.load(open(LANG_FILE or os.path.join(REPO, 'i18n', LANG + '.json'), encoding='utf-8')) if LANG else {}
+# (ned is ready when its status bar shows the line and column, in the language chosen)
+READY = re.escape(CAT.get('Ln $1, Col $2', 'Ln $1, Col $2')).replace(r'\$1', r'\d+').replace(r'\$2', r'\d+')
 MENU_PATHS = {}       # (--menus) an item's label path → (its menu's place in the bar, its place in each menu down to it, cmd)
 
 # (not run: what for, and why)
@@ -45,6 +59,44 @@ SKIP = {
     'GitHub: sign in…': 'github.com',
     'Nimble: refresh the package list': 'the package list from the network',
 }
+
+FRAME_V = set('│┃║├┤╞╡╟╢')
+FRAME_TL, FRAME_TR, FRAME_BL, FRAME_BR = set('╭┌╔'), set('╮┐╗'), set('╰└╚'), set('╯┘╝')
+
+def cells(line):
+    # a screen row as its columns: a wide character takes two (its second one '')
+    out = []
+    for ch in line:
+        out.append(ch)
+        if unicodedata.east_asian_width(ch) in 'WF': out.append('')
+    return out
+
+def layout_issues(screen):
+    # (--layout) boxes whose right side is out of line with their top, and characters cut in two
+    rows = [cells(l) for l in screen.split('\n')]
+    found = []
+    for y, l in enumerate(screen.split('\n')):
+        if '\ufffd' in l: found.append('row %d: a broken character: %s' % (y, l.strip()[:100]))
+    at = lambda r, c: rows[r][c] if 0 <= r < len(rows) and 0 <= c < len(rows[r]) else ' '
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            if ch not in FRAME_TL: continue
+            x2 = next((k for k in range(x + 1, len(row)) if row[k] in FRAME_TR or row[k] in FRAME_TL), -1)
+            if x2 < 0 or row[x2] not in FRAME_TR: continue
+            for yy in range(y + 1, len(rows)):
+                left, right = at(yy, x), at(yy, x2)
+                if left in FRAME_BL:
+                    if right not in FRAME_BR and any(at(yy, k) in FRAME_BR for k in range(x2 - 3, x2 + 4)):
+                        found.append('row %d: the bottom of the box at %d,%d ends out of line' % (yy, x, y))
+                    break
+                if left not in FRAME_V: break
+                if right in FRAME_V: continue
+                near = [k for k in range(x2 - 3, x2 + 4) if k != x2 and at(yy, k) in FRAME_V]
+                if near:
+                    found.append('row %d: the right side of the box at %d,%d is at column %d, not %d: %s' %
+                                 (yy, x, y, near[0], x2, ''.join(rows[yy][x:x2 + 4]).strip()))
+                    break
+    return found
 
 def free_port():
     s = socket.socket(); s.bind(('127.0.0.1', 0)); p = s.getsockname()[1]; s.close(); return p
@@ -83,6 +135,14 @@ mock = subprocess.Popen([sys.executable, '-I', os.path.join(REPO, 'tests', 'ui',
 lock = threading.Lock()
 results = []          # (name, verdict, detail)
 
+def put_language(conf, cfg):
+    # (--lang) the language in the settings, and a catalogue given by its path put in place as yours
+    if not LANG: return
+    conf['ui.language'] = LANG
+    if LANG_FILE:
+        os.makedirs(cfg + '/ned/i18n', exist_ok=True)
+        shutil.copy(LANG_FILE, cfg + '/ned/i18n/' + LANG + '.json')
+
 def run_one(slot, name):
     sock = 'ned-cmds-%d-%d' % (os.getpid(), slot)
     work = os.path.join(ROOT, 'w%d' % slot)
@@ -94,16 +154,17 @@ def run_one(slot, name):
             'ai.baseUrl': 'http://127.0.0.1:%d/v1' % AI_PORT, 'ui.cursorAnimation': 'off', 'files.hotExit': False,
             'terminal.keepRunning': False, 'nim.nimsuggest': False}
     if PLUGINS: conf.update({'plugins.bundled': bundled_names(), 'plugins.native': 'off'})
+    put_language(conf, cfg)
     json.dump(conf, open(cfg + '/ned/config.json', 'w'))
     def tm(*a): return subprocess.run(['tmux', '-L', sock] + list(a), capture_output=True, text=True)
     def screen(): return tm('capture-pane', '-t', 's', '-p').stdout
     env = ('HOME=%s XDG_CONFIG_HOME=%s XDG_STATE_HOME=%s XDG_CACHE_HOME=%s/cache TMPDIR=%s TERM=xterm-256color '
            'COLORTERM=truecolor NED_SOCKET= PATH=%s' % (home, cfg, state, work, work, os.environ['PATH']))
     tm('kill-server')
-    tm('-f', os.path.join(REPO, 'tests', 'ui', 'tmux.conf'), 'new-session', '-d', '-s', 's', '-x', '130', '-y', '36',
+    tm('-f', os.path.join(REPO, 'tests', 'ui', 'tmux.conf'), 'new-session', '-d', '-s', 's', '-x', SIZE[0], '-y', SIZE[1],
        'cd %s/proj && env %s %s src/demo.nim; echo NED-EXITED $?; sleep 600' % (work, env, NED))
     end = time.time() + 20
-    while time.time() < end and not re.search(r'Ln \d+, Col', screen()): time.sleep(0.2)
+    while time.time() < end and not re.search(READY, screen()): time.sleep(0.2)
     time.sleep(0.5)
     tm('send-keys', '-t', 's', 'Escape')
     tm('send-keys', '-t', 's', 'C-g'); tm('send-keys', '-t', 's', '-l', '4:8'); tm('send-keys', '-t', 's', 'Enter')
@@ -148,7 +209,8 @@ def run_one(slot, name):
             verdict = 'quit'
         else:
             verdict, detail = 'EXITED', s[-1500:]
-    elif 'Internal error' in after or 'Internal error' in s or (os.path.exists(errlog) and os.path.getsize(errlog) > 0):
+    elif ('Internal error' in after or 'Internal error' in s or (os.path.exists(errlog) and os.path.getsize(errlog) > 0) or
+          (CAT.get('Internal error — $1 (details in $2)', '').split(' — ')[0] or 'Internal error') in after + s):
         verdict = 'INTERNAL ERROR'
         detail = (open(errlog).read()[-1500:] if os.path.exists(errlog) else '') + '\n' + after[-1500:]
     else:
@@ -170,7 +232,10 @@ def run_one(slot, name):
             tm('send-keys', '-t', 's', '-l', 'zqzqprobe'); time.sleep(1.5)
             alive = 'zqzqprobe' in screen()
         if not alive: verdict, detail = 'NOT ANSWERING', screen()[-1500:]
-    if not MENUS and not PLUGINS and '▍' + name[:20] not in shown and verdict == 'ok':   # (the palette's first row: the one run)
+    if LAYOUT and verdict in ('ok', 'quit'):
+        issues = layout_issues(after) + layout_issues(shown)
+        if issues: verdict, detail = 'LAYOUT', '\n'.join(dict.fromkeys(issues)) + '\n' + after
+    if not MENUS and not PLUGINS and '▍' + CAT.get(name, name)[:20] not in shown and verdict == 'ok':   # (the palette's first row)
         detail = '(the palette may have picked another command)'
     if MENUS and verdict == 'ok' and name.split(' › ')[-1][:24] not in shown:
         detail = '(the menu item was not on the screen when picked)'
@@ -207,9 +272,11 @@ def menu_items():
     shutil.copytree(TEMPLATE, os.path.join(work, 'proj'), symlinks=True)
     cfg, state, home = [os.path.join(work, x) for x in ('cfg', 'state', 'home')]
     for d in (cfg + '/ned', state, home): os.makedirs(d, exist_ok=True)
-    json.dump({'security.folderTrust': 'off', 'ai.provider': 'openai', 'ai.apiKey': 'sk-test', 'ai.model': 'gpt-6',
-               'ai.baseUrl': 'http://127.0.0.1:%d/v1' % AI_PORT, 'ui.cursorAnimation': 'off', 'files.hotExit': False,
-               'terminal.keepRunning': False, 'nim.nimsuggest': False}, open(cfg + '/ned/config.json', 'w'))
+    conf = {'security.folderTrust': 'off', 'ai.provider': 'openai', 'ai.apiKey': 'sk-test', 'ai.model': 'gpt-6',
+            'ai.baseUrl': 'http://127.0.0.1:%d/v1' % AI_PORT, 'ui.cursorAnimation': 'off', 'files.hotExit': False,
+            'terminal.keepRunning': False, 'nim.nimsuggest': False}
+    put_language(conf, cfg)
+    json.dump(conf, open(cfg + '/ned/config.json', 'w'))
     env = ('HOME=%s XDG_CONFIG_HOME=%s XDG_STATE_HOME=%s XDG_CACHE_HOME=%s/cache TMPDIR=%s TERM=xterm-256color '
            'COLORTERM=truecolor NED_SOCKET= NED_MENU_DUMP=%s PATH=%s' % (home, cfg, state, work, work, dump,
                                                                         os.environ['PATH']))

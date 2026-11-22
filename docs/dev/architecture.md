@@ -98,8 +98,11 @@ the person's file of the same name in `~/.config/ned/i18n/` over it and each plu
 (`plugins/host.nim`) — and comes back as it is when the catalogue does not have it. A catalogue's key is the English
 text; one with parts that change is written with `$1` … and found whole (patterns indexed by their first and last
 bytes, and remembered), the parts in the translation's order; a translation may leave a part out (an English plural
-ending), and a part that is itself a catalogue text is translated too, with the spaces around it kept (`trPart`).
-English costs one test of `trOn` per text. Eleven catalogues come with ned (6.56); only the one in use is read.
+ending), and a part that is one of ned's own words in parts (`i18n/PARTS`, which the extractor writes from the
+`if` branches inside a shown text) is translated too, with the spaces around it kept (`trPart`); any other part is
+data and stays as it is. A text that starts with `DataMark` (`dataText`, `actData`) is data passed whole — a file, a
+branch, git's "2 days ago" — and is shown as it is, in English too. English costs one test of `trOn` and one of the
+mark per text. Eleven catalogues come with ned (6.56); only the one in use is read.
 
 The routines that show a text translate it themselves (`setMsg`, `toast`, `openDialog`, `openMenu`, `openActions`,
 `openPicker`, the forms, `button`, `pill`, `drawFrame`, a tooltip, a dock row), so the code keeps English texts:

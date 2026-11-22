@@ -859,7 +859,7 @@ proc fixEditInfo(s: LspServer, edit: JsonNode): (int, string, string, string) =
 func fixShow(t: string): string =
   ## a piece of text quoted for a fix's description: line breaks shown as ⏎, cut to 31 characters with …
   let x = t.strip.replace("\n", " ⏎ ")
-  "'" & (if x.len > 32: x[0 ..< 31] & "…" else: x) & "'"
+  "'" & (if x.len > 32: x.utf8Prefix(31) & "…" else: x) & "'"
 
 proc fixLabel(s: LspServer, ca: JsonNode): (string, string) =
   ## a fix's title, and what it changes in a few words (clang names some fixes after a note: "'printf'

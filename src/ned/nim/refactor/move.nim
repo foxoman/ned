@@ -135,5 +135,5 @@ proc cmdMoveToModule() =
     if p == b.path or not p.endsWith(".nim"): continue
     let path = p
     capture path:
-      items.add act(relPath(path), "", proc() = rfMoveTo(dd, path))
+      items.add act(dataText(relPath(path)), "", proc() = rfMoveTo(dd, path))
   openActions("Move " & d.sym.name & " to…", items)

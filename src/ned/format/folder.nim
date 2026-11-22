@@ -303,7 +303,7 @@ proc fmtAllReview() =
   for k, (p, before, after, by) in fmtAllChanges:
     let a = before.count('\n')
     let b2 = after.count('\n')
-    items.add act(relPath(p), by & " · " & $a & " → " & $b2 & " lines", fmtAllFileAct(k))
+    items.add act(dataText(relPath(p)), by & " · " & $a & " → " & $b2 & " lines", fmtAllFileAct(k))
   if fmtAllLeft.len > 0:
     var why: seq[string]
     for (p, w) in fmtAllLeft: why.add relPath(p) & ": " & w

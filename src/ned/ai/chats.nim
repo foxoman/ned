@@ -132,7 +132,7 @@ proc cmdChatHistory() =
   for pass in 0 .. 1:
     for (t, p, title, root) in rows:
       if (root == rootDir) != (pass == 0): continue
-      items.add act((if p.extractFilename == aiChatId & ".json": "● " else: "") & title,
+      items.add act(dataText((if p.extractFilename == aiChatId & ".json": "● " else: "") & title),
                     agoText(t) & (if root != rootDir: " · " & extractFilename(root) else: ""), chatAct(p))
   items.add act("Delete all saved chats…", "", proc() =
     askConfirm("Delete every saved chat? (y)es (c)ancel", proc(c: char) =

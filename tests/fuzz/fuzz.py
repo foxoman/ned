@@ -9,7 +9,9 @@ palette commands and resizes at it. Reports crashes (non-zero exit), hangs and l
 It works in a scratch home of its own (NED_FUZZ_HOME, default /tmp/ned-fuzz-UID): ned's settings, state and
 a copy of the test project live there. Random palette commands can run tasks, git and shell commands in that
 project, so give it a throwaway user if you can: NED_FUZZ_USER=fuzz runs ned as that user (with su).
-A build with stack traces says where an error happened: nim c -d:release --stackTrace:on --lineTrace:on."""
+A build with stack traces says where an error happened: nim c -d:release --stackTrace:on --lineTrace:on.
+NED_FUZZ_LANG=CODE runs ned in that language (a built-in one, or a catalogue's path: PATH/xx.json, put in place as
+yours): wider and longer texts in every box."""
 import os, random, re, subprocess, sys, time, shutil, json
 
 SEED = int(sys.argv[1]) if len(sys.argv) > 1 else int(time.time())
@@ -203,6 +205,12 @@ proc total(xs: seq[int]): int =
     if MODE == 'a11y':
         cfg.update({"ui.accessible": True, "editor.largeFileSize": 200000, "editor.longLineLimit": 1000,
                     "editor.spellCheck": "on", "editor.spellDictionary": os.environ.get('NED_TEST_DICT', '/usr/share/hunspell/en_US.dic')})
+    lang = os.environ.get('NED_FUZZ_LANG', '')
+    if lang.endswith('.json'):
+        os.makedirs(HOME + '/.config/ned/i18n', exist_ok=True)
+        shutil.copy(lang, HOME + '/.config/ned/i18n/' + os.path.basename(lang))
+        lang = os.path.splitext(os.path.basename(lang))[0]
+    if lang: cfg["ui.language"] = lang
     json.dump(cfg, open(HOME + '/.config/ned/config.json', 'w'))
     NIM_BIN = nim_copy()
     shutil.copy(SRC_BIN, BIN)

@@ -248,7 +248,7 @@ proc nimDocsForSymbol() =
   var items: seq[(string, string, Action)]
   for m in mods:
     let url = "https://nim-lang.org/docs/" & m.split('/')[^1] & ".html#" & w
-    items.add act(m, url, urlAct(url))
+    items.add actData(m, url, urlAct(url))
   if items.len == 1: items[0][2]()
   else: openActions("Documentation for " & w, items)
 

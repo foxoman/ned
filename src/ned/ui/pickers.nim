@@ -118,8 +118,9 @@ proc openPicker(kind: PickKind, title: string, items: seq[PickItem]) =
   pickTitle = title
   pickNear = false
   pickItems = items
-  if trOn:
-    for it in pickItems.mitems: it.detail = tr(it.detail)      # (the details in the language chosen; not the names)
+  # (the details in the language chosen, not the names; a detail marked as data as it is, in English too)
+  for it in pickItems.mitems:
+    if trOn or (it.detail.len > 0 and it.detail[0] == DataMark): it.detail = tr(it.detail)
   pickQuery = ""
   pickCur = 0
   refilterPicker()

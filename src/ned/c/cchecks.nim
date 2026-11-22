@@ -8,6 +8,7 @@ import std/[strutils, tables, sets, algorithm]
 when defined(windows): import ../sys/winos as os   # (std/os, with '/' in the paths it makes)
 else: import std/os
 import cindex
+import ../core/text
 
 type
   CkEdit* = object
@@ -44,7 +45,7 @@ const
 func ckShort(s: string): string =
   ## an argument as a message shows it: on one line, not too long
   result = s.strip.replace("\n", " ")
-  if result.len > 32: result = result[0 ..< 30] & "…"
+  if result.len > 32: result = result.utf8Prefix(30) & "…"
 
 func ckSilenced(lines: seq[string], l: int, rule: string): bool =
   ## `// ned: ignore` (or `ned: ignore[rule]`) in a comment on the line

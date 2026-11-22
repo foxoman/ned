@@ -397,6 +397,20 @@ iterator jitems*(n: JsonNode): JsonNode =
   if n != nil and n.kind == JArray:
     for x in n.elems: yield x
 
+func utf8Prefix*(s: string, n: int): string =
+  ## the first n bytes of s, less a character cut in two: a text shortened for a label, a detail or a log stays valid
+  ## UTF-8 ("héllo", "中文" are not cut inside a letter)
+  if n >= s.len: return s
+  var k = max(0, n)
+  while k > 0 and (s[k].uint8 and 0xC0) == 0x80: dec k
+  s[0 ..< k]
+
+proc padToWidth*(s: string, w: int): string =
+  ## s followed by spaces up to display width w (as it is when it is as wide already): a column of names with
+  ## letters of any width ("Jörg", "张伟") lines up
+  result = s
+  for _ in 0 ..< w - strWidth(s): result.add ' '
+
 proc truncTo*(s: string, w: int): string =
   ## truncate to display width w, adding an ellipsis
   if w <= 0: return ""

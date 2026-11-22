@@ -397,7 +397,7 @@ proc cmdMcpServers() =
                                   (if s.prompts.len > 0: " · " & $s.prompts.len & " prompt(s)" else: "") else: st
     let srv = s
     capture srv:
-      items.add act(label, detail, proc() =
+      items.add act(dataText(label), detail, proc() =
         var body = srv.cmd.join(" ") & "\n\n"
         if srv.tools.len > 0:
           for t in srv.tools: body.add "• " & t.name & (if t.desc.len > 0: " — " & truncTo(t.desc.splitLines()[0], 70) else: "") & "\n"

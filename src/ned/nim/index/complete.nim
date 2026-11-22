@@ -972,7 +972,7 @@ proc nxComplete*(f: NxFile, lines: seq[string], line, col: int, shared = false):
       if not sw.value:
         for i, s in NxSwitches:
           let d = (if s[2].len > 0: ":" & s[2] & " · " else: "") & s[3]
-          result.items.add NxItem(label: s[0], detail: (if d.len > 60: d[0 ..< 57] & "…" else: d), kind: nxConst,
+          result.items.add NxItem(label: s[0], detail: (if d.len > 60: d.utf8Prefix(57) & "…" else: d), kind: nxConst,
                                   rank: 0, local: NxSym(name: s[0], kind: nxConst, typ: "switch", doc: nxSwitchDoc(i)))
       else:
         let i = nxSwitchFind(sw.name)
@@ -982,7 +982,7 @@ proc nxComplete*(f: NxFile, lines: seq[string], line, col: int, shared = false):
           var seen: HashSet[string]
           for (n, where) in nxProjectDefines(parentDir(f.path)):
             seen.incl n
-            result.items.add NxItem(label: n, detail: (if where.len > 60: where[0 ..< 57] & "…" else: where),
+            result.items.add NxItem(label: n, detail: (if where.len > 60: where.utf8Prefix(57) & "…" else: where),
                                     kind: nxConst, rank: 0, local: NxSym(name: n, kind: nxConst, typ: "define", doc: where))
           for (n, d) in NxCommonDefines:
             if n notin seen:
@@ -1003,7 +1003,7 @@ proc nxComplete*(f: NxFile, lines: seq[string], line, col: int, shared = false):
     if nxIsNimbleFile(f.path) and nxRequiresStringAt(text, col)[0]:
       result.known = true
       for (n, d) in nxPackageNames():
-        result.items.add NxItem(label: n, detail: (if d.len > 60: d[0 ..< 57] & "…" else: d), kind: nxModule, rank: 2,
+        result.items.add NxItem(label: n, detail: (if d.len > 60: d.utf8Prefix(57) & "…" else: d), kind: nxModule, rank: 2,
                                 local: NxSym(name: n, kind: nxModule, typ: "package", doc: d))
       return
   block pragmas:

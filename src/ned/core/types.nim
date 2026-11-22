@@ -410,6 +410,7 @@ type
   SideView = enum svFiles, svSearch, svGit, svProject, svTests, svAssistant, svOutline, svTimeline, svTodos, svPlugins
   SideItem = object
     text, detail, path, icon, data: string
+    asIs: bool                       # its text is data — a file, a branch, a test, a task: never translated
     line, col, depth, role: int     # role: 0 text, 1 accent, 2 dim, 3 error, 4 warn, 5 ok, 6 header, 7 func, 8 type
     action: proc() {.closure.}
 

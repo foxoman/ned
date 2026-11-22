@@ -186,7 +186,7 @@ proc cmdRunTask() =
     let t = ts[i]
     let recent = taskKey(t) in taskRecent
     capture t:
-      items.add act((if recent: ic("history") & " " else: "  ") & t.source & ": " & t.name, truncTo(t.detail, 60),
+      items.add actData((if recent: ic("history") & " " else: "  ") & t.source & ": " & t.name, truncTo(t.detail, 60),
                     proc() = runTask(t))
   openActions("Run a task (" & $ts.len & ")", items)
 

@@ -914,7 +914,7 @@ proc settingsMarkdown(): string =
       if d.opts.len > 0 and d.key notin ["theme", "theme.dark", "theme.light"]:
         doc.add " — one of: " & d.opts.join(", ")
       var def = $d.def
-      if def.len > 60: def = def[0 ..< 57] & "…"
+      if def.len > 60: def = def.utf8Prefix(57) & "…"
       result.add "| `" & d.key & "` | `" & cell(def) & "` | " & cell(doc) & " |\n"
 
 proc settingNode(key: string): JsonNode =

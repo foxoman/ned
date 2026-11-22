@@ -57,11 +57,12 @@ proc drawTitleBar() =
     x += 1
   # project · branch
   if x + 8 < rightEdge:
-    x = button(x, y, " " & truncTo(proj, max(4, rightEdge - x - 4)) & " ", proc() = runCmd("Open folder…"),
+    x = button(x, y, dataText(" " & truncTo(proj, max(4, rightEdge - x - 4)) & " "), proc() = runCmd("Open folder…"),
                "Project: " & rootDir, theme.fg, theme.titleBg, {aBold})
     let ab = (if gitAhead > 0: " ↑" & $gitAhead else: "") & (if gitBehind > 0: " ↓" & $gitBehind else: "")
     if branch.len > 0 and x + strWidth(branch) + strWidth(ab) + 4 < rightEdge:
-      x = button(x, y, ic("branch") & " " & branch & ab & " ", proc() = cmdBranches(),
+      # (the branch as it is: one called "test" is not the word)
+      x = button(x, y, dataText(ic("branch") & " " & branch & ab & " "), proc() = cmdBranches(),
                  "Branch — switch, create, merge…", theme.dim, theme.titleBg, rightAct = proc() =
                    ctxOpen(@[mc("Git: branches…", "Branches…"), mc("Git: pull"), mc("Git: push"),
                              mc("Git: sync (pull, then push)", "Sync (pull, then push)"), mc("Git: fetch"), msep(),

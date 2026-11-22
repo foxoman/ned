@@ -70,7 +70,7 @@ proc cmdCompareWithFile() =
     if path == b.path: continue
     let pp = path
     capture pp:
-      items.add act(relPath(pp), "", proc() =
+      items.add act(dataText(relPath(pp)), "", proc() =
         let cur = bufById(id)
         if cur == nil: return
         var other: seq[string]
@@ -130,7 +130,7 @@ proc cmpFoldersShow(a, b: string) =
     inc differ
     let rel = p
     capture rel:
-      items.add act("± " & rel, "changed", proc() =
+      items.add act(dataText("± " & rel), "changed", proc() =
         var left: seq[string]
         var right: seq[string]
         try:
@@ -153,13 +153,13 @@ proc cmpFoldersShow(a, b: string) =
       inc onlyA
       let rel = p
       capture rel:
-        items.add act("− " & rel, "only in " & extractFilename(a), proc() = discard openFile(a / rel))
+        items.add act(dataText("− " & rel), "only in " & extractFilename(a), proc() = discard openFile(a / rel))
   for p in fb:
     if p notin inA:
       inc onlyB
       let rel = p
       capture rel:
-        items.add act("+ " & rel, "only in " & extractFilename(b), proc() = discard openFile(b / rel))
+        items.add act(dataText("+ " & rel), "only in " & extractFilename(b), proc() = discard openFile(b / rel))
   if differ + onlyA + onlyB == 0:
     info("The two folders have the same files: " & $fa.len)
     return

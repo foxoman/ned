@@ -117,7 +117,7 @@ proc aiChooseModel() =
       let mm = m
       let dd = d
       capture mm:
-        items.add act(mm & (if mm == aiModel(): "  ✓" else: ""), dd, proc() =
+        items.add actData(mm & (if mm == aiModel(): "  ✓" else: ""), dd, proc() =
           setSetting("ai.model", %mm)
           info("AI model: " & mm))
     openActions("AI model — Anthropic", items)
@@ -180,7 +180,7 @@ proc aiChooseModel() =
     for id in ids:
       let mm = id
       capture mm:
-        items.add act(mm, (if mm == aiModel(): "current" else: ""), proc() =
+        items.add act(dataText(mm), (if mm == aiModel(): "current" else: ""), proc() =
           setSetting("ai.model", %mm)
           info("AI model: " & mm))
     openActions("AI model — " & cfgAiProvider, items))
@@ -201,7 +201,7 @@ proc aiChooseProvider() =
       cfgAiProvider = old
       e
     capture pp, env:
-      items.add act(pp & (if pp == cfgAiProvider: "  ✓" else: ""),
+      items.add act(dataText(pp & (if pp == cfgAiProvider: "  ✓" else: "")),
                     (if pp == "ollama": "local models, no key" elif pp == "custom": "any OpenAI-compatible URL"
                      else: "key: $" & env & (if getEnv(env).len > 0: " ✓" else: "")), proc() =
         setSetting("ai.provider", %pp)

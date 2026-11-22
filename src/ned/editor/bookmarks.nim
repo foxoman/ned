@@ -74,7 +74,7 @@ proc listBookmarks() =
   var items: seq[(string, string, Action)]
   for (bi, l) in allBookmarks():
     let b = bufs[bi]
-    items.add act(b.name & ":" & $(l + 1) & "   " & b.lines[l].strip, relPath(b.path), bookmarkAct(b.id, l))
+    items.add actData(b.name & ":" & $(l + 1) & "   " & b.lines[l].strip, relPath(b.path), bookmarkAct(b.id, l))
   if items.len == 0:
     info("No bookmarks — Alt+' toggles one on the current line")
     return

@@ -215,7 +215,7 @@ proc rfByHand(title: string, places: seq[(string, int, int, string)]) =
   ## calls ned left alone: a list to go to each
   var items: seq[(string, string, Action)]
   for (path, l, c, why) in places:
-    items.add act(relPath(path) & ":" & $(l + 1), why, gotoAct(path, l, c))
+    items.add act(dataText(relPath(path) & ":" & $(l + 1)), why, gotoAct(path, l, c))
   openActions(title, items)
 
 proc rfLinesOf(path: string): seq[string] =

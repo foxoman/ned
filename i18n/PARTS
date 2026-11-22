@@ -1,0 +1,373 @@
+# i18n/PARTS — made by tests/i18n/extract.py with the template: the words ned itself puts in a text's
+# changing parts (`(if on: "on" else: "off")`). A part found in a text is translated only when it is
+# one of these; any other part is data — a file, a branch, a word of git's — and stays as it is.
+$, ==, hash and a constructor
+(Ctrl+Z puts it back)
+(Nim 2)
+(Nim 3)
+(Nim's procs by their Nim names)
+(a folder around it is still trusted)
+(and
+(as numbers)
+(best combo:
+(choose one)
+(empty)
+(exit code
+(fast)
+(finish reason:
+(from the top again)
+(full Nim: it is compiled now, in the background)
+(iconv is not installed)
+(import karax/vstyles)
+(imports
+(install
+(is Ollama running?)
+(it did not end within 20 s?)
+(it is running: it is stopped first)
+(it needs a language server)
+(its .nimble: nim
+(made on this commit if it is new)
+(needs a Nerd Font)
+(newer commits)
+(no branch)
+(no language server)
+(none is running)
+(off screen)
+(on this commit)
+(pkg install curl)
+(reads)
+(running)
+(since
+(smart)
+(stopped)
+(table)
+(the else branch is still there)
+(was:
+(zig is not installed)
+, and git
+, and what it cost
+, built with Nim
+, compared with the last run
+, largest first
+.hh
+.hpp
+.hxx
+.json
+1 row
+1 statement
+: tables lined up
+; very long lines are shown cut
+A plugin update:
+A terminal
+Alt+Shift+M plays it · palette › Macro: save the last one… keeps it
+Alt+Shift+R
+Amend commit
+Breakpoint
+C formatter,
+C options
+C-x (
+C-x )
+C-x e plays it
+COMMIT_EDITMSG
+CRLF
+Commit message
+Copied
+Day
+Day: the light theme,
+English
+Error:
+GB memory ·
+GB of memory
+GitHub's gh is not installed
+HTTP
+Hide
+Hide $1
+Issues
+LF
+Language: $1 ($2 texts)
+Loading your settings from
+Logpoint
+Moved
+Night
+Night: the dark theme,
+Nim options
+Pull requests
+Reopen
+Save
+Saving your settings to
+Show
+Show $1
+TAG_EDITMSG
+TERMUX_VERSION
+TOML: spacing
+The plugin
+The plugins could not start:
+Warning:
+YAML: indentation and spacing
+a command
+a library's file — files.protectLibraries
+above
+accepted
+all
+all up to date
+and has no side effects
+as
+as @
+as written
+asleep
+at
+auto
+below
+byte
+bytes
+change in
+change made in
+changed on disk meanwhile: saving keeps
+changes
+changes in
+changes made in
+choose model
+comment
+commit
+commits
+compile
+copies
+copy
+could not start:
+cpp
+dark
+day
+days
+default
+dependencies
+dependency
+description
+detached
+down
+dropped: they failed (see the tab)
+edit files
+emacs
+es
+exit
+exit code
+failed
+file
+file has
+file(s) deleted there removed here
+file(s) with conflicts
+file,
+file?
+files
+files have
+files,
+files?
+gdb
+gh
+git
+git failed
+git-rebase-todo
+happy
+hard to read
+has
+header
+helix
+here
+here any more
+hidden
+hungry
+iconv
+in this file
+install
+install it first
+into @
+issues
+it
+it comes with Nim
+it failed
+it printed nothing
+its side effect
+its tab is read-only
+keep
+key
+keys
+left
+left alone:
+left out by .nph.toml)
+left to change by hand
+light
+line
+lined up
+lines
+lines in the Output panel)
+lldb
+long
+markdown
+match
+matches
+max
+mcp__
+min
+more)
+mysql
+ned's own
+needs
+nerd
+newer
+nim
+nim on PATH
+nimble install nph
+nimsuggest
+no answer
+no dictionary found: Spell check: download a dictionary…
+no due date
+no model
+no options
+no output
+no picture made
+none
+none installed
+none set
+not committed
+not done —
+not found
+not imported here
+not signed in
+nothing to look at
+nph
+npx
+off
+off — Termux text selection works now
+ok
+ollama
+on
+on — Enter removes it ·
+open now
+options
+other ned is
+other neds are
+pass (they print nothing)
+passed
+piece
+piece of
+pieces
+pieces of
+pip install ziglang, or your system's zig
+pkg install nodejs (Termux), or Node.js 22 from nodejs.org
+pkg install zig
+places)
+plays it
+plugin updates:
+plugin__
+postgres
+problem
+problems
+project
+psql
+pull requests
+pytest
+q plays it
+readOnly
+rejected
+right
+rows
+run a command
+running
+setting changed
+settings changed
+short
+shown
+since
+source
+spaces
+ssh failed
+starts when needed
+statements
+style
+table
+tables
+tabs
+tabstop
+terminals
+that the engine found
+the NimScript plugins
+the change
+the engine cannot tell)
+the file has
+the program no longer runs
+the program runs after each compile (its output: the Output panel)
+the project
+the review
+the selection
+the start
+the terminal
+the whole file
+them
+these
+this branch
+this device
+this folder
+this one
+to
+to before the last update
+to change by hand
+to choose
+to look at
+to the left
+to the right
+toml
+ts
+unnamedplus
+use a plugin's tool
+use an MCP tool
+where you changed lines
+with a newer version
+with encoding
+words)
+yaml
+your line breaks kept
+your system's: $1
+your version
+zig
+~/.my.cnf or MYSQL_PWD
+~/.pgpass or PGPASSWORD
+· ACP
+· Nim: compare with the previous profile
+· all readable
+· branch
+· empty
+· in use
+· new file
+· nimble install inim
+· not shown, unsaved:
+· outdated
+· signed in
+· suggested by AI
+— C-x C-s saves, M-x runs a command, C-g cancels
+— NOR: select with w x %, act with d c y p; i to type, Esc back
+— atlas is not installed (nimble install atlas)
+— by hand:
+— careful:
+— disabled
+— hard to read
+— install nimony to check it
+— its changes are staged
+— its problems and quick fixes next to the main server's
+— nimony checks it on save
+— none left
+— not installed yet (Debug: install the debugger…)
+— nothing is left in it
+— nothing to change
+— nothing to change, only places to look at
+— palette › Debug: install the debugger
+— some bytes are not (shown as �)
+— stopped after 20 s
+— style uses toCss
+— the edits you left are a branch (Undo history… goes back)
+— the next run is compared with this one
+— the open ones in the editor: save them
+— this shell sends no command marks (terminal.shellIntegration)
+— using the built-in nimsuggest client instead
+— your old file is
+— your uncommitted work is kept
+✓ done —
+✗ exit

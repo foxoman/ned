@@ -296,7 +296,7 @@ proc macroManage() =
         t.add (if x.kind == JString: x.getStr else: "‹" & x{"key"}.getStr & "›")
         if t.len > 60: break
       truncTo(t.replace("\n", "⏎"), 50)
-    items.add act("▶ " & n, shown, macroMenuAct(n))
+    items.add actData("▶ " & n, shown, macroMenuAct(n))
   if items.len == 0:
     info("No macros yet — Alt+Shift+R records one")
     return

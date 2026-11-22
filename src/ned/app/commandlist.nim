@@ -563,7 +563,7 @@ proc initCommands() =
         let kk = k
         let dd = d
         capture bd:
-          items.add act(kk, dd, proc() =
+          items.add actData(kk, dd, proc() =
             let bb = buf()
             bb.expandSnippet(bb.primary.range[0], bb.primary.range[1], bd))
     if items.len == 0: info("No snippets for " & b.lang.name)

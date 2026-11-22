@@ -781,5 +781,5 @@ proc cmdLayouts(forget = false) =
       walk(j{"b"})
     walk(L{"panes"})
     let detail = (if files.len > 0: trf("$1 panes: $2", files.len, files.join(", ")) else: tr("one pane"))
-    items.add act(name, detail, if forget: layoutForgetAct(name) else: layoutAct(name))
+    items.add actData(name, detail, if forget: layoutForgetAct(name) else: layoutAct(name))
   openActions(if forget: "Forget a layout" else: "Layouts", items)

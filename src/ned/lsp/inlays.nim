@@ -123,7 +123,7 @@ proc engineRaisesHints(b: Buffer, f: NxFile, lo, hi: int, hints: var Table[int, 
     let (l, c) = nxRaisesHintAt(b.lines, s)
     if l < lo or l > hi or l >= b.lines.len: continue
     var list = nxExcList(x)
-    if list.len > 60: list = list[0 ..< 59] & "…"
+    if list.len > 60: list = list.utf8Prefix(59) & "…"
     hints.mgetOrPut(l, @[]).add (c, " {.raises: [" & list & "].}")
 
 func ihCode(s: string): string =
@@ -187,7 +187,7 @@ proc engineChainHints(b: Buffer, f: NxFile, sc: NxScope, lo, hi: int, got: var T
               except CatchableError: ""
     var t = typ.strip.replace("system.", "")
     if t.len == 0 or t in ["untyped", "typed", "auto", "void"]: continue
-    if t.len > 40 and not engineTypesFull: t = t[0 ..< 39] & "…"
+    if t.len > 40 and not engineTypesFull: t = t.utf8Prefix(39) & "…"
     got.mgetOrPut(l, @[]).add (ihCode(b.lines[l]).len, ": " & t)
 
 proc engineTypeHints(b: Buffer, f: NxFile, sc: NxScope, lo, hi: int, hints: var Table[int, seq[(int, string)]],
@@ -209,7 +209,7 @@ proc engineTypeHints(b: Buffer, f: NxFile, sc: NxScope, lo, hi: int, hints: var 
     if t.len == 0 and s.line < b.lines.len:
       t = orTypeOf(b.path, b.lines[s.line], s.col)     # (what the compiler said, when the engine cannot tell)
     if t.len == 0 or t in ["untyped", "typed", "auto", "void"] or s.line >= b.lines.len: return
-    if t.len > 40 and not engineTypesFull: t = t[0 ..< 39] & "…"
+    if t.len > 40 and not engineTypesFull: t = t.utf8Prefix(39) & "…"
     let line = b.lines[s.line]
     var c = s.col + s.name.len
     if c > line.len or line.find(s.name, s.col) != s.col:

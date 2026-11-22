@@ -198,8 +198,9 @@ proc drawDockList(dl: var DockList, v: SideView, x0, y0, w, h: int, focused: boo
     if i >= dl.items.len: break
     var it = dl.items[i]
     if trOn and it.data notin ["file", "hit"] and not it.data.startsWith("todo:") and v != svOutline:
-      # (a row's words in the language chosen — not a file's name, a line found, your comment or the outline's symbols)
-      it.text = tr(it.text)
+      # (a row's words in the language chosen — not a file's name, a line found, your comment or the outline's
+      # symbols, a row that is data: a branch, a test, a task)
+      if not it.asIs: it.text = tr(it.text)
       it.detail = tr(it.detail)
     let y = y0 + r
     let sel = i == dl.sel

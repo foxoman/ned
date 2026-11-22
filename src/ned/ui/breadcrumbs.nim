@@ -63,17 +63,17 @@ proc crumbFolderAct(dir: string): Action =
     fs.sort()
     for d in ds:
       capture d:
-        items.add act(extractFilename(d) & "/", "show it in the files", proc() =
+        items.add act(dataText(extractFilename(d) & "/"), "show it in the files", proc() =
           showSide(svFiles)
           revealInTree(d))
     for f in fs:
       capture f:
-        items.add act(extractFilename(f), "", proc() = discard openFile(f))
+        items.add act(dataText(extractFilename(f)), "", proc() = discard openFile(f))
     if items.len == 0:
       showSide(svFiles)
       revealInTree(dir)
       return
-    openActions(relPath(dir) & "/", items))
+    openActions(dataText(relPath(dir) & "/"), items))
 
 proc drawBreadcrumbs() =
   ## draws the bar above the editor: the file's path as clickable folder names ending in the file (a workspace folder's
@@ -110,9 +110,9 @@ proc drawBreadcrumbs() =
       let path = acc
       if last:
         if cfgIcons == "nerd": x = putStr(x, y, fileIcon(b.path), langColor(b.path), cb, {}, lim) + 1
-        x = button(x, y, p, proc() = cmdFindFile(), "Go to file", theme.fg, cb)
+        x = button(x, y, dataText(p), proc() = cmdFindFile(), "Go to file", theme.fg, cb)     # (a folder "source")
       else:
-        x = button(x, y, p, crumbFolderAct(path), "What is in it", theme.dim, cb)
+        x = button(x, y, dataText(p), crumbFolderAct(path), "What is in it", theme.dim, cb)
         x = putStr(x, y, sep, blend(theme.dim, cb, 0.4), cb, {}, lim)
   else:
     x = putStr(x, y, b.tabName, theme.fg, cb, {}, lim)
@@ -128,8 +128,8 @@ proc drawBreadcrumbs() =
     let hs = csvFields(b.lines[0], csvSepOf(b.lang, b.lines[0]))
     let head = if k < hs.len: b.lines[0][hs[k][0] ..< hs[k][1]].strip(chars = {'"', ' '}) else: ""
     x = putStr(x, y, sep, blend(theme.dim, cb, 0.4), cb, {}, lim)
-    x = putStr(x, y, (if head.len > 0 and p.line > 0: head & "  (column " & $(k + 1) & ")" else: "column " & $(k + 1)),
-               theme.fg, cb, {}, lim)
+    let colText = if head.len > 0 and p.line > 0: trf("$1  (column $2)", head, k + 1) else: trf("column $1", k + 1)
+    x = putStr(x, y, colText, theme.fg, cb, {}, lim)
   elif b.lang.mode == lmJson and b.lines.len > 1 and b.lines.len < 20000:
     # a JSON file: the keys down to the cursor (scripts › build) — a key is a button to it
     let p = b.primary.head
@@ -141,7 +141,7 @@ proc drawBreadcrumbs() =
       let line = l
       let nm = name
       capture line, nm:
-        x = button(x, y, truncTo(nm, max(4, lim - x)), proc() =
+        x = button(x, y, dataText(truncTo(nm, max(4, lim - x))), proc() =
           let bb = buf()
           if line < bb.lines.len:
             pushJump()
@@ -157,6 +157,6 @@ proc drawBreadcrumbs() =
       let c = crumbName(b.lines[l])
       if c.len == 0 or x + 4 >= lim: continue
       x = putStr(x, y, sep, blend(theme.dim, cb, 0.4), cb, {}, lim)
-      x = button(x, y, truncTo(c, max(4, lim - x)), crumbSymbolAct(l, parent, c),
+      x = button(x, y, dataText(truncTo(c, max(4, lim - x))), crumbSymbolAct(l, parent, c),
                  "What is beside " & c & " — or go to it", theme.syn[tkFunc], cb)
       parent = l

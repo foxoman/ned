@@ -7,7 +7,7 @@
 ## ⟦ and ⟧: a text on the screen without them is not ready for translation yet. See TRANSLATING.md.
 ## A module of its own: the unit tests use it, and nedls may.
 
-import std/[json, os, strutils, tables]
+import std/[json, os, parsejson, sets, streams, strutils, tables]
 
 type
   TrPattern = object
@@ -136,18 +136,38 @@ proc trFill(to: string, caps: openArray[string]): string =
       result.add to[i]
       inc i
 
+const
+  DataMark* = '\x1D'   # (a text that starts with it is data — dataText — shown as it is, the mark taken off)
+  TrPartsText = staticRead("../../../i18n/PARTS")
+
+var trPartWords: HashSet[string]     # i18n/PARTS: the words ned itself puts in a text's changing parts
+
+func dataText*(s: string): string =
+  ## a text that is data — a name, a path, a branch, a commit's subject, git's or a server's words — for a routine
+  ## that shows text in the language chosen: shown as it is (a branch called "test" is not the word "test")
+  DataMark & s
+
+proc trIsPart(w: string): bool =
+  ## whether ned itself puts this word in a text's changing parts (`(if on: "on" else: "off")`: i18n/PARTS, made by
+  ## tests/i18n/extract.py) — then a part found as it is translated; any other part is data (a file, a branch)
+  if trPartWords.len == 0:
+    for l in TrPartsText.splitLines:
+      if l.len > 0 and not l.startsWith("# "): trPartWords.incl l
+  w in trPartWords
+
 proc trPart(c: string): string =
-  ## a part a pattern found, translated when the catalogue has it as it is or without the spaces around it (" here"
-  ## as "here", the spaces kept: a piece ned adds after another text); else as it is
+  ## a part a pattern found, translated when it is one of ned's own words (i18n/PARTS) the catalogue has, as it is or
+  ## without the spaces around it (" here" as "here", the spaces kept: a piece ned adds after another text); else as
+  ## it is — a file, a branch, a word of git's ("Saved test" keeps the file "test")
   if c.len == 0: return c
-  let e = trExact.getOrDefault(c)
+  let e = if trIsPart(c): trExact.getOrDefault(c) else: ""
   if e.len > 0: return trUnescape(e)
   var a = 0
   var b = c.high
   while a <= b and c[a] == ' ': inc a
   while b >= a and c[b] == ' ': dec b
   if a > b or (a == 0 and b == c.high): return c
-  let t = trExact.getOrDefault(c[a .. b])
+  let t = if trIsPart(c[a .. b]): trExact.getOrDefault(c[a .. b]) else: ""
   if t.len > 0: c[0 ..< a] & trUnescape(t) & c[b + 1 .. ^1] else: c
 
 proc trPatterns(s: string): (bool, string) =
@@ -199,8 +219,9 @@ proc trIcon(s: string, head: bool): int =
 proc trLookup*(s: string): string =
   ## `s` in the language in use (`tr` calls it when one is): its translation, or `s`. Spaces around it stay, and the
   ## text between them is looked up (" File " as "File"); so does a sign before or after it when the whole is not
-  ## in the catalogue ("▶ running" as "running")
+  ## in the catalogue ("▶ running" as "running"); a text marked as data (dataText) is as it is
   if s.len == 0: return s
+  if s[0] == DataMark: return s[1 .. ^1]
   if trRecording != 0: trNote(s)
   if s[0] == ' ' or s[^1] == ' ':
     var a = 0
@@ -237,8 +258,11 @@ proc trLookup*(s: string): string =
   trMemo[s] = result
 
 template tr*(s: string): string =
-  ## `s` as the person reads it: in the language chosen when its catalogue has it, else as it is (English)
-  (if trOn: trLookup(s) else: s)
+  ## `s` as the person reads it: in the language chosen when its catalogue has it, else as it is (English); a text
+  ## marked as data (dataText) is as it is in any language
+  (block:
+    let trS = s
+    if trOn: trLookup(trS) elif trS.len > 0 and trS[0] == DataMark: trS[1 .. ^1] else: trS)
 
 template tx*(s: string): string =
   ## a text to translate where it is shown, not here (a constant's, a table's): `tr` of it there. The template for the
@@ -277,13 +301,36 @@ proc trCandidates*(lang: string): seq[string] =
   if u > 0: result.add l[0 ..< u]
 
 proc trLoadText*(text: string): string =
-  ## a catalogue's entries added to the language in use (a plugin's, or a file's): "" when it was read, else why not
+  ## a catalogue's entries added to the language in use (a plugin's, or a file's): "" when it was read, else why not.
+  ## Read as it goes, entry by entry (no JSON tree of 6 000 entries made first: less memory on a phone); a value that
+  ## is not a string is passed over
+  var p: JsonParser
+  p.open(newStringStream(text), "")
+  defer: p.close()
   try:
-    let j = parseJson(text)
-    if j.kind != JObject: return "not a JSON object of English text → translation"
-    for k, v in j:
-      if k == "@language" and v.kind == JString: trName = v.getStr
-      elif v.kind == JString: trAdd(k, v.getStr)
+    p.next()
+    if p.kind != jsonObjectStart: return "not a JSON object of English text → translation"
+    p.next()
+    while p.kind == jsonString:
+      let k = p.str
+      p.next()
+      case p.kind
+      of jsonString:
+        if k == "@language": trName = p.str
+        else: trAdd(k, p.str)
+        p.next()
+      of jsonObjectStart, jsonArrayStart:
+        var depth = 0
+        while true:
+          if p.kind in {jsonObjectStart, jsonArrayStart}: inc depth
+          elif p.kind in {jsonObjectEnd, jsonArrayEnd}: dec depth
+          elif p.kind in {jsonError, jsonEof}: break
+          p.next()
+          if depth == 0: break
+      of jsonError, jsonEof: break
+      else: p.next()                       # (a number, true, false, null)
+    if p.kind == jsonError: return p.errorMsg
+    if p.kind != jsonObjectEnd: return p.errorMsgExpected("}")
     trMemo.clear()
     if trCode.len > 0 and not trPseudo: trOn = trExact.len > 0 or trPats.len > 0
     ""

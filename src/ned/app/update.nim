@@ -293,7 +293,7 @@ proc updFound(latest, notes, url: string, manual: bool) =
   var st = updState()
   st["checked"] = %epochTime()
   st["latest"] = %latest
-  st["notes"] = %(if notes.len > 20_000: notes[0 ..< 20_000] & "…" else: notes)
+  st["notes"] = %(if notes.len > 20_000: notes.utf8Prefix(20_000) & "…" else: notes)
   st["url"] = %url
   updSaveState(st)
   updNoteNewer(latest)

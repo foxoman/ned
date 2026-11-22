@@ -150,7 +150,7 @@ proc reviewThreadMenu(t: ReviewThread) =
   ## the menu for one thread: go to its line, reply, resolve or open it again, and open its first comment on GitHub
   let root = reviewRoot
   var items: seq[(string, string, Action)]
-  items.add act("Go to it", t.rel & (if t.line >= 0: ":" & $(t.line + 1) else: ""), proc() =
+  items.add act("Go to it", dataText(t.rel & (if t.line >= 0: ":" & $(t.line + 1) else: "")), proc() =
     let b = openFile(root / t.rel)
     if b != nil and t.line >= 0: b.centerOn(b.clampPos(Pos(line: t.line, col: 0))))
   items.add act("Reply…", "", proc() = reviewReply(t))
@@ -158,7 +158,7 @@ proc reviewThreadMenu(t: ReviewThread) =
   if t.comments.len > 0 and t.comments[0][2].len > 0:
     let u = t.comments[0][2]
     items.add act("Open on GitHub", "", proc() = openInBrowser(u))
-  openActions((if t.comments.len > 0: t.comments[0][0] & ": " & t.comments[0][1].strip.splitLines()[0] else: "Review"), items)
+  openActions((if t.comments.len > 0: dataText(t.comments[0][0] & ": " & t.comments[0][1].strip.splitLines()[0]) else: "Review"), items)
 
 proc threadAct(t: ReviewThread): Action =
   ## an action that opens the thread's menu — a procedure of its own so each list item keeps its own thread
@@ -180,7 +180,7 @@ proc cmdReviewComments() =
         if (pass == 0) == t.resolved: continue
         let who = if t.comments.len > 0: t.comments[0][0] else: ""
         let what = if t.comments.len > 0: t.comments[0][1].strip.splitLines()[0] else: ""
-        items.add act((if t.resolved: "✓ " else: ic("comment") & " ") & who & ": " & what,
+        items.add act(dataText((if t.resolved: "✓ " else: ic("comment") & " ") & who & ": " & what),
                       t.rel & (if t.line >= 0: ":" & $(t.line + 1) else: "") & (if t.outdated: " · outdated" else: ""),
                       threadAct(t))
     openActions("Pull request #" & $reviewPr & " — review comments", items))

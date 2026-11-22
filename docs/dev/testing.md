@@ -18,7 +18,7 @@ has the tables of tools the tests use.
 | [docs](#the-documentation) | references up to date, every link goes somewhere | `python3 tests/docs/apiref.py --check && python3 tests/docs/links.py` | a second |
 | [themes](#theme-contrast) | ned's own themes are readable | `python3 tests/themes/contrast.py` | a second |
 | tour | the Nim tour's lessons: every cell runs and prints what it says, every exercise's answer passes | `python3 tests/tour/check.py` | a minute or two |
-| every command | each command of the palette run in a ned of its own (`--plugins`: with all of ned's plugins on, theirs too): no crash, no internal error, still answering | `python3 tests/smoke/commands.py ./ned` | 15 minutes |
+| every command | each command of the palette run in a ned of its own (`--plugins`: with all of ned's plugins on, theirs too): no crash, no internal error, still answering; `--lang ru --layout --size 60x40`: in a language, a box's sides and its characters whole, on a smaller screen | `python3 tests/smoke/commands.py ./ned` | 15 minutes |
 | hostile input | a plugin, the remote control and nedls fed nonsense; control characters on the screen | `python3 tests/hostile/thostile.py ./ned ./nedls` | a few minutes |
 | names | every command and setting the menus, key maps, ned's plugins and the docs name exists | `python3 tests/docs/names.py` | a second |
 | per-file memory | every global table ned keeps by a buffer's id is let go when its tab closes (`editor/bufforget.nim`), read from the source | `python3 tests/memory/bufids.py` | a second |
@@ -264,7 +264,8 @@ Each mode mixes the input differently (`ai` drives the assistant, `git` a reposi
 full of compiler errors, `c` C files, `hex` binary files, `kitty` the kitty keyboard protocol, `web` CSS, HTML and
 SQL …). It works in a scratch home of its own, but random commands can run tasks and shell commands and save files
 anywhere ned may write: give it a throwaway user (`NED_FUZZ_USER=fuzz`; as root it refuses to start without one).
-Logs go to `/tmp/ned-fuzz-UID-logs`.
+Logs go to `/tmp/ned-fuzz-UID-logs`. `NED_FUZZ_LANG=ru` (or a catalogue's path) runs ned in another language: longer
+and wider texts in every box.
 
 **Under AddressSanitizer.** Nim's own checks do not see a `copyMem` past the end, or memory used after it was freed
 behind a cast or across threads; the C compiler's sanitizer does, and stops ned with a report. A build for it (gcc;

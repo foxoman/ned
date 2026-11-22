@@ -69,10 +69,14 @@ proc dropShadow(x, y, w, h: int) =
     if xx < 0 or yy < 0 or xx >= scrW or yy >= scrH: return
     let i = yy * scrW + xx
     let under = grid[i].bg
+    proc wideHalf(j: int): bool =
+      ## the right half of a wide character (a CJK letter, an emoji): text, not a blank cell
+      grid[j].ch == 0 and j > yy * scrW and cellWidth(grid[j - 1].ch) == 2
     proc glyph(j: int): bool =
       ## a letter or sign of some text (a space next to one belongs to the text: "Ln 4, Col 2" stays whole)
-      j >= yy * scrW and j < (yy + 1) * scrW and grid[j].ch notin [0'u32, 32, 0x2502, 0x2503, 0x258C, 0x2580, 0x2598, 0x2590]
-    let blank = grid[i].ch in [0'u32, 0x2502, 0x2503, 0x258C, 0x2580, 0x2598, 0x2590] or
+      j >= yy * scrW and j < (yy + 1) * scrW and
+        (grid[j].ch notin [0'u32, 32, 0x2502, 0x2503, 0x258C, 0x2580, 0x2598, 0x2590] or wideHalf(j))
+    let blank = (grid[i].ch in [0'u32, 0x2502, 0x2503, 0x258C, 0x2580, 0x2598, 0x2590] and not wideHalf(i)) or
                 (grid[i].ch == 32 and not glyph(i - 1) and not glyph(i + 1))
     if blank:
       # a blank (or a line, or an earlier shadow): the half block

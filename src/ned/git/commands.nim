@@ -100,7 +100,7 @@ proc branchMenu(name: string, current: string) =
   ## the menu of one local branch: switch to it, merge it into the current branch, rename it, delete it (only when
   ## merged, or even if not — both ask first)
   let n = name
-  openActions(n, @[
+  openActions(dataText(n), @[
     act("Switch to it", "git switch", proc() = gitSwitch(n)),
     act("Merge it into " & current, "git merge", proc() = gitShell("git merge --no-edit " & quoteShell(n), "Merged " & n)),
     act("Rename…", "git branch -m", proc() =
@@ -142,11 +142,13 @@ proc cmdBranches() =
         let short = nm[nm.find('/') + 1 .. ^1]
         if short in locals: continue
         capture nm, short:
-          items.add act("  " & nm, "remote · " & f[3] & " · pick: a local branch that follows it", proc() = gitSwitch(short))
+          items.add act(dataText("  " & nm), "remote · " & f[3] & " · pick: a local branch that follows it",
+                        proc() = gitSwitch(short))
       else:
         capture nm:
-          items.add act((if f[0] == "*": "✓ " else: "  ") & nm, (if f[2].len > 0: "↔ " & f[2] & " · " else: "") & f[3],
-                        proc() = branchMenu(nm, cur))
+          # (the branch, its upstream and git's "2 days ago": as they are, in any language)
+          items.add actData((if f[0] == "*": "✓ " else: "  ") & nm, (if f[2].len > 0: "↔ " & f[2] & " · " else: "") & f[3],
+                            proc() = branchMenu(nm, cur))
     openActions("Branches (" & cur & ")", items))
 
 # commit box
@@ -332,7 +334,7 @@ proc commitMenu(hash, subject: string) =
       let path = f[^1]
       let pp = path
       capture pp:
-        items.add act(f[0] & "  " & pp, "see the change", proc() = commitFileDiff(root, h, pp))
+        items.add act(dataText(f[0] & "  " & pp), "see the change", proc() = commitFileDiff(root, h, pp))
     items.add act("Copy the hash", h, proc() =
       clipSet(h)
       info("Copied " & h))
@@ -347,7 +349,7 @@ proc commitMenu(hash, subject: string) =
     items.add act("Revert this commit…", "a new commit that undoes it", proc() =
       askConfirm("Make a commit that undoes " & h & "? (y/n)", proc(c: char) =
         if c in {'y', 'Y'}: gitShell("git revert --no-edit " & h, "Reverted " & h)))
-    openActions(h & "  " & subject, items))
+    openActions(dataText(h & "  " & subject), items))
 
 proc gitLogView() =
   ## Git › History: lists the last 400 commits (branch and tag names shown, author and age), and picking one opens its
@@ -364,8 +366,9 @@ proc gitLogView() =
       let h = f[0]
       let s = f[2]
       capture h, s:
-        items.add act((if f[1].len > 0: "◆ [" & f[1].replace("HEAD -> ", "") & "] " else: "◯ ") & s,
-                      h & " · " & f[3] & " · " & f[4], proc() = commitMenu(h, s))
+        # (the subject, author and git's "2 days ago": as they are)
+        items.add actData((if f[1].len > 0: "◆ [" & f[1].replace("HEAD -> ", "") & "] " else: "◯ ") & s,
+                          h & " · " & f[3] & " · " & f[4], proc() = commitMenu(h, s))
     if items.len == 0: info("No commits yet")
     else: openActions("History — pick a commit to see its files", items))
 
@@ -388,8 +391,8 @@ proc gitStashMenu() =
       let r = l[0 ..< c]
       let desc = l[c + 1 .. ^1].strip
       capture r:
-        items.add act(desc, r, proc() =
-          openActions(r, @[
+        items.add actData(desc, r, proc() =
+          openActions(dataText(r), @[
             act("Apply", "keep it in the list", proc() = gitShell("git stash apply " & r, "Applied " & r)),
             act("Pop", "apply and remove it", proc() = gitShell("git stash pop " & r, "Popped " & r)),
             act("Show", "its changes", proc() =
@@ -463,7 +466,7 @@ proc gitBlame() =
       # (Author Name 2024-05-01 12)
       let date = if meta.len >= 2: meta[^2] else: ""
       let who = if meta.len > 2: meta[0 ..< meta.len - 2].join(" ") else: ""
-      outp.add h[0 ..< min(7, h.len)] & "  " & date & "  " & truncTo(who, 14).alignLeft(14) & " │ " & l[e + 2 .. ^1]
+      outp.add h[0 ..< min(7, h.len)] & "  " & date & "  " & truncTo(who, 14).padToWidth(14) & " │ " & l[e + 2 .. ^1]
       hashes.add h
     let bb = openScratch("Blame: " & name, outp.join("\n"), lang)
     blameBufs[bb.id] = hashes

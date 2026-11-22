@@ -63,7 +63,7 @@ proc cmdRecentProjects() =
   for d in dirs:
     if d == rootDir: continue
     let home = getHomeDir().strip(leading = false, chars = {'/'})
-    items.add act(extractFilename(d), (if d.startsWith(home): "~" & d[home.len .. ^1] else: d), folderAct(d))
+    items.add actData(extractFilename(d), (if d.startsWith(home): "~" & d[home.len .. ^1] else: d), folderAct(d))
   if items.len == 0:
     info("No other projects yet — File › Open folder…")
     return

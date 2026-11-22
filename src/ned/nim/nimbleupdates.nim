@@ -167,7 +167,7 @@ proc depShow() =
                  elif d.depNewer: "→ " & trf("$1 available", d.latest) & inst
                  elif d.latest.len > 0: trf("up to date (latest $1)", d.latest) & inst
                  else: tr("no version tags") & inst
-    items.add act(label, detail, depRowAct(d, label, detail))
+    items.add actData(label, detail, depRowAct(d, label, detail))
   openActions("Dependencies of " & extractFilename(nimble.file) & " — " &
               (if newer.len == 0: "all up to date" else: $newer.len & " with a newer version"), items)
 

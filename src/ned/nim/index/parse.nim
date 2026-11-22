@@ -426,7 +426,7 @@ proc nxShortValue*(v: string): string =
         if it.strip.len > 0: inc n
       if n > 0 and items[0].len < 150:
         return v[0 .. b] & items[0].strip & (if n > 1: ", … " & $(n - 1) & " more" else: "") & v[ce .. ^1]
-  v[0 ..< 197] & "…"
+  v.utf8Prefix(197) & "…"
 
 proc nxSubstIdents*(s: string, sub: Table[string, string]): string =
   ## a template's body line with its arguments in place of its parameters; `lower 2` with lower = vec → vec2

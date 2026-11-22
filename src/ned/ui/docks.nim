@@ -36,12 +36,13 @@ proc viewTitle(v: SideView): string =
   tr(t)
 
 func sideItem(text: string, role = 0, icon = "", detail = "", action: Action = nil, path = "", line = -1,
-              depth = 0, data = ""): SideItem =
+              depth = 0, data = "", asIs = false): SideItem =
   ## makes one row of a dock list: its text, role (the colour: 0 plain, 1 accent, 2 dim, 3 error, 4 warning, 5 ok, 6
   ## heading, 7 function, 8 type), icon, grey detail text, the action for a click, the file and line it points to, and
-  ## its indentation; `data` marks the kind of row for the keys and menus
+  ## its indentation; `data` marks the kind of row for the keys and menus; `asIs`: the text is data (a file, a branch,
+  ## a test's or a task's name), shown as it is in any language
   SideItem(text: text, role: role, icon: icon, detail: detail, action: action, path: path, line: line,
-           depth: depth, data: data)
+           depth: depth, data: data, asIs: asIs)
 
 proc roleColor(role: int): Rgb =
   ## the theme colour a dock row's role is drawn in
@@ -62,9 +63,9 @@ proc toolLine(name, hint: string, install: Action = nil): SideItem =
   ## and, if there is one, a click action that installs it
   if haveExe(name):
     let v = toolVersions.getOrDefault(name)
-    sideItem(name & (if v.len > 0: " " & v else: ""), 5, ic("ok"))
+    sideItem(name & (if v.len > 0: " " & v else: ""), 5, ic("ok"), asIs = true)
   else:
-    sideItem(name, 2, "✗", hint, install)
+    sideItem(name, 2, "✗", hint, install, asIs = true)
 
 proc atlasItems(): seq[SideItem] =
   ## the Atlas section of the Nim panel: an Atlas project's dependencies (first, under PROJECT), else how to start
@@ -88,7 +89,7 @@ proc atlasItems(): seq[SideItem] =
       let icon = if d.linked: "⇢" else: "·"
       var it: SideItem
       capture dep:
-        it = sideItem(dep.name, role, icon, detail, proc() = atlasDepMenu(dep), path = dep.dir, depth = 1)
+        it = sideItem(dep.name, role, icon, detail, proc() = atlasDepMenu(dep), path = dep.dir, depth = 1, asIs = true)
       result.add it
     for (v, dir) in atlasEnvs():
       let dd = dir
@@ -149,10 +150,10 @@ proc buildProjectItems(): seq[SideItem] =
   result.add sideItem("PROJECT", 6)
   if nimble.file.len > 0:
     result.add sideItem(nimble.name & (if nimble.version.len > 0: "  v" & nimble.version else: ""), 1, "◆",
-                        action = proc() = discard openFile(nimble.file))
-    if nimble.desc.len > 0: result.add sideItem(nimble.desc, 2, depth = 1)
+                        action = proc() = discard openFile(nimble.file), asIs = true)
+    if nimble.desc.len > 0: result.add sideItem(nimble.desc, 2, depth = 1, asIs = true)
   else:
-    result.add sideItem(extractFilename(rootDir), 1, "◆")
+    result.add sideItem(extractFilename(rootDir), 1, "◆", asIs = true)
     result.add sideItem("no .nimble file — create a project:", 2, depth = 1)
   result.add sideItem("New Nim project…", 0, "+", action = proc() = cmdNewNimProject())
   if atlasIsProject(): result.add atlasItems()
@@ -211,10 +212,11 @@ proc buildProjectItems(): seq[SideItem] =
   if haveExe("nimble") and nimble.file.len > 0:
     result.add sideItem("NIMBLE", 6)
     for (l, d, a) in nimbleTaskActions():
-      result.add sideItem(l, 7, "›", d, a)
+      result.add sideItem(l, 7, "›", d, a, asIs = true)        # (a task "test" is not the word)
     if nimble.requires.len > 0:
       result.add sideItem("DEPENDENCIES", 6)
-      for r in nimble.requires: result.add sideItem(r, 0, "·", engineDepNote(r), proc() = discard openFile(nimble.file))
+      for r in nimble.requires:
+        result.add sideItem(r, 0, "·", engineDepNote(r), proc() = discard openFile(nimble.file), asIs = true)
   result.add sideItem("NIM TOOLS", 6)
   result.add sideItem("Expand macro/template at cursor", 0, "μ", "Alt+M", proc() = cmdMacroView())
   result.add sideItem("Expand it in a tab", 0, "μ", "", proc() = cmdExpandMacro())
@@ -309,7 +311,7 @@ proc buildGitItems(): seq[SideItem] =
       if inf.behind > 0: detail.add "  ↓" & $inf.behind
       if inf.state.len > 0: detail.add "  " & inf.state & "!"
       result.add sideItem(extractFilename(root), (if root == home: 1 else: 7), (if root == home: "●" else: "○"), detail,
-                          gitPickRepoAct(root))
+                          gitPickRepoAct(root), asIs = true)
   var branch = ""
   var staged, changes, untracked: seq[SideItem]
   for l in gitStatusLines:
@@ -336,15 +338,16 @@ proc buildGitItems(): seq[SideItem] =
         except OSError: discard
         capture dir:                 # (each folder its own: closures made in a loop share its variables)
           untracked.add sideItem(path, 5, "U", (if n > 999: "1000+ files" elif n == 1: "1 file" else: $n & " files"),
-                                 proc() = revealInTree(dir), dir, data = "untracked-dir")
-      else: untracked.add sideItem(path, 5, "U", "", nil, full, data = "untracked")
+                                 proc() = revealInTree(dir), dir, data = "untracked-dir", asIs = true)
+      else: untracked.add sideItem(path, 5, "U", "", nil, full, data = "untracked", asIs = true)
     else:
-      if x notin {' ', '?'}: staged.add sideItem(path, gitRole(x), $x, "", nil, full, data = "staged")
-      if y notin {' ', '?'}: changes.add sideItem(path, gitRole(y), $y, "", nil, full, data = "unstaged")
+      if x notin {' ', '?'}: staged.add sideItem(path, gitRole(x), $x, "", nil, full, data = "staged", asIs = true)
+      if y notin {' ', '?'}: changes.add sideItem(path, gitRole(y), $y, "", nil, full, data = "unstaged", asIs = true)
   let br = branch.replace("...", " → ")
   let hk = if remotes.len > 0: remoteOf(home) else: -1
-  result.add sideItem((if br.len > 0: br else: "(no branch)") & (if roots.len > 1: "  · " & extractFilename(home) else: ""),
-                      1, ic("branch"), (if hk >= 0: "git on " & remotes[hk].host else: ""), proc() = cmdBranches())
+  result.add sideItem((if br.len > 0: br else: tr("(no branch)")) & (if roots.len > 1: "  · " & extractFilename(home) else: ""),
+                      1, ic("branch"), (if hk >= 0: "git on " & remotes[hk].host else: ""), proc() = cmdBranches(),
+                      asIs = true)                 # (a branch "test" as it is; "(no branch)" translated here)
   let st = gitState()
   if st.len > 0:
     var conflicted: seq[SideItem]
@@ -357,7 +360,7 @@ proc buildGitItems(): seq[SideItem] =
             if x.startsWith("<<<<<<<"): inc n
         except IOError, OSError: discard
         conflicted.add sideItem(l[3 .. ^1], 3, "!", (if n > 0: $n & " conflict" & (if n > 1: "s" else: "") else: "resolved?"),
-                                nil, full, data = "unstaged")
+                                nil, full, data = "unstaged", asIs = true)
     result.add sideItem(st.toUpperAscii & " IN PROGRESS" & (if conflicted.len > 0: " · " & $conflicted.len & " file(s) with conflicts" else: ""), 6)
     for it in conflicted: result.add it
     if conflicted.len > 0 and (cfgAiProvider in ["ollama", "custom"] or aiKey().len > 0):
@@ -370,7 +373,7 @@ proc buildGitItems(): seq[SideItem] =
     if bisectAt.len > 0:
       let h = bisectAt
       let sj = bisectSubj
-      result.add sideItem(h[0 ..< min(7, h.len)] & " " & sj, 5, "▸", "testing", proc() = commitMenu(h, sj))
+      result.add sideItem(h[0 ..< min(7, h.len)] & " " & sj, 5, "▸", "testing", proc() = commitMenu(h, sj), asIs = true)
     result.add sideItem("Good — it works here", 7, ic("ok"), "", proc() = gitBisectStep("good"))
     result.add sideItem("Bad — it is broken here", 7, "✗", "", proc() = gitBisectStep("bad"))
     result.add sideItem("Skip — cannot tell here", 7, "↷", "", proc() = gitBisectStep("skip"))
@@ -468,7 +471,7 @@ proc buildTimelineItems(): seq[SideItem] =
   for l in timelineLines:
     let f = l.split('\t')
     if f.len < 4: continue
-    result.add sideItem(f[3], 0, "◯", f[2] & " · " & f[1], commitAct(f[0], b.path))
+    result.add sideItem(f[3], 0, "◯", f[2] & " · " & f[1], commitAct(f[0], b.path), asIs = true)
 
 # ── search view: the query lives in the dock, results grouped by file ──
 

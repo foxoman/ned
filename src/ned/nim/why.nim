@@ -66,7 +66,7 @@ proc whyOf(r: NxRef) =
       whyShow(r, x.excs[0].name, false)
       return
     var items: seq[(string, string, proc() {.closure.})]
-    for e in x.excs: items.add act(e.name, "where it comes from", whyAct(r, e.name, false))
+    for e in x.excs: items.add act(dataText(e.name), "where it comes from", whyAct(r, e.name, false))
     if not pure: items.add act("side effects", "why it cannot be a func", whyAct(r, "", true))
     openActions("Why? — " & r.sym.name, items)
     return

@@ -935,7 +935,7 @@ proc aiAttachPicture() =
     if items.len >= 300: break
     let why = aiPicWhy(p)
     let (w, h) = picSize(p)
-    items.add act(extractFilename(p), (if why.len > 0: why else: (if w > 0: $w & "×" & $h & " · " else: "") &
+    items.add act(dataText(extractFilename(p)), (if why.len > 0: why else: (if w > 0: $w & "×" & $h & " · " else: "") &
                   tildePath(parentDir(p))), pick(p))
   openActions("Attach a picture to the message", items)
 
@@ -1048,7 +1048,7 @@ proc assistantKey(k: Key) =
       for p in projectFiles():
         let pp = p
         capture pp:
-          items.add act(pp, "", proc() =
+          items.add act(dataText(pp), "", proc() =
             let t = "@" & pp & " "
             aiInput.insert(t, aiInputCur)
             aiInputCur += t.len

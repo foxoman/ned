@@ -286,7 +286,7 @@ proc mnExpand(path: string) =
         if syms.len == 0: break
         let callText = t.strip
         for s in syms.mitems:
-          if s.doc.len == 0: s.doc = "(made by `" & (if callText.len > 60: callText[0 ..< 60] & "…" else: callText) & "`)"
+          if s.doc.len == 0: s.doc = "(made by `" & (if callText.len > 60: callText.utf8Prefix(60) & "…" else: callText) & "`)"
         made.add NxMacroCall(line: l, text: t, syms: syms)
         break
     # (nothing expanded — the text does not compile now, say: what the calls made before stays)

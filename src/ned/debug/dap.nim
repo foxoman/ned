@@ -674,7 +674,7 @@ proc cmdDebugChoose() =
   for p0 in ps:
     let p: JsonNode = p0
     capture p:                         # (each row its own preset)
-      items.add act(p{"name"}.getStr, (if p.dapExeFound: "installed" else: "not installed · " & p{"install"}.getStr),
+      items.add act(dataText(p{"name"}.getStr), (if p.dapExeFound: "installed" else: "not installed · " & p{"install"}.getStr),
         proc() =
           var cur = settingNode("debug.adapters")
           var nx = if cur != nil and cur.kind == JObject: cur.copy else: newJObject()

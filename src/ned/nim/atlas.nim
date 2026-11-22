@@ -287,7 +287,7 @@ proc atlasDepMenu(d: AtlasDep) =
   items.add act("Copy its folder", tildePath(dep.dir), proc() =
     clipSet(dep.dir)
     info("Copied " & dep.dir))
-  openActions(dep.name & " " & dep.version & (if dep.desc.len > 0: " — " & truncTo(dep.desc, 50) else: ""), items)
+  openActions(dataText(dep.name & " " & dep.version & (if dep.desc.len > 0: " — " & truncTo(dep.desc, 50) else: "")), items)
 
 proc cmdAtlasUpdateOne() =
   ## "Atlas: update which dependency": a list of the dependencies in deps/, each updated with `atlas update`
@@ -301,7 +301,7 @@ proc cmdAtlasUpdateOne() =
     let label = d.name
     let detail = d.version & (if d.desc.len > 0: " · " & truncTo(d.desc, 60) else: "")
     capture k:
-      items.add act(label, detail, proc() = atlasRun("update " & quoteShell(k)))
+      items.add actData(label, detail, proc() = atlasRun("update " & quoteShell(k)))
   openActions("Atlas: update which dependency", items)
 
 proc atlasPackageNames(): seq[(string, string)] =
@@ -333,7 +333,7 @@ proc cmdAtlasAddDependency(pkg0 = "") =
       let nn = n
       let dd = truncTo(d, 90)
       capture nn:
-        items.add act(nn, dd, proc() =
+        items.add actData(nn, dd, proc() =
           f.formField("pkg").text = nn
           f.formField("pkg").cur = nn.len
           f.focus = 2)
@@ -387,7 +387,7 @@ proc cmdAtlasUnlink() =
       let n = d.name
       let where = tildePath(d.dir)
       capture n:
-        items.add act(n, where, proc() = atlasRun("unlink " & quoteShell(n)))
+        items.add actData(n, where, proc() = atlasRun("unlink " & quoteShell(n)))
   if items.len == 0:
     info("No project is linked in — Atlas: link a project… does it")
     return
@@ -437,7 +437,7 @@ proc cmdAtlasTasks() =
       let name = t.splitWhitespace()[0]
       let desc = t[name.len .. ^1].strip
       capture name:
-        items.add act(name, desc, proc() = atlasRunTool("task " & quoteShell(name)))
+        items.add actData(name, desc, proc() = atlasRunTool("task " & quoteShell(name)))
     if items.len == 0:
       info("The .nimble has no tasks")
       return

@@ -243,17 +243,16 @@ proc prettyNimError2(msg: string): string =
   if m.args.len > 0:
     var w1 = 10
     var w2 = 8
+    # (in columns, not bytes: an argument can be "héllo" or "中文", and is cut between its characters)
     for a in m.args:
-      w1 = max(w1, min(28, a[0].len))
-      w2 = max(w2, min(28, plainType(a[1]).len))
-    result.add "    " & alignLeft("you gave", w1) & "  " & alignLeft("of type", w2) & "  " & m.callee & " wants\n"
+      w1 = max(w1, min(28, strWidth(a[0])))
+      w2 = max(w2, min(28, strWidth(plainType(a[1]))))
+    result.add "    " & padToWidth("you gave", w1) & "  " & padToWidth("of type", w2) & "  " & m.callee & " wants\n"
     for i, a in m.args:
       let mark = if i + 1 == n: "  ✗ " else: "    "
-      var ex = a[0]
-      if ex.len > 28: ex = ex[0 ..< 27] & "…"
-      var ty = plainType(a[1])
-      if ty.len > 28: ty = ty[0 ..< 27] & "…"
-      result.add mark & alignLeft(ex, w1) & "  " & alignLeft(ty, w2) & "  " & mismatchWant(m, i) & "\n"
+      let ex = truncTo(a[0], 28)
+      let ty = truncTo(plainType(a[1]), 28)
+      result.add mark & padToWidth(ex, w1) & "  " & padToWidth(ty, w2) & "  " & mismatchWant(m, i) & "\n"
   for d in det: result.add "    " & d & "\n"
   result.add "\nclosest: " & sig & "\n"
   if m.cands.len > 1:

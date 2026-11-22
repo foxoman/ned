@@ -44,7 +44,7 @@ proc cmdRunConfigs() =
     let nm = c{"name"}.getStr
     let (cmd, _) = runConfigCmd(c, false)
     capture nm:
-      items.add act((if nm == activeRunConfig: "✓ " else: "  ") & "▶ " & nm, cmd, proc() =
+      items.add actData((if nm == activeRunConfig: "✓ " else: "  ") & "▶ " & nm, cmd, proc() =
         activeRunConfig = nm
         info("Alt+R runs \"" & nm & "\""))
   items.add act("+ Add a configuration for this file…", "name, arguments — saved in the project's settings",

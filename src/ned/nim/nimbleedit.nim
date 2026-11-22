@@ -413,7 +413,7 @@ proc cmdNimbleAddDependency() =
     let nn = n
     let det = (if nn.toLowerAscii in have: "already required · " else: "") & truncTo(d, 90)
     capture nn:
-      items.add act(nn, det, proc() =
+      items.add actData(nn, det, proc() =
         let (known, _) = nbTagsOf(nn)
         if known: nbPickVersion(nn)
         else:

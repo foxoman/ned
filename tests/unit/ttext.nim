@@ -2,6 +2,7 @@
 # character by character, with tabs, wide and zero-width characters, control characters and DEL mixed in
 
 import std/[random, strutils, unittest]
+from std/unicode import validateUtf8
 import ../../src/ned/core/text
 
 proc oneByOne(s: string, col: int): int =
@@ -137,3 +138,21 @@ suite "bytes that are not UTF-8 (6.46)":
       check c4 < PoolBase or int(c4 - PoolBase) < cellPool.len
     check runeAt("\xF4\x8F\xBF\xBF", 0) == (0x10FFFF, 4)       # (the last code point there is: as it was)
     check runeAt("😀", 0) == (0x1F600, 4)
+
+suite "texts cut and padded by what they show (6.56.1)":
+  test "utf8Prefix: never inside a character":
+    check utf8Prefix("héllo", 2) == "h"                       # (é is two bytes: not half of it)
+    check utf8Prefix("héllo", 3) == "hé"
+    check utf8Prefix("中文字", 4) == "中"
+    check utf8Prefix("中文字", 6) == "中文"
+    check utf8Prefix("abc", 10) == "abc"
+    check utf8Prefix("abc", 0) == ""
+    check utf8Prefix("😀x", 2) == ""
+    for n in 0 .. 12:
+      let c = utf8Prefix("añ中😀b", n)
+      check c.len <= n and "añ中😀b".startsWith(c) and validateUtf8(c) == -1
+  test "padToWidth: columns, not bytes":
+    check padToWidth("Jörg", 6) == "Jörg  "
+    check strWidth(padToWidth("张伟", 14)) == 14
+    check strWidth(padToWidth("Ann", 14)) == 14
+    check padToWidth("toolong", 3) == "toolong"

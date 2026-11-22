@@ -33,7 +33,7 @@ proc aiReviewCheckpoint(id: int) =
         openDiffView(relPath(p) & " — the assistant's change", o, "before the assistant", src, src.lines,
                      "now — r undoes a change (then save the file)", detectLang(p, ""))
       only = a
-      items.add act(relPath(p), "+" & $add & " −" & $del & (if not existed: " · new file" else: ""), a)
+      items.add act(dataText(relPath(p)), "+" & $add & " −" & $del & (if not existed: " · new file" else: ""), a)
   if items.len == 0:
     info("That run changed no files")
     return
@@ -62,6 +62,6 @@ proc cmdAiReview() =
     var names: seq[string]
     for p in cp.files.keys: names.add extractFilename(p)
     capture id:
-      items.add act(cp.at & "  " & truncTo(cp.prompt.replace('\n', ' '), 50), names.join(", "),
+      items.add actData(cp.at & "  " & truncTo(cp.prompt.replace('\n', ' '), 50), names.join(", "),
                     proc() = aiReviewCheckpoint(id))
   openActions("Review which run of the assistant?", items)

@@ -86,7 +86,7 @@ proc cDocAt(lines: seq[string], line: int): string =
   let joined = text.join("\n")
   if "Copyright" in joined or "License" in joined: return ""
   var r = text[0 ..< min(text.len, 30)].join("\n")
-  if r.len > 1800: r = r[0 ..< 1800] & "…"
+  if r.len > 1800: r = r.utf8Prefix(1800) & "…"
   r
 
 proc cProtoDoc(cp: CProto): string =

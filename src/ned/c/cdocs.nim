@@ -212,7 +212,7 @@ proc cSigHintsUpdate(b: Buffer) =
         if cp.kind != "function": continue
         let el = min(d.eline, b.lines.high)
         var lb = cPrettyProto(cp, d.cname)
-        if lb.len > 70: lb = lb[0 ..< 69] & "…"
+        if lb.len > 70: lb = lb.utf8Prefix(69) & "…"
         hs[el] = (b.lines[el].len, "  ⟵ " & lb)
     except CatchableError as e: internalError("C signature hints", e)
   cSigHints[b.id] = hs

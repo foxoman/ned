@@ -605,6 +605,7 @@ proc drawForm() =
     if not b.left: rightW += strWidth(b.label) + 5
   var lx = x + 2
   var bx = x + w - 1 - rightW
+  let leftEnd = bx - 1                       # (a left button cut to the room the right ones leave it: a phone's screen)
   for k, b in f.buttons:
     let fi = f.fields.len + k
     let focused = f.focus == fi and f.zone == 0
@@ -614,7 +615,10 @@ proc drawForm() =
     let id = b.id
     capture id:
       let act = proc() = f.formPress(id)
-      if b.left: lx = pill(lx, by, b.label, act, "", bfg, bbg, (if b.primary or focused: {aBold} else: {})) + 1
+      if b.left:
+        let room = leftEnd - lx - 4
+        if room >= 3:
+          lx = pill(lx, by, truncTo(b.label, room), act, "", bfg, bbg, (if b.primary or focused: {aBold} else: {})) + 1
       else: bx = pill(bx, by, b.label, act, "", bfg, bbg, (if b.primary or focused: {aBold} else: {}),
                       blend(bbg, theme.fg, 0.15)) + 1
   if f.zone != 0 and f.zone != 2: cursorX = -1

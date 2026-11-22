@@ -67,6 +67,20 @@ suite "i18n":
     check tr("Found it  here ") == "Gefunden  hier "
     check tr("Found it there") == "Gefunden there"
 
+  test "a part that is data stays as it is — only ned's own words in parts are translated (i18n/PARTS, 6.56.1)":
+    discard trLoad("de", [("de", De)])
+    check tr("Wrap: File") == "Umbruch: File"              # ("File" is a catalogue text, not a word ned puts in parts)
+    check tr("Saved File files") == "File Dateien gespeichert"
+    check tr("Wrap: on") == "Umbruch: an"                  # ("on" is one: i18n/PARTS)
+
+  test "a text marked as data is shown as it is, in any language (dataText, 6.56.1)":
+    discard trLoad("de", [("de", De)])
+    check tr(dataText("Save")) == "Save"                   # (a branch called "Save" is not the word)
+    check tr(dataText("")) == ""
+    check tr("Save") == "Speichern"
+    discard trLoad("en", [("de", De)])
+    check tr(dataText("Save")) == "Save"                   # (the mark taken off in English too)
+
   test "a translation may leave a part out (an English plural ending)":
     discard trLoad("de", [("de", De)])
     check tr("Closed 3 tabs") == "Tabs geschlossen: 3"

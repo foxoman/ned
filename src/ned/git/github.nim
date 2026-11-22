@@ -85,9 +85,9 @@ proc ghPullRequests() =
       let n = $pr{"number"}.getInt
       let title = pr{"title"}.getStr
       capture n, title:
-        items.add act("#" & n & "  " & title, pr{"headRefName"}.getStr & " · " & pr{"author"}{"login"}.getStr &
+        items.add actData("#" & n & "  " & title, pr{"headRefName"}.getStr & " · " & pr{"author"}{"login"}.getStr &
                       (if pr{"isDraft"}.getBool: " · draft" else: ""), proc() =
-          openActions("#" & n & "  " & title, @[
+          openActions(dataText("#" & n & "  " & title), @[
             act("Check it out", "gh pr checkout " & n, proc() =
               discard startJob(jkGit, "gh pr checkout " & n & " 2>&1", root, proc(j2: Job) =
                 if j2.code == 0:
@@ -142,7 +142,7 @@ proc ghIssues() =
       var labels: seq[string]
       for l in jitems(it{"labels"}): labels.add l{"name"}.getStr
       capture n:
-        items.add act("#" & n & "  " & it{"title"}.getStr, labels.join(", "), proc() =
+        items.add actData("#" & n & "  " & it{"title"}.getStr, labels.join(", "), proc() =
           openActions("#" & n, @[
             act("Read it", "gh issue view", proc() =
               toolOutput("Issue #" & n, "gh issue view " & n & " --comments 2>&1", root, proc(o: string): string = o,
@@ -219,7 +219,7 @@ proc ghRunAct(root, id, url, title: string, failed: bool): Action =
       items.add act("Run the failed jobs again", "gh run rerun --failed", proc() =
         ghDone(root, "gh run rerun " & id & " --failed", "Running the failed jobs again", proc() = ciRefresh()))
     items.add act("Open in the browser", "", proc() = openInBrowser(url))
-    openActions(truncTo(title, 60), items)
+    openActions(dataText(truncTo(title, 60)), items)
 
 proc ghRuns() =
   ## GitHub › Actions: lists the latest 15 workflow runs with a mark for their state (running, passed, skipped, failed);
@@ -240,9 +240,9 @@ proc ghRuns() =
       let st = r{"status"}.getStr
       let co = r{"conclusion"}.getStr
       let mark = if st != "completed": "⟳" elif co == "success": "✓" elif co in ["skipped", "neutral"]: "–" else: "✗"
-      items.add act(mark & "  " & r{"displayTitle"}.getStr, r{"workflowName"}.getStr & " · " & r{"headBranch"}.getStr,
-                    ghRunAct(root, $r{"databaseId"}.getInt, url, r{"displayTitle"}.getStr,
-                             st == "completed" and co notin ["success", "skipped", "neutral"]))
+      items.add actData(mark & "  " & r{"displayTitle"}.getStr, r{"workflowName"}.getStr & " · " & r{"headBranch"}.getStr,
+                        ghRunAct(root, $r{"databaseId"}.getInt, url, r{"displayTitle"}.getStr,
+                                 st == "completed" and co notin ["success", "skipped", "neutral"]))
     ciRefresh()
     if items.len == 0: info("No workflow runs")
     else: openActions("GitHub Actions", items))

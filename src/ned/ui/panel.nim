@@ -117,19 +117,25 @@ proc drawBottomPanel(x0, y0, w, h: int) =
                (pkTerminal, tr("TERMINAL"))]
   if panelStore[pkSearch].len > 0: tabs.add (pkSearch, (if panelTitles[pkSearch].len > 0: panelTitles[pkSearch] else: tr("RESULTS")))
   if dbgOn or panelStore[pkDebug].len > 0: tabs.add (pkDebug, (if dbgOn: "● " & tr("DEBUG") else: tr("DEBUG")))
+  # (the tabs end before the buttons on the right — the terminal's are wider; on a narrow screen each tab's name is
+  # cut to its share of the room)
+  let tabsEnd = x0 + w - (if panelKind == pkTerminal: 18 elif panelKind == pkOutput and runningJob() != nil: 15 else: 8)
+  var tabsW = 0
+  for (_, label) in tabs: tabsW += min(34, strWidth(label)) + 2
+  let each = if tabsW > tabsEnd - x: max(3, (tabsEnd - x) div tabs.len - 2) else: 34
   for (k, label) in tabs:
+    if x + 4 > tabsEnd: break
     let active = k == panelKind
     let fg = if active: theme.fg else: theme.dim
     let kk = k
     let x1 = x
-    let lab = " " & truncTo(label, 34) & " "
+    let lab = " " & truncTo(label, each) & " "
     capture kk:
       x = button(x, y0, lab, proc() =
         setPanel(kk)
         focus = fPanel, "", fg, (if active: blend(hb, theme.accent, 0.12) else: hb), (if active: {aBold} else: {}))
     if active:
       for xx in x1 + 1 ..< x - 1: grid[y0 * scrW + xx].at.incl aUnder
-    if x >= x0 + w - 14: break
   if panelKind == pkOutput and runningJob() != nil:
     x = putStr(x + 1, y0, "● " & tr("running"), theme.accent, hb, {}, x0 + w - 12)
   if panelKind == pkDebug:

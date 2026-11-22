@@ -59,7 +59,17 @@ proc drawDialog() =
   # (as wide as its buttons too: in another language they can be longer than the text — "Zapisz wszystkie")
   let w = min(scrW - 4, max(max(44, min(70, strWidth(d.body) + 8)), btnW + 4))
   let lines = wrapText(d.body, w - 6)
-  let h = lines.len + 6
+  # (buttons that do not fit in one row go on more: a phone's screen, a long language)
+  var rows: seq[seq[int]] = @[newSeq[int]()]
+  var rowW = 0
+  for i, (l, _) in d.buttons:
+    let bw = strWidth(l) + 5
+    if rows[^1].len > 0 and rowW + bw > w - 4:
+      rows.add newSeq[int]()
+      rowW = 0
+    rows[^1].add i
+    rowW += bw
+  let h = lines.len + 5 + rows.len
   let (x, y) = boxPlace("dialog", (scrW - w) div 2, max(1, (scrH - h) div 2 - 2), w, h)
   modalStart = regions.len
   region(0, 0, scrW, scrH, proc() = discard)          # swallow clicks outside
@@ -67,17 +77,20 @@ proc drawDialog() =
             (if d.danger: theme.warn else: theme.accent))
   for i, l in lines:
     discard putStr(x + 3, y + 2 + i, l, theme.fg, theme.menuBg, {}, x + w - 2)
-  var bx = x + w - 2 - btnW
-  if bx < x + 2: bx = x + 2
-  let by = y + h - 2
-  for i, (label, key) in d.buttons:
-    let primary = i == d.sel
-    let bg = if primary: (if d.danger: theme.warn else: theme.accent) else: theme.btnBg
-    let fg = if primary: theme.badgeFg else: theme.fg
-    let kk = key
-    capture kk:
-      bx = pill(bx, by, label, proc() = closeDialog(kk), "", fg, bg, (if primary: {aBold} else: {}),
-                blend(bg, theme.fg, 0.15)) + 1
+  for r, row in rows:
+    var rw = 0
+    for i in row: rw += strWidth(d.buttons[i][0]) + 5
+    var bx = max(x + 2, x + w - 2 - rw)
+    let by = y + h - 1 - rows.len + r
+    for i in row:
+      let (label, key) = d.buttons[i]
+      let primary = i == d.sel
+      let bg = if primary: (if d.danger: theme.warn else: theme.accent) else: theme.btnBg
+      let fg = if primary: theme.badgeFg else: theme.fg
+      let kk = key
+      capture kk:
+        bx = pill(bx, by, label, proc() = closeDialog(kk), "", fg, bg, (if primary: {aBold} else: {}),
+                  blend(bg, theme.fg, 0.15)) + 1
   cursorX = -1
 
 proc dialogKey(k: Key) =

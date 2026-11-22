@@ -258,7 +258,7 @@ proc plugBundledOn(): seq[string] =
 proc plugLogAdd(plugin, line: string) =
   ## adds a line to the plugins' log (a long line cut short, the log kept to its last 300 lines) and redraws the Plugins
   ## dock when it shows the log
-  plugLog.add (plugin, (if line.len > 400: line[0 ..< 400] & "…" else: line))
+  plugLog.add (plugin, (if line.len > 400: line.utf8Prefix(400) & "…" else: line))
   if plugLog.len > 400: plugLog = plugLog[^300 .. ^1]
   if rightOpen and rightView == svPlugins: needRender = true
 
@@ -3207,7 +3207,7 @@ proc cmdPluginUninstall() =
     let det = if p.bundled: "ned's own — turned off, it stays in AVAILABLE"
               elif p.project: "the project's — its folder " & tildePath(p.dir) & " is deleted"
               else: "yours — its folder " & tildePath(p.dir) & " is deleted"
-    items.add act(p.id, det, plugUninstallAct(p.id))
+    items.add act(dataText(p.id), det, plugUninstallAct(p.id))
   if items.len == 0:
     info("No plugins installed — Plugins › Available plugins…")
     return
@@ -3754,7 +3754,7 @@ proc buildPluginItems(): seq[SideItem] =
         if r.plugin == pid and r.kind notin ["viewClick", "requires", "info"]: listed = true
       if listed or not on or msSince(plugJustOnAt) > 60_000: plugFocusId = ""
     result.add sideItem(pid, role, (if on: "●" else: "○"), det,
-                        plugMenuAction(pid, p.file, on, p.alone, p.full, p.bundled), path = p.file)
+                        plugMenuAction(pid, p.file, on, p.alone, p.full, p.bundled), path = p.file, asIs = true)
     if on:
       for r in plugRegs:
         if r.plugin != pid: continue
@@ -3796,12 +3796,12 @@ proc buildPluginItems(): seq[SideItem] =
     result.add sideItem("LOG", 6)
     for k in countdown(plugLog.high, max(0, plugLog.len - (if avail.len > 0: 12 else: 40))):
       let (p, l) = plugLog[k]
-      result.add sideItem(p & ": " & l, (if "rror" in l: 3 else: 2), "", depth = 1)
+      result.add sideItem(p & ": " & l, (if "rror" in l: 3 else: 2), "", depth = 1, asIs = true)   # (its log line)
   if avail.len > 0:
     result.add sideItem("AVAILABLE · ned's own plugins", 6)
     for (n, what) in avail:
       # (a tap turns it on; its menu — view its source first, copy it — on a right-click)
-      result.add sideItem(n, 1, "+", what, plugBundledAct(n, true), data = "avail:" & n)
+      result.add sideItem(n, 1, "+", what, plugBundledAct(n, true), data = "avail:" & n, asIs = true)
 
 proc cmdPlugins() =
   ## shows the Plugins dock
@@ -3833,7 +3833,7 @@ proc cmdPluginToggle() =
     let on = p.enabled
     let det = tr(if on: tx("turn off") else: tx("turn on")) & (if p.err.len > 0 and p.err != "off": " · " & tr(p.err) else: "")
     capture pid, on:
-      items.add act((if on: "● " else: "○ ") & pid, det, proc() = plugSetEnabled(pid, not on))
+      items.add act(dataText((if on: "● " else: "○ ") & pid), det, proc() = plugSetEnabled(pid, not on))
   if items.len == 0:
     info("No plugins yet — Plugins: new plugin…")
     return
@@ -3854,7 +3854,7 @@ proc cmdPluginPermissions() =
     let det = if p.waiting: "waiting — asks to " & plugPermsList(missing) & " · Enter: review"
               elif missing == {}: "allowed: " & plugPermsList(p.scan.uses) & " · Enter: take them back"
               else: "asks to " & plugPermsList(missing) & " (off)"
-    items.add act((if p.waiting: "○ " else: "● ") & p.id, det, plugPermAct(p.id, p.waiting or missing != {}))
+    items.add act(dataText((if p.waiting: "○ " else: "● ") & p.id), det, plugPermAct(p.id, p.waiting or missing != {}))
   if items.len == 0:
     info("No plugin asks for more than editing")
     return
@@ -3869,7 +3869,7 @@ proc cmdPluginReloadOne() =
     let pid = p.id
     let det = if p.alone: "its own process" else: "with the other NimScript plugins"
     capture pid:
-      items.add act(pid, det, proc() = plugReloadPlugin(pid))
+      items.add act(dataText(pid), det, proc() = plugReloadPlugin(pid))
   if items.len == 0:
     info("No plugin is on")
     return

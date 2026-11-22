@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.56](#whats-new-in-656) · [6.55](CHANGELOG.md#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.56.1](#whats-new-in-6561) · [6.56](#whats-new-in-656) · [6.55](CHANGELOG.md#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -32,6 +32,29 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 - [Contributing](#contributing)
 
 ---
+
+## What's new in 6.56.1
+
+**Fixed** — most of it shows in another language or on a narrow screen:
+
+- A name that is also a word stays a name. A branch called `test`, a folder called `source`, a file called `build`
+  were shown translated in the title bar, the breadcrumbs, the branch and history lists and the boxes' titles (in
+  German: "⎇ testen"), and git's own words were mangled ("17 seconds ago" as "vor 17 second s"). Only ned's own
+  words in a text's parts are translated now (`i18n/PARTS`); names and git's words stay as they are.
+- *Language…* showed Italian's code translated ("es" in German, "его" in Russian).
+- The shadow under a box broke Chinese, Japanese and Korean text and emoji beneath it — the status bar under the
+  settings window, for one.
+- On a narrow screen (a phone: 40 to 60 columns) a dialog's buttons go on a second row instead of off the screen,
+  the settings window's *Settings file (JSON)* no longer sits under *Cancel*, the bottom panel's tabs stay clear of
+  the terminal's buttons, and a command cut short in the palette ends in "…".
+- Five lines of the key bindings (F1) are a key and its description again, the key in its colour and the
+  description wrapped in its own column: *Alt+← Alt+→ Alt+1..9*, *Alt+click / Alt+drag*, *Ctrl+Alt+Shift+arrow*,
+  *Run › Configurations*, *Alt+H on a selection*.
+- A text cut short is cut between two letters, never inside one: a JSON string in the outline, a constant's value in
+  completion and hover, a C header's documentation, a plugin's log line, an inlay hint.
+- Git blame keeps its author column in line for names such as *Jörg Müller* or *张伟*, and the type-mismatch
+  explanation keeps its columns for arguments such as `"héllo"`.
+- A CSV file's breadcrumb (*column 3*) is translated.
 
 ## What's new in 6.56
 
@@ -219,7 +242,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.56.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.56.1_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

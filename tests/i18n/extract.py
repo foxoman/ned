@@ -6,7 +6,7 @@ askConfirm, the forms' fields, button, drawFrame …) and tr(…) / trf(…) —
 its tables (`ned --i18n-strings`: the commands, the settings, the menu bar). A text built with & becomes one with $1 …
 for its parts that change: `info("Saved " & name & " (" & $n & " lines)")` → "Saved $1 ($2 lines)".
 
-  extract.py [--ned ./ned]               write i18n/template.json
+  extract.py [--ned ./ned]               write i18n/template.json (and i18n/PARTS: the words ned puts in parts)
   extract.py [--ned ./ned] --check       the template is up to date (CI): what is missing or no longer used
   extract.py [--ned ./ned] --lang ar     check a translation (i18n/ar.json, or a path): JSON, entries missing,
                                          entries the template no longer has, $n not the same as the English
@@ -17,6 +17,8 @@ import json, os, re, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TEMPLATE = os.path.join(ROOT, "i18n", "template.json")
+PARTS = os.path.join(ROOT, "i18n", "PARTS")
+PART_WORDS = set()      # the words a text's changing part may be, ned's own (`(if on: "on" else: "off")`): i18n/PARTS
 
 # the calls that show a text: name → the argument places that are shown (0 the first; ("kw", n): by keyword or at n)
 SINKS = {
@@ -319,7 +321,9 @@ def scan_file(path, found):
                 continue
             for v in if_branches(val):
                 add(template_of(v), m.start())
-                for w in words_in_parts(v): add(w, m.start(), 2)
+                for w in words_in_parts(v):
+                    add(w, m.start(), 2)
+                    if good(w.strip(" "), 2): PART_WORDS.add(w.strip(" "))
     # the command syntax: info "Saved", toast "…"
     words = "info|warn|error|toast" + ("|command|message|status|progress|view|confirm|ask" if
                                         rel.startswith("plugins" + os.sep) else "")
@@ -422,19 +426,32 @@ def main():
             for t in missing: print("  missing: %r" % t)
         sys.exit(1 if bad else 0)
     text = json.dumps(tpl, ensure_ascii=False, indent=1) + "\n"
+    parts = parts_text()
     if "--check" in a:
         old = json.load(open(TEMPLATE, encoding="utf-8")) if os.path.exists(TEMPLATE) else {}
         new_ = [t for t in tpl if t not in old]
         gone = [t for t in old if t not in tpl]
-        if new_ or gone:
+        old_parts = open(PARTS, encoding="utf-8").read() if os.path.exists(PARTS) else ""
+        if new_ or gone or old_parts != parts:
             print("i18n/template.json is not up to date (python3 tests/i18n/extract.py --ned ./ned):")
             for t in new_[:20]: print("  new: %r  (%s)" % (t, found[t][0]))
             for t in gone[:20]: print("  gone: %r" % t)
+            if old_parts != parts: print("  i18n/PARTS: the words in texts' changing parts are not the same")
             sys.exit(1)
-        print("i18n/template.json: up to date, %d texts" % len(tpl))
+        print("i18n/template.json: up to date, %d texts (%d words in parts)" % (len(tpl), len(PART_WORDS)))
         return
     open(TEMPLATE, "w", encoding="utf-8").write(text)
-    print("i18n/template.json: %d texts" % len(tpl))
+    open(PARTS, "w", encoding="utf-8").write(parts)
+    print("i18n/template.json: %d texts; i18n/PARTS: %d words" % (len(tpl), len(PART_WORDS)))
+
+
+def parts_text():
+    """i18n/PARTS: the words ned itself puts in a text's changing parts, one a line — only these are translated
+    where a part is filled in; any other part is data (a file called "test", a branch called "build")"""
+    head = ("# i18n/PARTS — made by tests/i18n/extract.py with the template: the words ned itself puts in a text's\n"
+            "# changing parts (`(if on: \"on\" else: \"off\")`). A part found in a text is translated only when it is\n"
+            "# one of these; any other part is data — a file, a branch, a word of git's — and stays as it is.\n")
+    return head + "".join(w + "\n" for w in sorted(PART_WORDS) if "\n" not in w)
 
 
 if __name__ == "__main__":

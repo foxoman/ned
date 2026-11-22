@@ -6,6 +6,7 @@ import std/[strutils, tables, json]
 from std/unicode import Rune, `$`    # (only these: all of unicode would make strutils' splitWhitespace ambiguous where
                                      # ned is merged into one file)
 import webcommon
+import ../core/text
 
 type
   JKind* = enum jkObject, jkArray, jkString, jkNumber, jkBool, jkNull, jkBad
@@ -750,7 +751,7 @@ proc jOutline(n: JNode, depth: int, out0: var seq[JOutlineItem]) =
     let detail = case k.kind
                  of jkObject: "{" & $k.kids.len & "}"
                  of jkArray: "[" & $k.kids.len & "]"
-                 of jkString: "\"" & (if k.text.len > 40: k.text[0 ..< 40] & "…" else: k.text) & "\""
+                 of jkString: "\"" & (if k.text.len > 40: k.text.utf8Prefix(40) & "…" else: k.text) & "\""
                  else: k.text
     let (l, c) = if k.key.len > 0: (k.keyLine, k.keyCol) else: (k.line, k.col)
     out0.add JOutlineItem(name: name, detail: detail, line: l, col: c, eline: k.eline, ecol: k.ecol, depth: depth,

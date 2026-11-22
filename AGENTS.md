@@ -67,6 +67,7 @@ python3 tests/ai/tagents.py ./ned                     # the real agents in the a
 python3 tests/ai/tnetguard.py ./ned                   # the guard Copilot goes through (ned --net-guard)
 python3 tests/smoke/commands.py ./ned && python3 tests/smoke/commands.py ./ned --plugins   # every command, every plugin
 python3 tests/smoke/commands.py ./ned --menus        # every item of every menu, picked with the keys
+python3 tests/smoke/commands.py ./ned --lang ru --layout   # in a language: boxes whole (--size 60x40: a smaller screen)
 python3 tests/hostile/thostile.py ./ned ./nedls      # plugins, the remote control, nedls and the screen fed nonsense
 sh tests/format/parsecheck.sh "$(dirname "$(dirname "$(readlink -f "$(command -v nim)")")")"   # the formatter
 python3 tests/ui/run.py ./ned [t_name …]              # the editor through tmux: ~1300 checks, about an hour
@@ -121,7 +122,10 @@ UI suite on a quiet machine: under load a few timing-sensitive tests can fail, a
   `error`, `toast`, `mi`, `act`, `openDialog`, `askConfirm`, a form's field, `button`, `drawFrame` …: they call
   `tr`), or write `tr("…")` where it is drawn, `trf("Saved $1 files", n)` for one with parts, `tx("…")` in a table
   or constant (and `tr` where it is shown). Compare and store the English text, translate only where it is drawn.
-  Then `python3 tests/i18n/extract.py --ned ./ned` (CI checks the template is up to date). What is not translated:
+  A name passed whole to one of those routines (a file, a branch, a commit, git's words) goes as `dataText(…)`, a
+  picker's entry of them as `actData(…)`; a part of a pattern is translated only when it is in `i18n/PARTS` (ned's
+  own words in parts, which the extractor writes). Then `python3 tests/i18n/extract.py --ned ./ned` (CI checks the
+  template and PARTS are up to date). What is not translated:
   files and code, AI prompts, compilers' and language servers' words, the engines' problems, reports to paste into an
   issue, and the command line ([TRANSLATING.md](TRANSLATING.md#for-developers-keeping-ned-translatable)).
 - ned comes with eleven translations (6.56: `i18n/LANGUAGES`). A new or changed text shows in English in them until

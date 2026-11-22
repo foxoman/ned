@@ -10,7 +10,9 @@ proc drawBox(x, y, w, h: int, title = "") =
 
 proc putHl(x, y: int, s: string, hl: seq[int], fg, hlFg, bg: Rgb, maxX: int, at: set[Attr] = {}): int =
   ## writes text with some characters marked: the characters whose byte offsets are in `hl` (matched letters) in `hlFg`
-  ## and bold, the rest in `fg`; stops at column `maxX` and returns the column after the last one written
+  ## and bold, the rest in `fg`; stops at column `maxX` (a text cut there ends in "…") and returns the column after the
+  ## last one written
+  let x0 = x
   var x = x
   var i = 0
   var k = 0
@@ -22,6 +24,8 @@ proc putHl(x, y: int, s: string, hl: seq[int], fg, hlFg, bg: Rgb, maxX: int, at:
     x = putStr(x, y, s[i ..< min(i + n, s.len)], (if isHl: hlFg else: fg), bg,
                (if isHl: at + {aBold} else: at), maxX)
     i += n
+  if i < s.len and maxX - 1 > x0:
+    setCell(maxX - 1, y, Cell(ch: 0x2026, fg: fg, bg: bg, at: at))     # …
   x
 
 proc wrapText(s: string, width: int): seq[string] =

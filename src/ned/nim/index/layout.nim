@@ -1025,7 +1025,7 @@ proc nxLayoutText*(l: NxLayout, name: string): string =
   for r in l.rows:
     let ind = spaces(2 * r.depth)
     var lbl = r.label
-    if lbl.len > 44: lbl = lbl[0 ..< 43] & "…"
+    if lbl.len > 44: lbl = lbl.utf8Prefix(43) & "…"
     if r.size < 0:
       result.add spaces(12) & ind & lbl & "\n"
       continue

@@ -105,5 +105,5 @@ proc cmdWsRemove() =
     info("Only one folder is open — Workspace: add a folder… adds another")
     return
   var items: seq[(string, string, Action)]
-  for d in wsRoots: items.add act(extractFilename(d), tildePath(d), wsRemoveAct(d))
+  for d in wsRoots: items.add actData(extractFilename(d), tildePath(d), wsRemoveAct(d))
   openActions("Remove a folder from the workspace", items)

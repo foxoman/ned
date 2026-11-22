@@ -327,7 +327,7 @@ proc nimEvaluate() =
       if val.len == 0:
         error("Cannot evaluate " & truncTo(ex, 40) & " at compile time: " & (if err.len > 0: err else: "no answer"))
         return
-      if val.len > 4000: val = val[0 ..< 4000] & "…"
+      if val.len > 4000: val = val.utf8Prefix(4000) & "…"
       let shown = val
       openDialog(ex, "= " & shown, @[("Copy", 'c'), ("OK", 'y')], proc(c: char) =
         if c == 'c':

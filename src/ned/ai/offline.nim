@@ -174,7 +174,7 @@ proc cmdAiOffline() =
       var more: seq[(string, string, Action)]
       for i, (n, size, need) in LocalModels:
         let note = size & " download · wants " & $(need div 1024) & " GB of memory" & (if i > fit: " (more than here)" else: "")
-        more.add act(n, note, (if running: pullAct(n) else: startPullAct(n)))
+        more.add act(dataText(n), note, (if running: pullAct(n) else: startPullAct(n)))
       items.add act("Other models…", "smaller is faster; bigger answers better", proc() =
         openActions("Models for this device", more))
     if installed and not running:

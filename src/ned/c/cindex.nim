@@ -14,6 +14,7 @@
 ## The C++ standard library's headers are not read: `std::` offers a known list of its names instead.
 
 import std/[strutils, tables, sets, times, algorithm, hashes]
+import ../core/text
 when defined(windows): import ../sys/winos as os   # (std/os, with '/' in the paths it makes)
 else: import std/os
 
@@ -2341,7 +2342,7 @@ proc cxParse*(text, path: string, full = true, cpp = false): CxFile =
           for p in r[j + 1 ..< e].split(','):
             if p.strip == "...": s.varargs = true
             elif p.strip.len > 0: s.params.add CxParam(name: p.strip)
-      if s.text.len > 160: s.text = s.text[0 ..< 159] & "…"
+      if s.text.len > 160: s.text = s.text.utf8Prefix(159) & "…"
       s.doc = cxDocFor(comments, l)
       f.syms.add s
   # declarations, at file level (and inside extern "C" { … })

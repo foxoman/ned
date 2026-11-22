@@ -31,7 +31,7 @@ proc cmdUnusedExports() =
         cut = true
         break
       if refCountOf(p, f, i, 100) == 0:
-        items.add act(s.name, relPath(p) & ":" & $(s.line + 1) & "  " & nxKindWord(s.kind), gotoAct(p, s.line, s.col))
+        items.add act(dataText(s.name), relPath(p) & ":" & $(s.line + 1) & "  " & nxKindWord(s.kind), gotoAct(p, s.line, s.col))
     if cut: break
   if items.len == 0:
     info(if cut: "None found in 20 s (the project is big: not every file was looked at)" else: "Every export is used somewhere in the project")
@@ -58,7 +58,7 @@ proc cmdFindBySignature() =
     var items: seq[(string, string, Action)]
     for (r, _, here) in found:
       let p = r.file.path
-      items.add act(r.sym.name & nxShortDetail(r.sym),
+      items.add act(dataText(r.sym.name & nxShortDetail(r.sym)),
                     (if rootDir.len > 0 and p.startsWith(rootDir & "/"): relPath(p) else: extractFilename(p)) & ":" &
                     $(r.sym.line + 1) & (if here: "" else: "  not imported here"), gotoAct(p, r.sym.line, r.sym.col))
     openActions("Routines that fit " & q.strip & " (" & $found.len & ")", items))

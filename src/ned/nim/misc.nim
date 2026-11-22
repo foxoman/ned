@@ -85,7 +85,7 @@ proc cmdDocsBrowser() =
       let nn = n
       let mm = m
       capture nn, mm:
-        items.add act(nn, mm, proc() =
+        items.add actData(nn, mm, proc() =
           let path = stdModulePath(mm)
           if path.len == 0:
             info("Could not find " & mm & " in the standard library")
@@ -161,7 +161,7 @@ proc cmdNimbleView() =
       if nm.toLowerAscii == "nim": continue
       let have = inst.getOrDefault(nm.toLowerAscii, "")
       capture nm:
-        items.add act(nm & (if cons.len > 0: " " & cons else: ""),
+        items.add act(dataText(nm & (if cons.len > 0: " " & cons else: "")),
                       (if have.len > 0: "installed: " & have & " · pick to install the newest" else: "not installed · pick to install"),
                       proc() = runCommand("nimble install -y " & quoteShell(nm), rootDir))
     openActions("Nimble — " & extractFilename(nf) & " (" & $reqs.len & " requirements)", items))

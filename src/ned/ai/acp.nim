@@ -1303,7 +1303,7 @@ proc acpChooseAgent() =
       let kk = k
       let detail = acpCmdOf(v).join(" ")
       capture kk, detail:
-        items.add act(kk & (if kk == acpName(): "  ✓" else: ""), detail, proc() = acpUse(kk))
+        items.add act(dataText(kk & (if kk == acpName(): "  ✓" else: "")), detail, proc() = acpUse(kk))
   for (key, title, cmd) in AcpPresets:
     if key in have: continue
     let k = key

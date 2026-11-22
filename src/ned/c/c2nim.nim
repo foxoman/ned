@@ -82,7 +82,7 @@ proc cmdWrapHeader(c2nim = false) =
     let lr = rel.toLowerAscii
     if lr.endsWith(".h") or lr.endsWith(".hpp") or lr.endsWith(".hh"):
       let shown = relPath(if rel.isAbsolute: rel else: rootDir / rel)
-      items.add act(shown, "", wrapAct(rel, c2nim))
+      items.add act(dataText(shown), "", wrapAct(rel, c2nim))
       if items.len >= 400: break
   items.add act("Another header…", "a path, e.g. /usr/include/zlib.h",
                 proc() = askPath("Header to wrap", "", proc(t: string) =

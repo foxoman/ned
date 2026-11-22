@@ -153,7 +153,7 @@ proc cmdEditUserCommands() =
       let outp = if spec.kind == JObject and spec{"output"}.getStr.len > 0: spec{"output"}.getStr else: "panel"
       let inp = if spec.kind == JObject: spec{"input"}.getStr else: ""
       capture n, run, outp, inp:
-        items.add act(n, run & "  → " & outp, proc() =
+        items.add actData(n, run & "  → " & outp, proc() =
           openActions(n, @[
             act("Run it", "", proc() = runCmd(n)),
             act("Change the shell command…", run, proc() =

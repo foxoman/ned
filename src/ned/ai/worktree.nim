@@ -170,7 +170,7 @@ proc wtReview(w: Wt) =
                        else: ("± ", "changed")
     inc n
     capture st, rel:
-      items.add act(mark & rel, what & " by the agent", proc() = wtFile(w, rel, st))
+      items.add act(dataText(mark & rel), what & " by the agent", proc() = wtFile(w, rel, st))
   items.add act("Merge the whole branch", "git merge " & w.branch, proc() =
     let (ok, said) = wtGit(w.top, "merge --no-ff --no-edit " & quoteShell(w.branch))
     if ok:
@@ -206,5 +206,5 @@ proc cmdWorktreeReview() =
     let busy = acp != nil and acp.turn and acpWorkDir.startsWith(w.path)
     let what = if busy: "the agent is working in it" elif w.path == wtCur.path: "the conversation's" else: "kept"
     capture w:                                        # (each item its own worktree: a closure in a loop shares it)
-      items.add act(w.branch, what, proc() = wtReview(w))
+      items.add act(dataText(w.branch), what, proc() = wtReview(w))
   openActions("The agents' worktrees", items)

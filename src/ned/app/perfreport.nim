@@ -73,7 +73,7 @@ proc perfReport(): string =
   for j in jobs:
     if j.done: continue
     any = true
-    let c = if j.cmd.len > 90: j.cmd[0 ..< 89] & "…" else: j.cmd
+    let c = if j.cmd.len > 90: j.cmd.utf8Prefix(89) & "…" else: j.cmd
     result.add "  " & $j.kind & "  " & $(msSince(j.started) div 1000) & " s  " & c & "\n"
   for s in servers:
     if s.dead: continue

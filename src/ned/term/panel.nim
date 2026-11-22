@@ -434,7 +434,7 @@ proc drawTerminal(x0, y0, w, h: int) =
       let lab = " " & $(i + 1) & ": " & (if failed: "✗ " else: "") &
                 (if tt.title.len > 0: truncTo(tt.title, 18) else: tt.name) & " "
       capture ii:
-        x = button(x, y0, lab,
+        x = button(x, y0, dataText(lab),       # (a terminal's title: as it is)
                    proc() =
                      if termSplit and ii != curTerm and ii != termOther: termOther = curTerm
                      curTerm = ii, "", (if active: theme.fg elif failed: theme.err else: theme.dim),
@@ -552,7 +552,7 @@ proc termCommands() =
     let ci = i
     let ti = curTerm
     capture ti, ci:
-      items.add act(glyph & " " & truncTo(c.text, 60), det, proc() = termCmdMenu(ti, ci))
+      items.add act(dataText(glyph & " " & truncTo(c.text, 60)), det, proc() = termCmdMenu(ti, ci))
   if items.len == 0:
     info(if t.integrated: "No commands in this terminal yet"
          else: "This shell sends no command marks — bash, zsh, fish, sh, ksh, nushell, elvish, xonsh, PowerShell do")

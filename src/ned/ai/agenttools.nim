@@ -256,7 +256,7 @@ proc cmdAiUndo() =
     var names: seq[string]
     for p in cp.files.keys: names.add extractFilename(p)
     capture id, n:
-      items.add act(cp.at & "  " & truncTo(cp.prompt.replace('\n', ' '), 50),
+      items.add act(dataText(cp.at & "  " & truncTo(cp.prompt.replace('\n', ' '), 50)),
                     $n & " file(s): " & names.join(", "), proc() =
         askConfirm("Put back " & $n & " file(s) as they were before this run? (y/n)",
           proc(c: char) =

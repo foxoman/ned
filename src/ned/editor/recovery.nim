@@ -64,7 +64,7 @@ proc cmdRecoverFiles() =
     let path = j{"path"}.getStr
     let text = j{"text"}.getStr
     files.add j{"file"}.getStr
-    items.add act((if path.len > 0: relPath(path) else: "untitled"),
+    items.add act((if path.len > 0: dataText(relPath(path)) else: "untitled"),
                   $(text.count('\n') + 1) & " lines · " & agoText(j{"time"}.getInt * 1000),
                   recoverAct(path, text, j{"file"}.getStr))
   let fs = files
