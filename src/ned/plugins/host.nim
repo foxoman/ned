@@ -188,6 +188,11 @@ var
   plugLspCmds: seq[(string, seq[string], bool)] # language id, the command, started after the first save
   plugLspLater: Table[string, seq[string]]  # language id → a server that starts when one of its files is saved
   plugLspSaved: HashSet[string]             # … the languages a file was saved in since ned started
+  # (a plugin's language whose server is not installed: the programs it looks for, those not on PATH when it said so,
+  # and how to get one — said once while one of its files is open; the plugin runs again once one is on PATH)
+  plugLspMissing: seq[tuple[plugin, lang: string, programs, watch: seq[string], hint: string]]
+  plugLspTried: HashSet[string]             # (plugin|program: run again for it once, not again if still none)
+  plugLspLookAt: MonoTime
   plugJustOn = ""                           # one of ned's own just turned on: what it adds is said when it runs
   plugJustOnAt: MonoTime
   plugFocusId = ""                          # the Plugins dock goes to this plugin's row (just turned on)
@@ -557,6 +562,7 @@ proc plugSignature(h: PlugHost): string =
   $(hash(s) and 0xFFFFFFFFFFFF)
 
 proc plugStop(h: PlugHost, why = "off")
+proc plugReloadPlugin(id: string)
 
 proc plugRunsAlone(p: PlugInfo): bool =
   ## a process of its own: full Nim, plugins.alone — or a plugin you allowed to run programs itself: in the shared
@@ -604,7 +610,7 @@ proc regBaseKey(r: PlugReg): string =
     of "writer": d{"lang"}.getStr
     of "operator", "textObject": d{"keys"}.getStr
     of "ex": d{"name"}.getStr
-    of "formatter", "lsp", "completion", "hover", "codeActions", "symbols": d{"lang"}.getStr.toLowerAscii
+    of "formatter", "lsp", "lspMissing", "completion", "hover", "codeActions", "symbols": d{"lang"}.getStr.toLowerAscii
     of "language": d{"id"}.getStr
     of "aiTool": d{"name"}.getStr
     of "view", "viewClick": d{"title"}.getStr
@@ -750,6 +756,7 @@ proc plugApplyRegs() =
   plugTextObjKeys.clear()
   plugExCmds.clear()
   plugLspCmds.setLen(0)
+  plugLspMissing.setLen(0)
   plugProviders.setLen(0)
   plugSnippets.setLen(0)
   plugAiTools.setLen(0)
@@ -801,6 +808,18 @@ proc plugApplyRegs() =
           if p.id == r.plugin: dir = p.dir
         cmd = @[getAppFilename(), "--lsp-bridge", (if script.isAbsolute: script else: dir / script)]
       if cmd.len > 0: plugLspCmds.add (d{"lang"}.getStr.toLowerAscii, cmd, d{"afterSave"}.getBool)
+    of "lspMissing":
+      var progs, watch: seq[string]
+      for x in jitems(d{"programs"}):
+        if x.getStr.len == 0: continue
+        progs.add x.getStr
+        if findExe(expandTilde(x.getStr)).len == 0: watch.add x.getStr
+      var hint = if isTermux() and d{"termux"}.getStr.len > 0: d{"termux"}.getStr else: d{"install"}.getStr
+      if hint.len > 0 and not hint.startsWith("http") and not plugAllowed(r.plugin, ppShell):
+        plugLogAdd(r.plugin, "refused its install command " & hint & ": it may not run programs (permission \"shell\")")
+        hint = ""
+      if hint.startsWith("npm ") and findExe("npm").len == 0: hint = installHint("nodejs", "npm") & " && " & hint
+      plugLspMissing.add (r.plugin, d{"lang"}.getStr.toLowerAscii, progs, watch, hint)
     of "completion", "hover", "codeActions", "symbols":
       plugProviders.add (r.kind, d{"lang"}.getStr("*").toLowerAscii, key)
     of "snippet":
@@ -2838,6 +2857,27 @@ proc plugHostPump(h: PlugHost, ready: HashSet[cint]) =
 
 proc plugCheckDaily()
 
+proc plugLspMissingLook() =
+  ## while a file of a plugin's language whose server is not installed is open: says once how to get the server, and
+  ## runs the plugin again when one of the programs it looks for is on PATH now — it finds it then, as at Plugins:
+  ## reload, and the server starts (not when your own "lsp" setting gives that language one)
+  let all = plugLspMissing                     # (a copy: running a plugin again makes the list again)
+  for m in all:
+    let l = langByName(m.lang)
+    if l == nil or m.lang in cfgUserLsp: continue
+    var open = false
+    for b in bufs:
+      if b.lang == l and b.path.len > 0 and b.title.len == 0: open = true
+    if not open: continue
+    for p in m.watch:
+      if findExe(expandTilde(p)).len > 0 and (m.plugin & "|" & p) notin plugLspTried:
+        plugLspTried.incl m.plugin & "|" & p
+        let name = l.name
+        plugReloadPlugin(m.plugin)
+        info(name & ": " & p & " is installed now — starting its language server…")
+        return                                 # (its registrations come again)
+    lspHintToast(l.name, (if m.programs.len > 0: m.programs[0] else: m.lang), m.hint)
+
 proc plugPump(ready: HashSet[cint]) =
   ## one round of the main loop for the plugins: starts them shortly after the first frame, pumps each process, sends
   ## the queued "open" events, runs the due timers, the "keys" and "enter" events, "change" events after a pause in
@@ -2872,6 +2912,10 @@ proc plugPump(ready: HashSet[cint]) =
     if cb != nil and cb.id != plugCurSeen:
       plugCurSeen = cb.id
       plugFire("enter", cb)
+  # a plugin's language whose server is not installed: how to get it, and the plugin again once it is there
+  if plugLspMissing.len > 0 and msSince(plugLspLookAt) > 2000:
+    plugLspLookAt = getMonoTime()
+    plugLspMissingLook()
   # changes, after a pause in the typing
   var wantChange = false
   for (ev, _, _) in plugEvts:
@@ -3764,6 +3808,7 @@ proc buildPluginItems(): seq[SideItem] =
           of "language": tx("language " & r.data{"id"}.getStr)
           of "formatter": tx("formats " & r.data{"lang"}.getStr)
           of "lsp": tx("language server for " & r.data{"lang"}.getStr)
+          of "lspMissing": tx("language server for " & r.data{"lang"}.getStr & ": not installed")
           of "completion": tx("completions for " & r.data{"lang"}.getStr)
           of "hover": tx("hover for " & r.data{"lang"}.getStr)
           of "codeActions": tx("code actions for " & r.data{"lang"}.getStr)

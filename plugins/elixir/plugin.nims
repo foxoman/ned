@@ -29,8 +29,8 @@
 ##   ("off": none)
 import nedplugin
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for the first installed of expert, nextls, " &
            "lexical and elixir-ls, \"off\" for none. Plugins: reload after a change")
@@ -217,6 +217,11 @@ else:
     if elixirHave(cmd):
       elixirServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if elixirServer.len == 0 and elixirServerSet.len == 0:
+  languageServerMissing("elixir",
+                        @["expert", "nextls", "lexical", "start_lexical.sh", "elixir-ls", "language_server.sh"],
+                        "https://github.com/elixir-lang/expert/releases")
 if elixirServer.len > 0:
   elixirServer[0] = expandTilde(elixirServer[0])
   languageServer("elixir", elixirServer)

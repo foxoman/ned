@@ -26,8 +26,8 @@
 ##   ("off": none) — `fourmolu --stdin-input-file "$file"` to have fourmolu when ormolu is installed too
 import nedplugin
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for haskell-language-server-wrapper --lsp (or " &
            "haskell-language-server --lsp) when it is installed, \"off\" for none. Plugins: reload after a change")
@@ -318,6 +318,10 @@ else:
     if haskellHave(cmd):
       haskellServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if haskellServer.len == 0 and haskellServerSet.len == 0:
+  languageServerMissing("haskell", @["haskell-language-server-wrapper", "haskell-language-server"], "ghcup install hls",
+                        termux = "https://github.com/haskell/haskell-language-server")
 if haskellServer.len > 0:
   haskellServer[0] = expandTilde(haskellServer[0])
   languageServer("haskell", haskellServer)

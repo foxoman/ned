@@ -616,8 +616,8 @@ proc mouseToTerm(t: Term, x, y: int, press: bool, btn: int) =
   ## passes a mouse press or release to the program in the terminal, as an SGR sequence or in the older form, with the
   ## position counted from 1 in the terminal's rectangle
   let (x0, y0, _, _) = termRect
-  let cx = x - x0 + 1
-  let cy = y - y0 + 1
+  let cx = max(1, x - x0 + 1)               # (a click in the gutter: the first column)
+  let cy = max(1, y - y0 + 1)
   if t.sgrMouse:
     t.termWrite("\e[<" & $btn & ";" & $cx & ";" & $cy & (if press: "M" else: "m"))
   elif press:
@@ -635,7 +635,7 @@ proc termClick(x, y: int) =
   discard t.termClickMove(x, y)              # (on the command line being typed: the shell's cursor goes there)
   let (x0, y0, _, _) = termRect
   let absRow = t.sb.len - t.view + (y - y0)
-  t.selA = (absRow, x - x0)
+  t.selA = (absRow, max(0, x - x0))
   t.selB = t.selA
   t.hasSel = false
   termSelecting = true

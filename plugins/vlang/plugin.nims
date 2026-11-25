@@ -25,8 +25,8 @@
 ##   `v fmt $in > $out` ("off": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs v for F5, Build, the check and formatting, and v-analyzer when it is installed")
 
 settingDef("server", "", "The language server's command: empty for v-analyzer (or vls) when it is installed, " &
@@ -245,6 +245,12 @@ else:
     if vHave(cmd):
       vServer = @[cmd]
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if vServer.len == 0 and vServerSet.len == 0:
+  if findExe("v").len > 0:
+    languageServerMissing("v", @["v-analyzer", "vls"],
+                          "v download -RD https://raw.githubusercontent.com/vlang/v-analyzer/main/install.vsh")
+  else: languageServerMissing("v", @["v-analyzer", "vls"], "https://github.com/vlang/v-analyzer")
 if vServer.len > 0:
   vServer[0] = expandTilde(vServer[0])
   languageServer("v", vServer)

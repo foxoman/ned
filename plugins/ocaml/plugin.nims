@@ -20,8 +20,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for ocamllsp (when it is installed), \"off\" for " &
            "none. Plugins: reload after a change")
@@ -254,6 +254,9 @@ elif mlServerSet.len > 0:
   if mlHave(mlServerSet): mlServer = mlServerSet.splitWhitespace()
   else: echo "ocaml: the server " & mlServerSet & " is not installed (plugins.ocaml.server)"
 elif findExe("ocamllsp").len > 0: mlServer = @["ocamllsp"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if mlServer.len == 0 and mlServerSet.len == 0:
+  languageServerMissing("ocaml", @["ocamllsp"], "opam install ocaml-lsp-server")
 if mlServer.len > 0:
   mlServer[0] = expandTilde(mlServer[0])
   languageServer("ocaml", mlServer)

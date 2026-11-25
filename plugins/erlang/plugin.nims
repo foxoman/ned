@@ -26,8 +26,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for elp server (or erlang_ls) when it is " &
            "installed, \"off\" for none. Plugins: reload after a change")
@@ -220,6 +220,9 @@ else:
     if erlHave(cmd):
       erlServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if erlServer.len == 0 and erlServerSet.len == 0:
+  languageServerMissing("erlang", @["elp", "erlang_ls"], "https://whatsapp.github.io/erlang-language-platform")
 if erlServer.len > 0:
   erlServer[0] = expandTilde(erlServer[0])
   languageServer("erlang", erlServer)

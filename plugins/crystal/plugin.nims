@@ -21,8 +21,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for crystalline (when it is installed), \"off\" " &
            "for none. Plugins: reload after a change")
@@ -226,6 +226,9 @@ elif crServerSet.len > 0:
   if crHave(crServerSet): crServer = crServerSet.splitWhitespace()
   else: echo "crystal: the server " & crServerSet & " is not installed (plugins.crystal.server)"
 elif findExe("crystalline").len > 0: crServer = @["crystalline"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if crServer.len == 0 and crServerSet.len == 0:
+  languageServerMissing("crystal", @["crystalline"], "https://github.com/elbywan/crystalline")
 if crServer.len > 0:
   crServer[0] = expandTilde(crServer[0])
   languageServer("crystal", crServer)

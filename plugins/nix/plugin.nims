@@ -23,8 +23,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for nixd (or nil) when it is installed, \"off\" " &
            "for none. Plugins: reload after a change")
@@ -223,6 +223,9 @@ else:
     if nixHave(cmd):
       nixServer = @[cmd]
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if nixServer.len == 0 and nixServerSet.len == 0:
+  languageServerMissing("nix", @["nixd", "nil"], "nix profile install nixpkgs#nixd")
 if nixServer.len > 0:
   nixServer[0] = expandTilde(nixServer[0])
   languageServer("nix", nixServer)

@@ -397,6 +397,8 @@ var
   cfgLspLinters = true               # lsp.linters: known linters' servers too, when installed
   cfgFormatOnType = false            # editor.formatOnType: the server's on-type formatting
   lspHinted: HashSet[string]          # languages already told how to install a language server
+  lspMissing: Table[string, seq[string]]   # language id → its servers' programs, none installed: looked for again
+  lspLookedAt: MonoTime               # (… every 2 s while one of its files is open: one installed since starts)
   cfgLspHints = true                  # editor.languageServerHints
   lspDeaths = initTable[string, int]()
   lastFileCheck: MonoTime

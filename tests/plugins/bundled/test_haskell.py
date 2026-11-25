@@ -174,7 +174,7 @@ def _run(factory, tag, tmp):
     check(tag + "indentation: a level after where, do, of, let, =, -> (two spaces)",
           {"where", "do", "of", "let", "=", "->"} <= set(sp.get("indentAfter", [])) and sp.get("indentSize") == 2, sp)
     check(tag + "the ned it needs, its two settings (named as its own when it starts)",
-          (h.reg("requires") or {}).get("spec") == ">= 6.25" and h.reg("setting", key="server") is not None and
+          (h.reg("requires") or {}).get("spec") == ">= 6.57" and h.reg("setting", key="server") is not None and
           h.reg("setting", key="formatter") is not None and
           ("haskell", "server") in h.asked_settings and ("haskell", "formatter") in h.asked_settings,
           (h.reg("requires"), h.asked_settings))

@@ -21,8 +21,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for zls (when it is installed), \"off\" for none. " &
            "Plugins: reload after a change")
@@ -171,6 +171,9 @@ elif zigServerSet.len > 0:
   if zigHave(zigServerSet): zigServer = zigServerSet.splitWhitespace()
   else: echo "zig: the server " & zigServerSet & " is not installed (plugins.zig.server)"
 elif findExe("zls").len > 0: zigServer = @["zls"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if zigServer.len == 0 and zigServerSet.len == 0:
+  languageServerMissing("zig", @["zls"], "https://github.com/zigtools/zls")
 if zigServer.len > 0:
   zigServer[0] = expandTilde(zigServer[0])
   languageServer("zig", zigServer)

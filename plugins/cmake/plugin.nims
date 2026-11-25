@@ -24,8 +24,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for neocmakelsp stdio (or cmake-language-server) " &
            "when it is installed, \"off\" for none. Plugins: reload after a change")
@@ -204,6 +204,11 @@ else:
     if cmakeHave(cmd):
       cmakeServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if cmakeServer.len == 0 and cmakeServerSet.len == 0:
+  languageServerMissing("cmake", @["neocmakelsp", "cmake-language-server"],
+                        (if findExe("cargo").len > 0: "cargo install neocmakelsp"
+                         else: "pipx install cmake-language-server"))
 if cmakeServer.len > 0:
   cmakeServer[0] = expandTilde(cmakeServer[0])
   languageServer("cmake", cmakeServer)

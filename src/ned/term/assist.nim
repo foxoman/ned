@@ -414,7 +414,7 @@ proc termClickMove(t: Term, x, y: int): bool =
   if c.inputRow < 0: return false
   let (x0, y0, _, _) = termRect
   let g = t.sb.len - t.view + (y - y0) + t.sbDropped
-  var col = x - x0
+  var col = max(0, x - x0)                   # (a click in the gutter: the row's start)
   let cur = t.gRow
   if g < c.inputRow or g > cur + 3 or (g == c.inputRow and col < c.inputCol): return false
   # (rows below the cursor's are the command line only while it goes on from the row above)

@@ -117,6 +117,12 @@ def _check(factory, tag, tmp, lang, spec, snippets, sample, symbols, tools, runs
     check(tag + "its programs not installed: no language server, the outline from the plugin, no formatter",
           h.reg("lsp", lang=lang) is None and h.reg("symbols", lang=lang) is not None and
           h.reg("formatter", lang=lang) is None, [r for r in h.regs if r["kind"] in ("lsp", "formatter")])
+    if server:
+        # (6.57: ned is told the server is missing and how to get it — it runs the plugin again once it is there)
+        lm = h.reg("lspMissing", lang=lang)
+        check(tag + "not installed: ned is told " + server[0] + " is missing, and how to get it",
+              lm is not None and server[0] in lm.get("programs", []) and
+              (lm.get("install", "") != "" or lm.get("termux", "") != ""), lm)
     if h.reg("symbols", lang=lang):
         h.lines = sample
         r = h.call(h.reg("symbols", lang=lang)["cb"], {"buf": 1})
@@ -144,7 +150,8 @@ def _check(factory, tag, tmp, lang, spec, snippets, sample, symbols, tools, runs
     fm = h.reg("formatter", lang=lang) if ok else None
     if server:
         check(tag + "installed: " + " ".join(server) + " is the language server (no outline of the plugin's)",
-              ok and ls and ls["cmd"] == server and h.reg("symbols", lang=lang) is None, (err, ls))
+              ok and ls and ls["cmd"] == server and h.reg("symbols", lang=lang) is None and
+              h.reg("lspMissing", lang=lang) is None, (err, ls))
     else:
         check(tag + "no language server unless one is set", ok and ls is None, ls)
     if formatter:
@@ -162,5 +169,5 @@ def _check(factory, tag, tmp, lang, spec, snippets, sample, symbols, tools, runs
     fm = h.reg("formatter", lang=lang) if ok else None
     check(tag + "server \"off\": none (the plugin's outline); another formatter's command",
           ok and h.reg("lsp", lang=lang) is None and h.reg("symbols", lang=lang) is not None and fm and
-          fm.get("cmd") == "my-fmt -", (err, fm))
+          fm.get("cmd") == "my-fmt -" and h.reg("lspMissing", lang=lang) is None, (err, fm))
     done(h)

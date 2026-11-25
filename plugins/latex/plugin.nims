@@ -23,8 +23,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command, for LaTeX and BibTeX: empty for texlab (when it is " &
            "installed), \"off\" for none. Plugins: reload after a change")
@@ -206,6 +206,10 @@ elif texServerSet.len > 0:
   if texHave(texServerSet): texServer = texServerSet.splitWhitespace()
   else: echo "latex: the server " & texServerSet & " is not installed (plugins.latex.server)"
 elif findExe("texlab").len > 0: texServer = @["texlab"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if texServer.len == 0 and texServerSet.len == 0:
+  languageServerMissing("latex", @["texlab"], "https://github.com/latex-lsp/texlab")
+  languageServerMissing("bibtex", @["texlab"], "https://github.com/latex-lsp/texlab")
 if texServer.len > 0:
   texServer[0] = expandTilde(texServer[0])
   # (one texlab for each: ned starts a server for each language, and tells it which the file is)

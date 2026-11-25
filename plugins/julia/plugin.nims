@@ -20,8 +20,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command, started when you first save a Julia file: empty = " &
            "LanguageServer.jl when it is installed (] add LanguageServer), \"off\" for none. Plugins: reload after " &
@@ -263,6 +263,12 @@ if jlServerSet.len > 0 and jlServerSet != "off":
 elif jlServerSet.len == 0 and findExe("julia").len > 0 and jlHasPackage("LanguageServer"):
   languageServer("julia", @["julia", "--startup-file=no", "--history-file=no", "-e",
                             "using LanguageServer; runserver()"], afterSave = true)
+elif jlServerSet.len == 0:
+  # (no server: ned says how to get it — Julia, or its LanguageServer package — and runs this again once julia is on
+  # PATH)
+  if findExe("julia").len > 0:
+    languageServerMissing("julia", @["julia"], "julia -e 'using Pkg; Pkg.add(\"LanguageServer\")'")
+  else: languageServerMissing("julia", @["julia"], "https://julialang.org/downloads/")
 # (the outline from the scan, server or not: the same before the server has started as after)
 symbols("julia") do (b: Buf) -> seq[Symbol]:
   jlSymbols(b.lines)

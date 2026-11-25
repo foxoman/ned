@@ -22,7 +22,7 @@ itself (NED_MENU_DUMP: what each menu holds, as it is drawn in that folder).
 With --lang CODE, ned in that language (a built-in one, or a catalogue's path: PATH/xx.json, put in place as yours);
 with --layout, also each screen after a command must have its boxes whole: no right side out of line with its top
 corner (a text measured in bytes, not columns) and no broken character (a text cut inside a character); with
---size WxH, ned in a screen of that size (130x36 if not: a tablet's is smaller).
+--size WxH, ned in a screen of that size (130x36 if not, 180x36 with --menus: a tablet's is smaller).
 
 Usage: commands.py path/to/ned [--jobs N (3)] [--only TEXT] [--plugins] [--menus] [--lang CODE] [--layout]
                    [--size WxH] [--keep]
@@ -41,7 +41,9 @@ KEEP = '--keep' in ARGS
 PLUGINS = '--plugins' in ARGS
 MENUS = '--menus' in ARGS
 LAYOUT = '--layout' in ARGS
-SIZE = (ARGS[ARGS.index('--size') + 1] if '--size' in ARGS else '130x36').split('x')
+# (with --menus, wide enough that the bar's menus do not fold into ≡ in a longer language: they are reached by keys)
+SIZE = (ARGS[ARGS.index('--size') + 1] if '--size' in ARGS else
+        '180x36' if '--menus' in ARGS else '130x36').split('x')
 LANG_ARG = ARGS[ARGS.index('--lang') + 1] if '--lang' in ARGS else ''
 LANG_FILE = os.path.abspath(LANG_ARG) if LANG_ARG.endswith('.json') else ''
 LANG = os.path.splitext(os.path.basename(LANG_ARG))[0] if LANG_FILE else LANG_ARG
@@ -92,6 +94,8 @@ def layout_issues(screen):
                 if left not in FRAME_V: break
                 if right in FRAME_V: continue
                 near = [k for k in range(x2 - 3, x2 + 4) if k != x2 and at(yy, k) in FRAME_V]
+                # (another box over this one's side — a submenu with no room beside its menu — is not out of line)
+                if near and any(at(r, near[0]) in FRAME_TL for r in range(y, yy + 1)): break
                 if near:
                     found.append('row %d: the right side of the box at %d,%d is at column %d, not %d: %s' %
                                  (yy, x, y, near[0], x2, ''.join(rows[yy][x:x2 + 4]).strip()))
@@ -244,7 +248,10 @@ def run_one(slot, name):
     with lock:
         results.append((name, verdict, detail))
         bad = verdict not in ('ok', 'quit')
-        print(('%-15s %s' % (verdict, name)) + (('\n' + '\n'.join('      ' + l for l in detail.splitlines()[-25:])) if bad else
+        lines = detail.splitlines()
+        # (a box out of line: what is wrong first — it is at the top, above the screen)
+        shown_lines = (lines[:8] + ['…'] + lines[-20:]) if verdict == 'LAYOUT' and len(lines) > 28 else lines[-25:]
+        print(('%-15s %s' % (verdict, name)) + (('\n' + '\n'.join('      ' + l for l in shown_lines)) if bad else
                                                 (' ' + detail if detail.startswith('(') else '')), flush=True)
 
 def start_check(tm, screen, state, work):

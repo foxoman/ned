@@ -24,8 +24,8 @@
 ##   ("off": none)
 import nedplugin
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for ols (when it is installed), \"off\" for " &
            "none. Plugins: reload after a change")
@@ -244,6 +244,9 @@ elif odinServerSet.len > 0:
   if odinHave(odinServerSet): odinServer = odinServerSet.splitWhitespace()
   else: echo "odin: the server " & odinServerSet & " is not installed (plugins.odin.server)"
 elif findExe("ols").len > 0: odinServer = @["ols"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if odinServer.len == 0 and odinServerSet.len == 0:
+  languageServerMissing("odin", @["ols"], "https://github.com/DanielGavin/ols")
 if odinServer.len > 0:
   odinServer[0] = expandTilde(odinServer[0])
   languageServer("odin", odinServer)

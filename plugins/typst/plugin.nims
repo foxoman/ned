@@ -23,8 +23,8 @@
 ##   ("off": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs typst for F5, Build and the check, and tinymist and typstyle when they are installed")
 
 settingDef("server", "", "The language server's command: empty for tinymist (or typst-lsp) when it is installed, " &
@@ -185,6 +185,9 @@ else:
     if typstHave(cmd):
       typstServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if typstServer.len == 0 and typstServerSet.len == 0:
+  languageServerMissing("typst", @["tinymist", "typst-lsp"], "https://github.com/Myriad-Dreamin/tinymist/releases")
 if typstServer.len > 0:
   typstServer[0] = expandTilde(typstServer[0])
   languageServer("typst", typstServer)

@@ -151,7 +151,7 @@ def _run(factory, tag, tmp):
           sp.get("indentAfter") == ["{", "(", "[", "->", "="] and sp.get("dedent") == "})]" and
           sp.get("indentSize") == 2 and not sp.get("tabs"), sp)
     check(tag + "the ned it needs, its two settings (named as its own when it starts)",
-          (h.reg("requires") or {}).get("spec") == ">= 6.25" and h.reg("setting", key="server") is not None and
+          (h.reg("requires") or {}).get("spec") == ">= 6.57" and h.reg("setting", key="server") is not None and
           h.reg("setting", key="formatter") is not None and
           ("gleam", "server") in h.asked_settings and ("gleam", "formatter") in h.asked_settings,
           (h.reg("requires"), h.asked_settings))

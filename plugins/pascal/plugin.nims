@@ -28,8 +28,8 @@
 ## - plugins.pascal.formatter — the formatter's command: its text on stdin, or $in and $out ("": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs fpc or lazbuild for F5, Build and the check, and pasls when it is installed")
 
 settingDef("server", "", "The language server's command: empty for pasls (when it is installed), \"off\" for none. " &
@@ -295,6 +295,10 @@ else:
     if pascalHave(cmd):
       pascalServer = @[cmd]
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if pascalServer.len == 0 and pascalServerSet.len == 0:
+  languageServerMissing("pascal", @["pasls", "pascal-language-server"],
+                        "https://github.com/genericptr/pascal-language-server")
 if pascalServer.len > 0:
   pascalServer[0] = expandTilde(pascalServer[0])
   languageServer("pascal", pascalServer)

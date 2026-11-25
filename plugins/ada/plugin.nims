@@ -28,8 +28,8 @@
 ##   `gnatpp --pipe $in > $out` ("off": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs Alire, gprbuild or gnatmake for F5 and Build, GNAT for the check, and the Ada Language Server and gnatpp when they are installed")
 
 settingDef("server", "", "The language server's command: empty for ada_language_server (when it is installed), " &
@@ -300,6 +300,10 @@ else:
     if adaHave(cmd):
       adaServer = @[cmd]
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if adaServer.len == 0 and adaServerSet.len == 0:
+  languageServerMissing("ada", @["ada_language_server", "ada-language-server"],
+                        "https://github.com/AdaCore/ada_language_server/releases")
 if adaServer.len > 0:
   adaServer[0] = expandTilde(adaServer[0])
   languageServer("ada", adaServer)

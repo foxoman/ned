@@ -19,12 +19,13 @@ Short answers, with a link to where each thing is explained in full. Something n
 
 **What does ned need?** Nim 2.2 or newer to build it — nothing else. Every other tool (git, ripgrep, gdb, clangd,
 a language server, an AI key …) is optional and picked up when it is on your `PATH`; `ned --check` lists what it
-found and how to install the rest. See [Installing](../README.md#installing).
+found and how to install the rest. A language server you install while ned runs starts by itself, for the files of
+its language that are open. See [Installing](../README.md#installing).
 
 **How do I install it on Termux?** Build it on the device: `curl -fsSL
 https://raw.githubusercontent.com/foxoman/ned/main/install.sh | sh` does it with nimble, or by hand `pkg install nim
 git`, then `nim c -d:release --opt:speed -d:strip -o:$PREFIX/bin/ned src/ned.nim` (or `nimble termux` in the project
-folder). A ready-made package, if you have one — `pkg install ./ned_6.56.1_aarch64.deb` — brings ned, nedls and
+folder). A ready-made package, if you have one — `pkg install ./ned_6.57.0_aarch64.deb` — brings ned, nedls and
 nedfmt, and the example plugins in `$PREFIX/share/ned/plugins`.
 
 **And on Linux, macOS, Windows?** Linux and macOS build from the source with one `nim c` (or `nimble install`).

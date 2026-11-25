@@ -22,8 +22,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for R's languageserver package (when it is " &
            "installed; it starts when you first save an R file), \"off\" for none. Plugins: reload after a change")
@@ -272,6 +272,12 @@ if rServerSet.len > 0 and rServerSet != "off":
 elif rServerSet.len == 0 and findExe("R").len > 0 and rHasPackage("languageserver"):
   # (the form languageserver's README gives; R starts and loads it — a few seconds, so not until the first save)
   languageServer("r", @["R", "--slave", "-e", "languageserver::run()"], afterSave = true)
+elif rServerSet.len == 0:
+  # (no server: ned says how to get it — R, or its languageserver package — and runs this again once R is on PATH)
+  if findExe("R").len > 0:
+    languageServerMissing("r", @["R"],
+                          "R -e 'install.packages(\"languageserver\", repos = \"https://cloud.r-project.org\")'")
+  else: languageServerMissing("r", @["R"], "https://cran.r-project.org", termux = "pkg install r-base")
 # (the outline from the scan, server or not: the same before the server has started as after)
 symbols("r") do (b: Buf) -> seq[Symbol]:
   rSymbols(b.lines)

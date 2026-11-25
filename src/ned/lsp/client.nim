@@ -369,17 +369,60 @@ proc lspFor(b: Buffer, start = true): LspServer =
       if c.len > 0 and c[0] in there:
         let s = lspSpawn(id, c, secondary = false, ri = ri)
         if s != nil: return s
+  var found = false
   for c in cands:
     if ri >= 0 and sStr("remote.languageServers") == "server": break
     if c.len == 0 or findExe(c[0]).len == 0: continue
+    found = true
     let s = lspSpawn(id, c, secondary = false)
     if s != nil: return s
   lspFailed.incl id
+  if not found and ri < 0 and cands.len > 0:
+    # (none installed: looked for again while its files are open — one installed later starts then, no restart)
+    var progs: seq[string]
+    for c in cands:
+      if c.len > 0: progs.add c[0]
+    lspMissing[id] = progs
   if cands.len > 0 and cfgLspHints and id in ["python", "c", "cpp", "javascript", "typescript", "rust", "go",
                                               "shellscript", "lua", "ruby", "css", "php", "csharp", "sql", "kotlin"]:
     lspInstallToast(b.lang.name, cands)
   nil
 
+
+proc lspLookAgain() =
+  ## every 2 s while a language had none of its servers installed and one of its files is open: a server installed
+  ## since (by the toast's Install button, or by hand) starts now, for its open files — no restart of ned
+  if lspMissing.len == 0 or msSince(lspLookedAt) < 2000: return
+  lspLookedAt = getMonoTime()
+  var now: seq[string]
+  for id, progs in lspMissing:
+    var open = false
+    for b in bufs:
+      if b.lang.id == id and b.path.len > 0: open = true
+    if not open: continue
+    for p in progs:
+      if findExe(p).len > 0:
+        now.add id
+        break
+  for id in now:
+    lspMissing.del id
+    lspFailed.excl id
+    for b in bufs:
+      if b.lang.id == id and b.path.len > 0 and b.title.len == 0:
+        lspAttach(b)                       # (the first starts the server, the others open on it)
+
+proc lspHintToast(langName, program, hint: string) =
+  ## once per language and session: a plugin's language has no server installed — how to get it: `hint` is a command
+  ## (its Install button runs it in the terminal) or a web page (its Open button opens it); nothing when it is ""
+  if langName in lspHinted or hint.len == 0 or not cfgLspHints: return
+  lspHinted.incl langName
+  let shown = hint
+  if hint.startsWith("http://") or hint.startsWith("https://"):
+    toast(langName & ": no language server for completion, errors and rename — " & program & " (" & shown & ")",
+          3, "Open", proc() = openInBrowser(shown), 12000)
+  else:
+    toast(langName & ": no language server for completion, errors and rename — " & program & " (" & shown & ")",
+          3, "Install", proc() = runInTerm(shown), 12000)
 
 # ── more servers for a language (lsp.alsoRun, lsp.linters): a linter next to the main server — only its problems
 #    and quick fixes are used, merged with the main server's ──

@@ -13,10 +13,11 @@ that is only partly done already works: what it does not have stays in English.
 | `es` | Español | | `cs` | Čeština |
 | `it` | Italiano | | `el` | Ελληνικά |
 | `pt` | Português (Portugal) | | `ru` | Русский |
-| `nl` | Nederlands | | | |
+| `nl` | Nederlands | | `zh_CN` | 简体中文 |
 
-These were written by Claude (Anthropic's AI model) for 6.56, not by native speakers. They are complete, but a
-word may read oddly or a term may not be the one your language's programmers use. Corrections are welcome: change
+`zh_CN` was made by lyongji ([#12](https://github.com/foxoman/ned/pull/12)), in 6.57. The others were written by
+Claude (Anthropic's AI model) for 6.56, not by native speakers. They are complete, but a word may read oddly or a
+term may not be the one your language's programmers use. Corrections are welcome: change
 the text in `i18n/<code>.json` and send a pull request, or open an issue with the English text and the better words.
 To improve one, start from its file instead of the template.
 

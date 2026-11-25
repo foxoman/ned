@@ -128,10 +128,14 @@ UI suite on a quiet machine: under load a few timing-sensitive tests can fail, a
   template and PARTS are up to date). What is not translated:
   files and code, AI prompts, compilers' and language servers' words, the engines' problems, reports to paste into an
   issue, and the command line ([TRANSLATING.md](TRANSLATING.md#for-developers-keeping-ned-translatable)).
-- ned comes with eleven translations (6.56: `i18n/LANGUAGES`). A new or changed text shows in English in them until
+- ned comes with twelve translations (`i18n/LANGUAGES`: eleven of 6.56, `zh_CN` of 6.57 by lyongji). A new or changed text shows in English in them until
   it is translated; `python3 tests/i18n/extract.py --ned ./ned --lang de --missing` lists what one lacks, and a
   catalogue's entry for a text ned no longer has is harmless (it can go). A translation may leave out a `$n` (an
   English plural ending) but not add one; `--lang` checks it.
+- A language server that is not installed: ned says how to get it (`lspInstallCmd` for its own languages, a plugin's
+  `languageServerMissing`) and looks again every 2 s while a file of the language is open (`lspLookAgain`; for a
+  plugin, `plugLspMissingLook` runs the plugin again once one of its programs is on PATH). A plugin that looks for
+  its server with `findExe` calls `languageServerMissing` when it finds none.
 - Screenshots (`screenshots/`): every one is drawn from its tmux capture (`screenshots/captures/NAME.ansi`) in the
   Coder Nerd Font Mono by `tests/shots/render.py` — a new one too, never a screen grab
   ([Screenshots](docs/dev/testing.md#screenshots)).

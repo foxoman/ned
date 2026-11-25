@@ -25,8 +25,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command for .tf and .tfvars files: empty for terraform-ls serve " &
            "(when it is installed), \"off\" for none. Plugins: reload after a change")
@@ -220,6 +220,10 @@ elif tfServerSet.len > 0:
   if tfHave(tfServerSet): tfServer = tfServerSet.splitWhitespace()
   else: echo "terraform: the server " & tfServerSet & " is not installed (plugins.terraform.server)"
 elif findExe("terraform-ls").len > 0: tfServer = @["terraform-ls", "serve"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if tfServer.len == 0 and tfServerSet.len == 0:
+  languageServerMissing("terraform", @["terraform-ls"], "https://github.com/hashicorp/terraform-ls")
+  languageServerMissing("terraform-vars", @["terraform-ls"], "https://github.com/hashicorp/terraform-ls")
 if tfServer.len > 0:
   tfServer[0] = expandTilde(tfServer[0])
   languageServer("terraform", tfServer)

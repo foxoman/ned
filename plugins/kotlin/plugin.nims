@@ -27,8 +27,8 @@
 ##   ("off": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs Gradle or kotlinc for F5 and Build, and a language server and ktfmt or ktlint when installed")
 
 settingDef("server", "", "The language server's command: empty for kotlin-lsp (or kotlin-language-server) when " &
@@ -266,6 +266,10 @@ else:
     if kotlinHave(cmd):
       kotlinServer = cmd.splitWhitespace()
       break
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if kotlinServer.len == 0 and kotlinServerSet.len == 0:
+  languageServerMissing("kotlin", @["kotlin-lsp", "kotlin-language-server"],
+                        "https://github.com/Kotlin/kotlin-lsp/releases")
 if kotlinServer.len > 0:
   kotlinServer[0] = expandTilde(kotlinServer[0])
   languageServer("kotlin", kotlinServer)

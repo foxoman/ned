@@ -102,7 +102,7 @@ ending), and a part that is one of ned's own words in parts (`i18n/PARTS`, which
 `if` branches inside a shown text) is translated too, with the spaces around it kept (`trPart`); any other part is
 data and stays as it is. A text that starts with `DataMark` (`dataText`, `actData`) is data passed whole — a file, a
 branch, git's "2 days ago" — and is shown as it is, in English too. English costs one test of `trOn` and one of the
-mark per text. Eleven catalogues come with ned (6.56); only the one in use is read.
+mark per text. Twelve catalogues come with ned (6.57); only the one in use is read.
 
 The routines that show a text translate it themselves (`setMsg`, `toast`, `openDialog`, `openMenu`, `openActions`,
 `openPicker`, the forms, `button`, `pill`, `drawFrame`, a tooltip, a dock row), so the code keeps English texts:
@@ -250,7 +250,8 @@ runs — so everything slow is either another process or done a slice at a time.
 12. **git**: `git status` when the watcher saw a change (or every few seconds while the Git or Files dock shows it).
 13. **Language servers**: their answers read (8 ms at most), what waits written, a server that died started again
     (after three deaths it is given up), the buffers changed 120 ms ago sent to them — only the edits to a server
-    that takes them (`textDocumentSync` 2), else the whole text.
+    that takes them (`textDocumentSync` 2), else the whole text; every 2 s, a language with none of its servers
+    installed is looked at again, while one of its files is open (`lspLookAgain`).
 14. **Recovery files** for buffers changed and left alone for 600 ms; every two seconds the files changed on disk,
     the theme's clock and auto-save; after two seconds without a key, the memory the heap holds but no longer uses
     given back to the system ([Memory](#memory)).

@@ -24,7 +24,7 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ## Contents
 
-- [What's new in 6.56.1](#whats-new-in-6561) · [6.56](#whats-new-in-656) · [6.55](CHANGELOG.md#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
+- [What's new in 6.57](#whats-new-in-657) · [6.56.1](CHANGELOG.md#whats-new-in-6561) · [6.56](CHANGELOG.md#whats-new-in-656) · [6.55](CHANGELOG.md#whats-new-in-655) · [6.54](CHANGELOG.md#whats-new-in-654) · [6.53](CHANGELOG.md#whats-new-in-653) · [6.52.1](CHANGELOG.md#whats-new-in-6521) · [6.52](CHANGELOG.md#whats-new-in-652) · [6.51](CHANGELOG.md#whats-new-in-651) · [6.50](CHANGELOG.md#whats-new-in-650) · [6.49](CHANGELOG.md#whats-new-in-649) · [6.48](CHANGELOG.md#whats-new-in-648) · [6.47.1](CHANGELOG.md#whats-new-in-6471) · [6.47](CHANGELOG.md#whats-new-in-647) · [6.46](CHANGELOG.md#whats-new-in-646) · [6.45](CHANGELOG.md#whats-new-in-645) · [6.44](CHANGELOG.md#whats-new-in-644) · [6.43.1](CHANGELOG.md#whats-new-in-6431) · [6.43](CHANGELOG.md#whats-new-in-643) · [6.42.1](CHANGELOG.md#whats-new-in-6421) · [6.42](CHANGELOG.md#whats-new-in-642) · [6.41.1](CHANGELOG.md#whats-new-in-6411) · [6.41](CHANGELOG.md#whats-new-in-641) · [6.40](CHANGELOG.md#whats-new-in-640) · [6.39](CHANGELOG.md#whats-new-in-639) · [6.38](CHANGELOG.md#whats-new-in-638) · [6.37](CHANGELOG.md#whats-new-in-637) · [6.36](CHANGELOG.md#whats-new-in-636) · [6.35](CHANGELOG.md#whats-new-in-635) · [6.34](CHANGELOG.md#whats-new-in-634) · [6.33](CHANGELOG.md#whats-new-in-633) · [6.32](CHANGELOG.md#whats-new-in-632) · [older releases](CHANGELOG.md)
 - [Features](#features)
 - [Installing](#installing)
 - [First steps](#first-steps)
@@ -33,43 +33,28 @@ Made by **Sultan Al Isaiee** ([@foxoman](https://github.com/foxoman)) — [www.f
 
 ---
 
-## What's new in 6.56.1
+## What's new in 6.57
 
-**Fixed** — most of it shows in another language or on a narrow screen:
+**ned in Chinese.** Simplified Chinese (`zh_CN`) is built in, with every text ned shows, translated by lyongji
+([#12](https://github.com/foxoman/ned/pull/12)) — the twelfth language besides English. ned takes it when your
+system speaks it (`LANG=zh_CN.UTF-8`), or choose it in *Palette › Language…*.
 
-- A name that is also a word stays a name. A branch called `test`, a folder called `source`, a file called `build`
-  were shown translated in the title bar, the breadcrumbs, the branch and history lists and the boxes' titles (in
-  German: "⎇ testen"), and git's own words were mangled ("17 seconds ago" as "vor 17 second s"). Only ned's own
-  words in a text's parts are translated now (`i18n/PARTS`); names and git's words stay as they are.
-- *Language…* showed Italian's code translated ("es" in German, "его" in Russian).
-- The shadow under a box broke Chinese, Japanese and Korean text and emoji beneath it — the status bar under the
-  settings window, for one.
-- On a narrow screen (a phone: 40 to 60 columns) a dialog's buttons go on a second row instead of off the screen,
-  the settings window's *Settings file (JSON)* no longer sits under *Cancel*, the bottom panel's tabs stay clear of
-  the terminal's buttons, and a command cut short in the palette ends in "…".
-- Five lines of the key bindings (F1) are a key and its description again, the key in its colour and the
-  description wrapped in its own column: *Alt+← Alt+→ Alt+1..9*, *Alt+click / Alt+drag*, *Ctrl+Alt+Shift+arrow*,
-  *Run › Configurations*, *Alt+H on a selection*.
-- A text cut short is cut between two letters, never inside one: a JSON string in the outline, a constant's value in
-  completion and hover, a C header's documentation, a plugin's log line, an inlay hint.
-- Git blame keeps its author column in line for names such as *Jörg Müller* or *张伟*, and the type-mismatch
-  explanation keeps its columns for arguments such as `"héllo"`.
-- A CSV file's breadcrumb (*column 3*) is translated.
+**A language server installed while you work starts by itself.** When a file's language has no server installed,
+ned says which one gives completion, errors and rename, and how to get it: the Install button runs the command in
+the terminal, the Open button opens the page that says how. Once the server is on PATH — from that button or by
+hand — it starts for the open files, with no restart and no *Plugins: reload*. The languages ned's plugins add do
+this too (Dart, Zig, Kotlin, Haskell, Elixir, Swift … 28 of them), and a plugin of yours can, with
+`languageServerMissing` ([Plugins](docs/plugins/README.md#language-servers)).
 
-## What's new in 6.56
+**Dart with Flutter's dart.** The dart plugin finds the `dart` in Flutter's SDK (`FLUTTER_ROOT`, `~/flutter`,
+`~/development/flutter`) when Flutter's `bin` folder is not on PATH, for the language server, the formatter, F5 and
+Build.
 
-**ned in eleven languages besides English.** German, French, Spanish, Italian, Portuguese (Portugal), Dutch, Polish, Swedish,
-Czech, Greek and Russian are built in, each with every text ned shows. ned takes the one your system speaks
-(`LANG`), or the one you choose in *Palette › Language…* (`ui.language`). They were written by Claude, not by native
-speakers: a word that reads wrong is a line to change in `i18n/<code>.json`, and a pull request or an issue with the
-better words is welcome ([TRANSLATING.md](TRANSLATING.md)).
-
-**A translation may leave a part out.** A text such as `"Saved $1 file$2"` fills `$2` with the English plural
-ending; a translation can drop it and write a form that fits any number (`"Gespeichert: $1 Datei(en)"`). A word ned
-adds to another text with a space before it (`" here"`) is translated too.
-
-**Fixed.** On Windows the folder picker goes to another drive: type `D:\` and Enter
-([#11](https://github.com/foxoman/ned/pull/11), from dwhall).
+**Fixed.** A click or a drag on the minimap moved the cursor to the start of the line in the middle of the screen.
+It scrolls the view now and leaves the cursor where it was, as the wheel and the scroll bar do; the next key that
+moves the cursor brings it back into view ([#13](https://github.com/foxoman/ned/issues/13), from lou15b). A click in
+the terminal's gutter, beside a command that goes on to a second row, gave an internal error; it puts the shell's
+cursor at that row's start now.
 
 ---
 
@@ -242,7 +227,7 @@ ned
 ```
 
 or, from the project folder: `nimble termux` (ned, with `nedfmt` and `nedls` beside it) — or a ready-made package,
-`pkg install ./ned_6.56.1_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
+`pkg install ./ned_6.57.0_aarch64.deb` (ned, nedls, nedfmt; the example plugins in `$PREFIX/share/ned/plugins`):
 `nimble termuxdeb` makes it on a Linux machine (with zig).
 
 The Nim IDE features need nothing more: the engine is built in, and `nim check` does the rest.

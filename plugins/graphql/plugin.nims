@@ -22,8 +22,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for graphql-lsp server -m stream (when it is " &
            "installed), \"off\" for none. Plugins: reload after a change")
@@ -206,6 +206,9 @@ elif gqlServerSet.len > 0:
   if gqlHave(gqlServerSet): gqlServer = gqlServerSet.splitWhitespace()
   else: echo "graphql: the server " & gqlServerSet & " is not installed (plugins.graphql.server)"
 elif findExe("graphql-lsp").len > 0: gqlServer = @["graphql-lsp", "server", "-m", "stream"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if gqlServer.len == 0 and gqlServerSet.len == 0:
+  languageServerMissing("graphql", @["graphql-lsp"], "npm install -g graphql-language-service-cli")
 if gqlServer.len > 0:
   gqlServer[0] = expandTilde(gqlServer[0])
   languageServer("graphql", gqlServer)

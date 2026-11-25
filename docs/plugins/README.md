@@ -276,8 +276,13 @@ NimScript with `nedlsp`, which ned runs with `ned --lsp-bridge server.nims`. Tha
 other editors too (Helix, Neovim …). The library keeps the open documents' text, answers initialize, shutdown
 and exit, and turns the editor's columns into bytes.
 
+When the server is not installed, `languageServerMissing` names it and says how to get it: ned tells you once,
+while one of the language's files is open, with an Install button (a command) or an Open button (a web page), and
+runs the plugin again once the program is on PATH — the server starts with no *Plugins: reload*.
+
 ```nim
-languageServer("zig", @["zls"])                           # plugin.nims
+if findExe("zls").len > 0: languageServer("zig", @["zls"])  # plugin.nims
+else: languageServerMissing("zig", @["zls"], "https://github.com/zigtools/zls")
 languageServerScript("markdown", "server.nims")           # plugin.nims, with this server.nims beside it:
 
 import nedlsp
@@ -286,7 +291,8 @@ onRequest("textDocument/hover") do (params: JsonNode) -> JsonNode:
 serve(%*{"hoverProvider": true})
 ```
 
-[`languageServer`](api.md#languageserver) · [`languageServerScript`](api.md#languageserverscript) ·
+[`languageServer`](api.md#languageserver) · [`languageServerMissing`](api.md#languageservermissing) ·
+[`languageServerScript`](api.md#languageserverscript) ·
 [`nedlsp`](api.md#nedlsp) · cookbook: [a language server in NimScript](cookbook.md#8-a-language-server-in-nimscript)
 
 ### Vim

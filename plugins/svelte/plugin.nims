@@ -23,8 +23,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for svelteserver --stdio (when it is installed), " &
            "\"off\" for none. Plugins: reload after a change")
@@ -272,6 +272,9 @@ elif svelteServerSet.len > 0:
   if svelteHave(svelteServerSet): svelteServer = svelteServerSet.splitWhitespace()
   else: echo "svelte: the server " & svelteServerSet & " is not installed (plugins.svelte.server)"
 elif findExe("svelteserver").len > 0: svelteServer = @["svelteserver", "--stdio"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if svelteServer.len == 0 and svelteServerSet.len == 0:
+  languageServerMissing("svelte", @["svelteserver"], "npm install -g svelte-language-server")
 if svelteServer.len > 0:
   svelteServer[0] = expandTilde(svelteServer[0])
   languageServer("svelte", svelteServer)

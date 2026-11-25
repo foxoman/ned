@@ -12,8 +12,10 @@
 ## constructors, methods, getters and fields, and the top-level functions and variables, from a simple scan.
 ##
 ## The tools, when they are on PATH: dart (Termux `pkg install dart`; https://dart.dev/get-dart, or the one in
-## Flutter's SDK) — `dart language-server` gives completion, hover, go to definition, problems; `dart format` formats
-## (Format document, and on save with editor.formatOnSave).
+## Flutter's SDK — found in FLUTTER_ROOT, ~/flutter or ~/development/flutter when its bin is not on PATH) — `dart
+## language-server` gives completion, hover, go to definition, problems; `dart format` formats (Format document, and
+## on save with editor.formatOnSave). Without dart, a Dart file says how to get it, and the server starts once it is
+## installed.
 ##
 ## Settings (the Plugins dock › dart › its settings; Plugins: reload after a change):
 ## - plugins.dart.server — the language server's command, when it is not `dart language-server --protocol=lsp`
@@ -22,13 +24,27 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for dart language-server (when dart is " &
            "installed), \"off\" for none. Plugins: reload after a change")
 settingDef("formatter", "", "The formatter's command, which reads the text on its stdin: empty for dart format " &
            "(when dart is installed), \"off\" for none. Plugins: reload after a change")
+
+proc dartFind(): string =
+  ## the dart program: the one on PATH, else Flutter's own when Flutter's bin folder is not on PATH (FLUTTER_ROOT, or
+  ## Flutter in ~/flutter, ~/development/flutter, ~/snap/flutter/common/flutter, /opt/flutter); "" when there is none
+  if findExe("dart").len > 0: return "dart"
+  for d in [getEnv("FLUTTER_ROOT"), "~/flutter", "~/development/flutter", "~/snap/flutter/common/flutter",
+            "/opt/flutter"]:
+    if d.len > 0 and fileExists(expandTilde(d) & "/bin/dart"): return expandTilde(d) & "/bin/dart"
+  ""
+
+let dartBin = dartFind()
+# (F5, Build and the check with Flutter's dart and flutter when that is the one found)
+let dartCmd = if dartBin.len > 0: dartBin else: "dart"
+let flutterCmd = if dartBin.endsWith("/bin/dart"): dartBin[0 ..< ^4] & "flutter" else: "flutter"
 
 language("dart", LangSpec(
   name: "Dart",
@@ -55,13 +71,14 @@ language("dart", LangSpec(
   indentAfter: @["{", "(", "["],
   dedent: "})]",
   indentSize: 2,
-  run: "sh -c 'f=\"$file\"; d=\"$dir\"; while [ ! -f \"$d/pubspec.yaml\" ] && [ \"$d\" != / ]; do " &
+  run: ("sh -c 'f=\"$file\"; d=\"$dir\"; while [ ! -f \"$d/pubspec.yaml\" ] && [ \"$d\" != / ]; do " &
        "d=$(dirname \"$d\"); done; if [ -f \"$d/pubspec.yaml\" ]; then cd \"$d\"; " &
        "case \"$f\" in *_test.dart) exec dart test \"$f\" ;; esac; " &
        "if grep -q \"^  *sdk: flutter\" pubspec.yaml; then exec flutter run; fi; fi; " &
-       "case \"$f\" in *_test.dart) exec dart test \"$f\" ;; esac; exec dart run \"$f\"'",
-  build: "dart compile exe \"$file\"",
-  check: "dart analyze \"$file\"",
+       "case \"$f\" in *_test.dart) exec dart test \"$f\" ;; esac; exec dart run \"$f\"'")
+       .replace("exec dart ", "exec " & dartCmd & " ").replace("exec flutter ", "exec " & flutterCmd & " "),
+  build: dartCmd & " compile exe \"$file\"",
+  check: dartCmd & " analyze \"$file\"",
   pairs: "()[]{}\"\"''"))
 
 snippet("dart", "main", "void main(${1:List<String> args}) {\n\t$0\n}", "a program")
@@ -256,7 +273,10 @@ if dartServerSet == "off": discard
 elif dartServerSet.len > 0:
   if dartHave(dartServerSet): dartServer = dartServerSet.splitWhitespace()
   else: echo "dart: the server " & dartServerSet & " is not installed (plugins.dart.server)"
-elif findExe("dart").len > 0: dartServer = @["dart", "language-server", "--protocol=lsp"]
+elif dartBin.len > 0: dartServer = @[dartBin, "language-server", "--protocol=lsp"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if dartServer.len == 0 and dartServerSet.len == 0:
+  languageServerMissing("dart", @["dart"], "https://dart.dev/get-dart", termux = "pkg install dart")
 if dartServer.len > 0:
   dartServer[0] = expandTilde(dartServer[0])
   languageServer("dart", dartServer)
@@ -269,4 +289,4 @@ if dartFmtSet == "off": discard
 elif dartFmtSet.len > 0:
   if dartHave(dartFmtSet): formatter("dart", dartFmtSet)
   else: echo "dart: the formatter " & dartFmtSet & " is not installed (plugins.dart.formatter)"
-elif findExe("dart").len > 0: formatter("dart", "dart format")
+elif dartBin.len > 0: formatter("dart", dartBin & " format")

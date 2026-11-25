@@ -22,16 +22,6 @@ proc dragHandleAt(x, y: int): DragTarget =
     return dtMinimap
   dtNone
 
-proc minimapJump(y: int) =
-  ## the view follows the pointer on the minimap (each minimap row is four lines)
-  let b = buf()
-  let line = clamp(mmFirst + (clamp(y, mmRect.y, mmRect.y + mmRect.h - 1) - mmRect.y) * 4, 0, b.lines.high)
-  b.topLine = clamp(line - textH div 2, 0, b.lines.high)
-  b.topSub = 0
-  b.setSingle(b.clampPos(Pos(line: line, col: 0)))
-  b.lastHead = b.primary.head
-  b.lastChange = b.changeId
-
 proc tabDragTo(x: int) =
   ## a tab dragged along the tab bar moves there
   for (a, e, i) in tabRanges:
@@ -106,7 +96,7 @@ proc dragTo(x, y: int) =
     panelMax = false
     cfgPanelH = clamp(lay.bodyBot - y, 4, max(4, lay.bodyBot - lay.bodyTop - 4))
   of dtScroll: scrollbarJump(y)
-  of dtMinimap: minimapJump(y)
+  of dtMinimap: minimapScroll(y)
   of dtTab:
     if cfgDragDrop and lay.tabY >= 0 and y != lay.tabY and bufs.len > 0 and not buf().isWelcome():
       # off the tab bar: onto a pane or an edge of the editor
@@ -429,7 +419,7 @@ proc handleMouse(k: Key) =
   if dt != dtNone:
     dragTarget = dt
     if dt == dtScroll: scrollbarJump(y)
-    elif dt == dtMinimap: minimapJump(y)
+    elif dt == dtMinimap: minimapScroll(y)
     elif dt == dtPanel: focus = fPanel
     needRender = true
     return

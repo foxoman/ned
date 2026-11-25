@@ -24,8 +24,8 @@
 ##   `fprettify --silent` ("off": none)
 import nedplugin
 
-requiresNed(">= 6.31")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 permission("shell", "runs gfortran or fpm for F5, Build and the check, and fortls and fprettify when they are installed")
 
 settingDef("server", "", "The language server's command: empty for fortls (when it is installed), \"off\" for none. " &
@@ -231,6 +231,9 @@ elif fortranServerSet.len > 0:
   if fortranHave(fortranServerSet): fortranServer = fortranServerSet.splitWhitespace()
   else: echo "fortran: the server " & fortranServerSet & " is not installed (plugins.fortran.server)"
 elif fortranHave("fortls"): fortranServer = @["fortls"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if fortranServer.len == 0 and fortranServerSet.len == 0:
+  languageServerMissing("fortran", @["fortls"], "pip install fortls")
 if fortranServer.len > 0:
   fortranServer[0] = expandTilde(fortranServer[0])
   languageServer("fortran", fortranServer)

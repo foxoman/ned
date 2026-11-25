@@ -21,8 +21,8 @@
 ##   `gleam format --stdin` ("off": none)
 import nedplugin
 
-requiresNed(">= 6.25")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for gleam lsp (when gleam is installed), \"off\" " &
            "for none. Plugins: reload after a change")
@@ -164,6 +164,10 @@ elif gleamServerSet.len > 0:
   if gleamHave(gleamServerSet): gleamServer = gleamServerSet.splitWhitespace()
   else: echo "gleam: the server " & gleamServerSet & " is not installed (plugins.gleam.server)"
 elif findExe("gleam").len > 0: gleamServer = @["gleam", "lsp"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if gleamServer.len == 0 and gleamServerSet.len == 0:
+  languageServerMissing("gleam", @["gleam"], "https://gleam.run/getting-started/installing/",
+                        termux = "pkg install gleam")
 if gleamServer.len > 0:
   gleamServer[0] = expandTilde(gleamServer[0])
   languageServer("gleam", gleamServer)

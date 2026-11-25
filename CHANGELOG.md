@@ -1,6 +1,44 @@
 # ned changelog
 
-The newest release is described in the [README](README.md#whats-new-in-656). Older releases:
+The newest release is described in the [README](README.md#whats-new-in-657). Older releases:
+
+## What's new in 6.56.1
+
+**Fixed** — most of it shows in another language or on a narrow screen:
+
+- A name that is also a word stays a name. A branch called `test`, a folder called `source`, a file called `build`
+  were shown translated in the title bar, the breadcrumbs, the branch and history lists and the boxes' titles (in
+  German: "⎇ testen"), and git's own words were mangled ("17 seconds ago" as "vor 17 second s"). Only ned's own
+  words in a text's parts are translated now (`i18n/PARTS`); names and git's words stay as they are.
+- *Language…* showed Italian's code translated ("es" in German, "его" in Russian).
+- The shadow under a box broke Chinese, Japanese and Korean text and emoji beneath it — the status bar under the
+  settings window, for one.
+- On a narrow screen (a phone: 40 to 60 columns) a dialog's buttons go on a second row instead of off the screen,
+  the settings window's *Settings file (JSON)* no longer sits under *Cancel*, the bottom panel's tabs stay clear of
+  the terminal's buttons, and a command cut short in the palette ends in "…".
+- Five lines of the key bindings (F1) are a key and its description again, the key in its colour and the
+  description wrapped in its own column: *Alt+← Alt+→ Alt+1..9*, *Alt+click / Alt+drag*, *Ctrl+Alt+Shift+arrow*,
+  *Run › Configurations*, *Alt+H on a selection*.
+- A text cut short is cut between two letters, never inside one: a JSON string in the outline, a constant's value in
+  completion and hover, a C header's documentation, a plugin's log line, an inlay hint.
+- Git blame keeps its author column in line for names such as *Jörg Müller* or *张伟*, and the type-mismatch
+  explanation keeps its columns for arguments such as `"héllo"`.
+- A CSV file's breadcrumb (*column 3*) is translated.
+
+## What's new in 6.56
+
+**ned in eleven languages besides English.** German, French, Spanish, Italian, Portuguese (Portugal), Dutch, Polish, Swedish,
+Czech, Greek and Russian are built in, each with every text ned shows. ned takes the one your system speaks
+(`LANG`), or the one you choose in *Palette › Language…* (`ui.language`). They were written by Claude, not by native
+speakers: a word that reads wrong is a line to change in `i18n/<code>.json`, and a pull request or an issue with the
+better words is welcome ([TRANSLATING.md](TRANSLATING.md)).
+
+**A translation may leave a part out.** A text such as `"Saved $1 file$2"` fills `$2` with the English plural
+ending; a translation can drop it and write a form that fits any number (`"Gespeichert: $1 Datei(en)"`). A word ned
+adds to another text with a space before it (`" here"`) is translated too.
+
+**Fixed.** On Windows the folder picker goes to another drive: type `D:\` and Enter
+([#11](https://github.com/foxoman/ned/pull/11), from dwhall).
 
 ## What's new in 6.55
 

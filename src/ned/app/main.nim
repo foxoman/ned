@@ -554,6 +554,7 @@ proc mainLoop() =
           let hb = bufById(id)
           if hb == nil: lspHoldAttach.del id
           else: timedWork("language servers started"): lspAttach(hb)
+      if lspMissing.len > 0: timedWork("language servers started"): lspLookAgain()
       if lspRestartAt.len > 0:
         var due: seq[string]
         for lang, t in lspRestartAt:

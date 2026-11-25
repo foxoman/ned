@@ -22,8 +22,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for perlnavigator --stdio (or Perl::LanguageServer) " &
            "when it is installed, \"off\" for none. Plugins: reload after a change")
@@ -241,6 +241,9 @@ elif findExe("perlnavigator").len > 0: perlServer = @["perlnavigator", "--stdio"
 elif findExe("perl").len > 0 and perlHasModule("Perl/LanguageServer.pm"):
   # (the command Perl::LanguageServer's documentation gives)
   perlServer = @["perl", "-MPerl::LanguageServer", "-e", "Perl::LanguageServer::run"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if perlServer.len == 0 and perlServerSet.len == 0:
+  languageServerMissing("perl", @["perlnavigator"], "npm install -g perlnavigator-server")
 if perlServer.len > 0:
   perlServer[0] = expandTilde(perlServer[0])
   languageServer("perl", perlServer)

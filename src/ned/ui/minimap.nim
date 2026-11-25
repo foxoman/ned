@@ -12,6 +12,19 @@ proc minimapWidth(w: int): int =
   of "on": (if w >= 40: 10 else: 0)
   else: (if w >= 100 and not lay.overlay and not slowTerminal(): 10 else: 0)   # (auto: not on a slow terminal)
 
+proc minimapScroll(y: int) =
+  ## a click or a drag on the minimap's row `y`: the view goes there (each row is four lines), that line in the middle
+  ## of the editor — the cursor stays where it was, as with the wheel and the scroll bar, and the next key that moves
+  ## it brings it back into view (#13)
+  if mmRect.h <= 0 or bufs.len == 0: return
+  let b = buf()
+  let line = clamp(mmFirst + (clamp(y, mmRect.y, mmRect.y + mmRect.h - 1) - mmRect.y) * 4, 0, b.lines.high)
+  b.topLine = clamp(line - textH div 2, 0, b.lines.high)
+  b.topSub = 0
+  b.lastHead = b.primary.head
+  b.lastChange = b.changeId
+  needRender = true
+
 proc drawMinimap(b: Buffer, x0, y0, w, h: int) =
   ## draws the minimap: every cell is a braille character whose dots show where lines have text (four lines by four
   ## columns of text per cell), the part in view brighter, a row tinted red for a line with an error and in the tag's
@@ -92,11 +105,4 @@ proc drawMinimap(b: Buffer, x0, y0, w, h: int) =
       if hit: setCell(x0 + w - 1, y0 + row, Cell(ch: 0x2590'u32, fg: theme.matchCur, bg: rbg))
   mmRect = (x0, y0, w, h)
   mmFirst = mmStart
-  region(x0, y0, w, h, proc() =
-    let line = mmStart + (mouseY - y0) * 4
-    let bb = buf()
-    bb.topLine = clamp(line - textH div 2, 0, bb.lines.high)
-    bb.topSub = 0
-    bb.setSingle(bb.clampPos(Pos(line: clamp(line, 0, bb.lines.high), col: 0)))
-    bb.lastHead = bb.primary.head
-    bb.lastChange = bb.changeId, "Minimap", proc() = ctxOpen(minimapMenu()))
+  region(x0, y0, w, h, proc() = minimapScroll(mouseY), "Minimap", proc() = ctxOpen(minimapMenu()))

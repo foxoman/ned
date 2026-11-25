@@ -13348,6 +13348,97 @@ def t_6561_names_and_narrow():
     keys('Escape'); time.sleep(0.3)
     shutil.rmtree(CFG + '/ned/i18n', ignore_errors=True)
 
+def t_657_minimap_cursor():
+    # 6.57 (#13, lou15b): a click or a drag on the minimap scrolls the view and leaves the cursor where it was, as the
+    # wheel and the scroll bar do; the next key that moves it brings it back into view
+    setup({"ui.minimap": "on"})
+    open(W + '/mmc.nim', 'w').write(''.join('let value%d = %d  # a line long enough to fill the minimap\n' % (i, i)
+                                            for i in range(400)))
+    start('mmc.nim', w=150, h=40)
+    keys('C-g'); text('5'); keys('Enter'); keys('End'); time.sleep(0.3)
+    before = status_pos()
+    rows = screen().split('\n')
+    # (the minimap: the braille cells at the right of the editor)
+    mmx = max((max((i for i, c in enumerate(r) if 0x2801 <= ord(c) <= 0x28FF), default=-1) for r in rows[3:30]),
+              default=-1)
+    check('657 minimap: it is there', mmx > 100 and before is not None, '\n'.join(rows[:30]))
+    click(mmx + 1, 31); time.sleep(0.4)
+    s = screen()
+    # (line 5 is value4; the editor may show a type after a name: "value4: int")
+    check('657 minimap: a click scrolls the view', not re.search(r'\bvalue4\b', s) and re.search(r'\bvalue1[01]\d\b', s),
+          s)
+    check('657 minimap: … and the cursor stays where it was', status_pos() == before, s[-400:])
+    press(mmx + 1, 12); drag(mmx + 1, 20); drag(mmx + 1, 33); release(mmx + 1, 33); time.sleep(0.3)
+    s = screen()
+    check('657 minimap: a drag scrolls it too, the cursor still there',
+          not re.search(r'\bvalue4\b', s) and status_pos() == before, s)
+    keys('Right'); time.sleep(0.3)
+    s = screen()
+    check('657 minimap: the next key that moves the cursor brings it back into view',
+          re.search(r'\bvalue4\b', s) and status_pos() == (before[0] + 1, 1), s)
+
+def t_657_server_installed_later():
+    # 6.57: a plugin's language whose server is not installed says how to get it; once the server is on PATH (by the
+    # toast's Install button or by hand) the plugin runs again and the server starts — no Plugins: reload. One of
+    # ned's own languages the same: a server installed while its file is open starts, with no restart
+    setup()
+    d = CFG + '/ned/plugins/late-lsp'
+    os.makedirs(d, exist_ok=True)
+    open(d + '/plugin.nims', 'w').write(
+        '## late-lsp — a server for plain text, installed later\nimport nedplugin\n'
+        'permission("shell", "runs late-ls")\n'
+        'if findExe("late-ls").len > 0: languageServer("plaintext", @["late-ls"])\n'
+        'else: languageServerMissing("plaintext", @["late-ls"], "echo late-ls-install")\n')
+    bind = TMP + '/latebin'
+    shutil.rmtree(bind, ignore_errors=True)
+    os.makedirs(bind)
+    open(W + '/notes.txt', 'w').write('a PRIMARY_ERR in plain text\n')
+    open(W + '/game.lua', 'w').write('local x = 1 -- PRIMARY_ERR\n')
+    start('notes.txt', w=140, h=40, path=bind + ':' + TOOLS + ':$PATH'); time.sleep(0.5)
+    check('657 server later: plugins ready', plugins_ready(), screen())
+    ok = wait_for('no language server for', 12)
+    s = screen()
+    check('657 server later: a plugin language without its server says how to get it',
+          ok and 'late-ls (echo' in s and 'late-ls-install)' in s and 'Install' in s, s)
+    def install(name):
+        f = bind + '/' + name
+        open(f, 'w').write('#!/bin/sh\nexec python3 %s/mocklsp.py\n' % MOCKS)
+        os.chmod(f, 0o755)
+    install('late-ls')
+    ok = wait_for('PRIMARY_ERR here', 25)
+    check('657 server later: once it is installed, the plugin runs again and the server starts', ok, screen())
+    keys('C-p'); time.sleep(0.3); text('game.lua'); time.sleep(0.4); keys('Enter')
+    ok = wait_for('Lua: no language server', 12)
+    check('657 server later: one of ned\'s own languages says how to get its server', ok, screen())
+    install('lua-language-server')
+    ok = wait_for('PRIMARY_ERR here', 20)
+    check('657 server later: … and starts it once it is installed, no restart', ok and 'game.lua' in screen(), screen())
+
+def t_657_terminal_gutter_click():
+    # 6.57 (the fuzzer): a click in the terminal's gutter, beside the second row of a command that goes on to it, gave an
+    # internal error (a place before the row's start) — it moves the shell's cursor to the row's start now
+    setup({"terminal.shell": "/bin/bash", "terminal.clickToMove": True})
+    start('src/demo.nim', w=130, h=34, env_extra='HOME=' + TMP); time.sleep(0.5)
+    keys('C-\\'); time.sleep(1.5)
+    text('echo done-657'); keys('Enter'); time.sleep(0.6)       # (the gutter's marks come with the first command)
+    text('echo ' + 'q' * 180); time.sleep(0.6)
+    rows = screen().splitlines()
+    pos = None
+    for r in range(len(rows) - 2, -1, -1):
+        if ('echo ' + 'q' * 20) in rows[r]:
+            c2 = rows[r + 1].find('qqqq')
+            if c2 >= 2: pos = (c2, r + 2)                        # (1-based: the column left of the row's first q)
+            break
+    check('657 the command goes on to a second row, with the gutter beside it', pos is not None, screen())
+    if pos:
+        click(*pos); time.sleep(0.5)
+        try: errs = open(STATE + '/ned/errors.log').read()
+        except OSError: errs = ''
+        check('657 a click in the gutter beside it: no internal error', 'IndexDefect' not in errs, errs[-600:])
+        text('Z'); time.sleep(0.4); keys('Enter')
+        ok = wait_for(r'q{20,}Zq{20,}', 5)
+        check('657 … and the shell\'s cursor went to the start of that row', ok, screen())
+
 tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_terminal, t_run_file, t_lsp, t_lsp_diag, t_ai_chat, t_split_zen_theme, t_vim, t_recovery, t_quit_dirty, t_mixed_folder, t_builtin_nimsuggest, t_server_crash_restart, t_engine_member_completion, t_engine_hover_def_sig, t_engine_refs_rename, t_engine_imports, t_engine_without_nimsuggest, t_engine_outline_symbols, t_format_keeps_cursor, t_zen_vim, t_ai_insert, t_format_builtin, t_format_choice, t_reset_settings, t_52_refactors, t_52_format_selection, t_52_conflict, t_52_settings_search, t_52_mouse, t_521_debugger, t_521_touchbar, t_521_bp_follow_edits, t_522_navigation, t_522_peek_hierarchy_stage, t_522_rename_imports, t_522_shortcuts_markdown, t_522_multibuffer, t_522_nim_codegen, t_522_nim_tools, t_53_alerts_and_formatter, t_53_diff_view, t_53_rename_preview, t_53_debugger_watch_test, t_53_user_commands, t_531_help_menus, t_532_polish, t_54_git, t_55_publish, t_56_todos, t_561_review_fixes, t_562_format_cursor, t_563_open_folder, t_564_tiny_screens, t_564_save_safety, t_57_themes, t_57_ai, t_57_nim, t_57_git, t_571_rulers, t_572_editorconfig, t_572_tasks, t_572_errors, t_572_swatches, t_572_examples, t_59_small, t_59_html, t_59_problems_mb, t_59_lsp_more, t_59_langs_tests, t_59_ai_more, t_59_dap, t_510_large, t_510_debug_tools, t_510_testament, t_510_repl, t_510_nimble_outdated, t_510_merge_editor, t_510_spell, t_510_coverage, t_510_langs, t_510_mcp_more, t_510_emmet_css, t_510_sync, t_510_keymaps, t_510_accessible, t_510_workspace, t_510_remote, t_511_stale_errors, t_511_embedded, t_512_c_interop, t_512_refs_big, t_512_comp_stale, t_513_emit_edit, t_513_emit_errors, t_513_emit_c, t_514_emit_clangd, t_515_emit_more, t_515_strings, t_516_quickfixes, t_516_ai_fix, t_517_remote_git, t_517_workspace_git, t_518_macros, t_518_terminal, t_519_refactor, t_519_lists, t_520_agent_check, t_520_ai_tests, t_521_remote, t_521_git, t_521_format_self, t_522_perf, t_523_include, t_523_typehints, t_523_charlit, t_524_debug, t_524_format, t_524_deps, t_525_hints, t_525_engine, t_525_csv, t_525_profile, t_525_macro_nested, t_526_typing_errors, t_527_expand, t_527_complete, t_527_hover, t_528_hierarchy, t_528_refs, t_528_actions, t_529_clangd_fixes, t_529_examples, t_60_includes, t_60_protect, t_61_semantic, t_63_marks, t_63_git, t_63_format, t_63_paste, t_63_cdocs, t_64_engine, t_65_cengine, t_65_ligatures, t_66_cwrap, t_66_zen_menu, t_66_align_hints, t_66_trust, t_66_postfix, t_66_copies, t_66_test_on_save, t_66_ctvalues, t_66_include_check, t_67_github_signin, t_67_git_undo, t_67_commit_checks, t_67_review_comments, t_67_ai_grounded, t_67_ai_fix_test, t_67_format_changed, t_67_format_preview, t_67_yaml_toml, t_67_termux_clock, t_67_rich_colors, t_67_theme_editor, t_67_two_servers, t_67_lsp_links, t_67_ai_plan, t_67_ai_offline, t_68_nedfmt, t_68_engine_checks, t_68_compiler_answers, t_68_macro_names, t_68_settings_panel, t_69_locked_versions, t_69_expected_type, t_69_memory_layout, t_69_raises_hints, t_69_engine_hints, t_69_shared_settings, t_69_toolchain, t_69_lint_and_ci, t_610_expected_multiline, t_610_can_be_func, t_610_concepts, t_610_nim_coverage, t_610_lint_rules, t_610_imports_required, t_610_dep_tree_locked, t_610_project_checks, t_610_fmt_uses, t_611_terminal_scroll, t_611_frames_vt, t_611_perf_report, t_612_hints_ahead, t_612_reflow_comments, t_6112_examples_after_format, t_6112_long_line, t_6112_terminal_flood, t_612_nim3, t_612_nim3_port, t_612_hex, t_612_hex_exe, t_612_big_text, t_613_remote, t_613_terminal_answers, t_613_edit_tools, t_613_vim_filter, t_614_web_css, t_614_web_html, t_614_web_sql, t_614_picker_preview, t_614_jump_labels, t_614_git_new_folder, t_614_format_pieces, t_6141_quick_fix_keys, t_6141_ref_counts, t_6141_showcase, t_615_select_structure, t_615_surround, t_615_vim_surround, t_615_undo_tree, t_615_git_changes, t_615_next_edit, t_615_web_js, t_615_cpp, t_616_engine_worker, t_618_nedls_in_ned, t_619_nimble_resolve, t_619_plugins, t_619_plugins_vim, t_619_plugins_lsp_lang, t_619_hot_exit, t_619_encodings, t_619_key_conflicts, t_620_plugin_language, t_620_plugin_full_nim, t_6241_plugin_check, t_620_ast_docs, t_620_nimble_edit, t_620_emit_names, t_620_viewer, t_620_plugin_list, t_621_emit_format, t_621_reset, t_621_settings_form, t_621_fields, t_621_context_menus, t_621_drag_drop, t_621_atlas, t_621_decompile, t_621_new_project, t_622_settings_controls, t_622_nimscript, t_622_plugin_api, t_622_doc_comments, t_623_decompile_menu, t_623_align_comments, t_623_c_engine, t_623_emit_builtin_c, t_623_nim_rewrites, t_623_call_args, t_624_compiler_explorer, t_624_ce_toolbar, t_6241_dock_view_menu, t_6241_ce_all_procs, t_625_indent, t_625_plugins_menu, t_625_which_key, t_625_oil, t_625_engine_checks,
          t_625_chain_hints, t_625_rename_reach, t_625_completion_recent, t_625_oracle, t_625_c_if, t_625_c_checks,
          t_625_cpp_overloads, t_624_compiler_explorer_c,
@@ -13375,4 +13466,4 @@ tests = [t_edit_save_undo, t_find_replace, t_multicursor, t_project_search, t_te
          t_653_copilot_real, t_653_ide_claude, t_653_ide_gemini, t_653_ide_gemini_real, t_653_ide_hostile,
          t_653_agent_worktree, t_653_terminal_options,
          t_654_ide_restart, t_654_ide_edit, t_654_agent_review, t_654_worktree_mine, t_655_i18n,
-         t_656_built_in_languages, t_6561_names_and_narrow]
+         t_656_built_in_languages, t_6561_names_and_narrow, t_657_minimap_cursor, t_657_server_installed_later, t_657_terminal_gutter_click]

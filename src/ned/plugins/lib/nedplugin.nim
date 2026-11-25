@@ -1054,6 +1054,19 @@ template languageServerScript*(lang, script: string, afterSave = false) =
   ##     languageServerScript("markdown", "server.nims")
   regLsp(instantiationInfo(-1, true).filename, lang, @[], script, afterSave)
 
+proc regLspMissing*(file, lang: string, programs: seq[string], install, termux: string) =
+  ## (what languageServerMissing uses: call it)
+  discard register(file, "lspMissing", %*{"lang": lang, "programs": programs, "install": install, "termux": termux})
+template languageServerMissing*(lang: string, programs: seq[string], install = "", termux = "") =
+  ## The language's server is not installed: none of `programs` (the servers you look for) is on PATH. When a file
+  ## of the language is open, ned says so once, with how to get it — `install`: a command, which its Install button
+  ## runs in the terminal, or a web page, which its Open button opens; on Termux `termux` when you give it
+  ## (`pkg install …`). Once one of `programs` is on PATH, ned runs your plugin again, so the server it finds then
+  ## starts, with no Plugins: reload. A command needs the "shell" permission (ned 6.57).
+  ##
+  ##     if zigServer.len == 0: languageServerMissing("zig", @["zls"], "https://github.com/zigtools/zls")
+  regLspMissing(instantiationInfo(-1, true).filename, lang, programs, install, termux)
+
 # ── vim (editor.vimMode) ──
 
 proc regVimMap*(file, mode, keys: string, cb: proc(count: int), desc = "", lang = "") =

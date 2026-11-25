@@ -25,8 +25,8 @@
 import nedplugin
 import std/strutils
 
-requiresNed(">= 6.28")
-pluginInfo(version = "1.0.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
+requiresNed(">= 6.57")
+pluginInfo(version = "1.1.0", author = "Sultan Al Isaiee (@foxoman)", homepage = "https://github.com/foxoman/ned", license = "GPL-3.0-or-later")
 
 settingDef("server", "", "The language server's command: empty for metals (when it is installed), \"off\" for " &
            "none. Plugins: reload after a change")
@@ -328,6 +328,10 @@ elif scalaServerSet.len > 0:
   if scalaHave(scalaServerSet): scalaServer = scalaServerSet.splitWhitespace()
   else: echo "scala: the server " & scalaServerSet & " is not installed (plugins.scala.server)"
 elif findExe("metals").len > 0: scalaServer = @["metals"]
+# (no server installed: ned says how to get one, and runs this again once it is on PATH)
+if scalaServer.len == 0 and scalaServerSet.len == 0:
+  languageServerMissing("scala", @["metals"],
+                        (if findExe("cs").len > 0: "cs install metals" else: "https://get-coursier.io"))
 if scalaServer.len > 0:
   scalaServer[0] = expandTilde(scalaServer[0])
   languageServer("scala", scalaServer)
